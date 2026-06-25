@@ -25,11 +25,11 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except2, desc2) => {
+var __copyProps = (to, from, except2, desc3) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except2)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc2 = __getOwnPropDesc(from, key)) || desc2.enumerable });
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc3 = __getOwnPropDesc(from, key)) || desc3.enumerable });
   }
   return to;
 };
@@ -1351,10 +1351,10 @@ var require_http_errors = __commonJS({
       return ServerError;
     }
     function nameFunc(func, name) {
-      var desc2 = Object.getOwnPropertyDescriptor(func, "name");
-      if (desc2 && desc2.configurable) {
-        desc2.value = name;
-        Object.defineProperty(func, "name", desc2);
+      var desc3 = Object.getOwnPropertyDescriptor(func, "name");
+      if (desc3 && desc3.configurable) {
+        desc3.value = name;
+        Object.defineProperty(func, "name", desc3);
       }
     }
     function populateConstructorExports(exports2, codes, HttpError) {
@@ -16840,14 +16840,14 @@ var require_get = __commonJS({
         throw e;
       }
     }
-    var desc2 = !!hasProtoAccessor && gOPD && gOPD(
+    var desc3 = !!hasProtoAccessor && gOPD && gOPD(
       Object.prototype,
       /** @type {keyof typeof Object.prototype} */
       "__proto__"
     );
     var $Object = Object;
     var $getPrototypeOf = $Object.getPrototypeOf;
-    module.exports = desc2 && typeof desc2.get === "function" ? callBind([desc2.get]) : typeof $getPrototypeOf === "function" ? (
+    module.exports = desc3 && typeof desc3.get === "function" ? callBind([desc3.get]) : typeof $getPrototypeOf === "function" ? (
       /** @type {import('./get')} */
       function getDunder(value) {
         return $getPrototypeOf(value == null ? value : $Object(value));
@@ -17197,10 +17197,10 @@ var require_get_intrinsic = __commonJS({
             return void undefined2;
           }
           if ($gOPD && i + 1 >= parts.length) {
-            var desc2 = $gOPD(value, part);
-            isOwn = !!desc2;
-            if (isOwn && "get" in desc2 && !("originalValue" in desc2.get)) {
-              value = desc2.get;
+            var desc3 = $gOPD(value, part);
+            isOwn = !!desc3;
+            if (isOwn && "get" in desc3 && !("originalValue" in desc3.get)) {
+              value = desc3.get;
             } else {
               value = value[part];
             }
@@ -30551,12 +30551,12 @@ var require_result = __commonJS({
         }
         const row = /* @__PURE__ */ Object.create(null);
         for (let i = 0; i < fieldDescriptions.length; i++) {
-          const desc2 = fieldDescriptions[i];
-          row[desc2.name] = null;
+          const desc3 = fieldDescriptions[i];
+          row[desc3.name] = null;
           if (this._types) {
-            this._parsers[i] = this._types.getTypeParser(desc2.dataTypeID, desc2.format || "text");
+            this._parsers[i] = this._types.getTypeParser(desc3.dataTypeID, desc3.format || "text");
           } else {
-            this._parsers[i] = types3.getTypeParser(desc2.dataTypeID, desc2.format || "text");
+            this._parsers[i] = types3.getTypeParser(desc3.dataTypeID, desc3.format || "text");
           }
         }
         this._prebuiltEmptyResultObject = { ...row };
@@ -44768,6 +44768,9 @@ function drizzle(...params) {
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  clipboardsTable: () => clipboardsTable,
+  contactsTable: () => contactsTable,
+  insertContactSchema: () => insertContactSchema,
   insertSettingSchema: () => insertSettingSchema,
   insertToolSchema: () => insertToolSchema,
   siteSettingsTable: () => siteSettingsTable,
@@ -56188,6 +56191,27 @@ var siteSettingsTable = pgTable("site_settings", {
 });
 var insertSettingSchema = createInsertSchema(siteSettingsTable).omit({ id: true, updatedAt: true });
 
+// ../../lib/db/src/schema/contacts.ts
+var contactsTable = pgTable("contacts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var insertContactSchema = createInsertSchema(contactsTable).omit({ id: true, isRead: true, createdAt: true });
+
+// ../../lib/db/src/schema/clipboard.ts
+var clipboardsTable = pgTable("clipboards", {
+  id: serial("id").primaryKey(),
+  handle: text("handle").notNull().unique(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull()
+});
+
 // ../../lib/db/src/index.ts
 var { Pool: Pool3 } = esm_default;
 if (!process.env.DATABASE_URL) {
@@ -56437,6 +56461,34 @@ router3.post("/admin/tools/:slug/reset-usage", requireAdmin, async (req, res) =>
     res.status(500).json({ error: "Internal server error" });
   }
 });
+router3.get("/admin/contacts", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.select().from(contactsTable).orderBy(desc(contactsTable.createdAt));
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+router3.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    await db.update(contactsTable).set({ isRead: true }).where(eq(contactsTable.id, id));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+router3.delete("/admin/contacts/:id", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    await db.delete(contactsTable).where(eq(contactsTable.id, id));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 var admin_default = router3;
 
 // src/routes/index.ts
@@ -56454,7 +56506,8 @@ router4.get("/public-settings", async (req, res) => {
     "site_title",
     "site_description",
     "maintenance_mode",
-    "maintenance_message"
+    "maintenance_message",
+    "hidden_pages"
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);
@@ -56473,13 +56526,48 @@ router4.post("/visit", async (req, res) => {
     const [existing] = await db.select().from(siteSettingsTable).where(eq(siteSettingsTable.key, "total_visitors")).limit(1);
     const current = parseInt(existing?.value ?? "0", 10);
     const newCount = current + 1;
-    await db.insert(siteSettingsTable).values({ key: "total_visitors", value: String(newCount) }).onConflictDoUpdate({
-      target: siteSettingsTable.key,
-      set: { value: String(newCount), updatedAt: /* @__PURE__ */ new Date() }
-    });
+    await db.insert(siteSettingsTable).values({ key: "total_visitors", value: String(newCount) }).onConflictDoUpdate({ target: siteSettingsTable.key, set: { value: String(newCount), updatedAt: /* @__PURE__ */ new Date() } });
     res.json({ success: true, totalVisitors: newCount });
   } catch {
     res.json({ success: true });
+  }
+});
+router4.post("/contact", async (req, res) => {
+  const { name, email: email3, subject, message } = req.body;
+  if (!name || !email3 || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+  try {
+    await db.insert(contactsTable).values({ name, email: email3, subject, message });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to save message" });
+  }
+});
+router4.post("/clipboard", async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+  try {
+    const handle = Math.random().toString(36).slice(2, 9);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1e3);
+    await db.insert(clipboardsTable).values({ handle, content, expiresAt });
+    res.json({ handle });
+  } catch {
+    res.status(500).json({ error: "Failed to save clipboard" });
+  }
+});
+router4.get("/clipboard/:handle", async (req, res) => {
+  const { handle } = req.params;
+  try {
+    const [row] = await db.select().from(clipboardsTable).where(eq(clipboardsTable.handle, handle)).limit(1);
+    if (!row) return res.status(404).json({ error: "Not found" });
+    if (/* @__PURE__ */ new Date() > row.expiresAt) {
+      await db.delete(clipboardsTable).where(eq(clipboardsTable.handle, handle));
+      return res.status(410).json({ error: "Expired" });
+    }
+    res.json({ content: row.content, expiresAt: row.expiresAt });
+  } catch {
+    res.status(500).json({ error: "Failed to retrieve clipboard" });
   }
 });
 router4.get("/sitemap.xml", async (req, res) => {
@@ -56497,7 +56585,8 @@ router4.get("/sitemap.xml", async (req, res) => {
       { url: "/about", priority: "0.6", changefreq: "monthly" },
       { url: "/privacy", priority: "0.4", changefreq: "yearly" },
       { url: "/terms", priority: "0.4", changefreq: "yearly" },
-      { url: "/contact", priority: "0.5", changefreq: "monthly" }
+      { url: "/contact", priority: "0.5", changefreq: "monthly" },
+      { url: "/faq", priority: "0.6", changefreq: "monthly" }
     ];
     const toolPages = tools.filter((t) => !t.isHidden).map((t) => ({
       url: `/tools/${t.slug}`,
@@ -56510,14 +56599,12 @@ router4.get("/sitemap.xml", async (req, res) => {
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-${allPages.map(
-      (p) => `  <url>
+${allPages.map((p) => `  <url>
     <loc>${host}${p.url}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
-  </url>`
-    ).join("\n")}
+  </url>`).join("\n")}
 </urlset>`;
     res.setHeader("Content-Type", "application/xml");
     res.setHeader("Cache-Control", "public, max-age=3600");
