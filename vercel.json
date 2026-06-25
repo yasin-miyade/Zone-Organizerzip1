@@ -15,6 +15,14 @@
       "dest": "https://filezone-api.onrender.com/api/$1"
     },
     {
+      "src": "/sitemap.xml",
+      "dest": "https://filezone-api.onrender.com/api/sitemap.xml"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "https://filezone-api.onrender.com/api/robots.txt"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

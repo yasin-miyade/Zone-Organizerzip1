@@ -1,16 +1,47 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+
+// Search upwards for .env file to support monorepo directory execution
+const findEnv = () => {
+  const paths = [
+    path.join(process.cwd(), ".env"),
+    path.join(process.cwd(), "..", ".env"),
+    path.join(process.cwd(), "..", "..", ".env"),
+  ];
+  for (const p of paths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+};
+
+const envPath = findEnv();
+if (envPath) {
+  dotenv.config({ path: envPath });
+}
+
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+export let pool: pg.Pool = null as any;
+export let db: NodePgDatabase<typeof schema> = null as any;
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+if (!process.env.DATABASE_URL) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "DATABASE_URL must be set in production.",
+    );
+  } else {
+    console.warn(
+      "WARNING: DATABASE_URL is not set. Database functionality will be offline.",
+    );
+  }
+} else {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  db = drizzle(pool, { schema });
+}
 
 export * from "./schema";

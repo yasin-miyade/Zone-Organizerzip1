@@ -79,7 +79,7 @@ router.post("/clipboard", async (req, res) => {
 
 // GET /clipboard/:handle — retrieve clipboard content
 router.get("/clipboard/:handle", async (req, res) => {
-  const { handle } = req.params;
+  const handle = req.params.handle as string;
   try {
     const [row] = await db.select().from(clipboardsTable).where(eq(clipboardsTable.handle, handle)).limit(1);
     if (!row) return res.status(404).json({ error: "Not found" });
@@ -95,7 +95,7 @@ router.get("/clipboard/:handle", async (req, res) => {
 
 // PUT /clipboard/:handle — update clipboard content
 router.put("/clipboard/:handle", async (req, res) => {
-  const { handle } = req.params;
+  const handle = req.params.handle as string;
   const { content } = req.body as { content?: string };
   if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
   try {

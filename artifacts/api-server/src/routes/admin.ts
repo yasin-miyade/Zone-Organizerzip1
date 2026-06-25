@@ -103,7 +103,7 @@ router.get("/admin/tools", requireAdmin, async (req, res) => {
 
 // PUT /admin/tools/:slug — update tool metadata
 router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
-  const { slug } = req.params;
+  const slug = req.params.slug as string;
   const body = req.body as {
     name?: string;
     description?: string;
@@ -148,7 +148,7 @@ router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
 
 // DELETE /admin/tools/:slug
 router.delete("/admin/tools/:slug", requireAdmin, async (req, res) => {
-  const { slug } = req.params;
+  const slug = req.params.slug as string;
   try {
     await db.delete(toolsTable).where(eq(toolsTable.slug, slug));
     res.json({ success: true });
@@ -234,7 +234,7 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
 
 // POST /admin/tools/:slug/reset-usage — reset usage count
 router.post("/admin/tools/:slug/reset-usage", requireAdmin, async (req, res) => {
-  const { slug } = req.params;
+  const slug = req.params.slug as string;
   try {
     await db.update(toolsTable).set({ usageCount: 0 }).where(eq(toolsTable.slug, slug));
     res.json({ success: true });
@@ -255,7 +255,7 @@ router.get("/admin/contacts", requireAdmin, async (req, res) => {
 
 // PATCH /admin/contacts/:id/read — mark as read
 router.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
     await db.update(contactsTable).set({ isRead: true }).where(eq(contactsTable.id, id));
@@ -267,7 +267,7 @@ router.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
 
 // DELETE /admin/contacts/:id — delete a contact submission
 router.delete("/admin/contacts/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
   try {
     await db.delete(contactsTable).where(eq(contactsTable.id, id));

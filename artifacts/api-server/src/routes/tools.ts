@@ -85,7 +85,7 @@ router.get("/tools/categories", async (req, res) => {
 
 // POST /tools/:toolSlug/track
 router.post("/tools/:toolSlug/track", async (req, res) => {
-  const { toolSlug } = req.params;
+  const toolSlug = req.params.toolSlug as string;
   const filesProcessed: number = req.body.filesProcessed ?? 1;
 
   try {
@@ -112,7 +112,7 @@ router.post("/tools/:toolSlug/track", async (req, res) => {
 
 // GET /tools/:toolSlug
 router.get("/tools/:toolSlug", async (req, res) => {
-  const { toolSlug } = req.params;
+  const toolSlug = req.params.toolSlug as string;
 
   try {
     const [tool] = await db

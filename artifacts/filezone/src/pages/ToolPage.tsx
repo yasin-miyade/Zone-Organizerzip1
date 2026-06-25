@@ -84,7 +84,7 @@ function PdfPreviewThumb({ blob }: { blob: Blob }) {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d")!;
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport } as any).promise;
         if (!cancelled) setDataUrl(canvas.toDataURL("image/jpeg", 0.85));
       } catch { if (!cancelled) setError(true); }
     })();
@@ -177,7 +177,7 @@ function MergePdf({ onDone }: { onDone: () => void }) {
         setProgress(10 + Math.round(80 * (i + 1) / files.length));
       }
       const pdfBytes = await merged.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: "merged.pdf", blob, size: blob.size }]);
       setProgress(100);
       onDone();
@@ -226,7 +226,7 @@ function SplitPdf({ onDone }: { onDone: () => void }) {
           const [page] = await single.copyPages(doc, [i]);
           single.addPage(page);
           const b = await single.save();
-          const blob = new Blob([b], { type: "application/pdf" });
+          const blob = new Blob([b as any], { type: "application/pdf" });
           res.push({ name: `${baseName(files[0])}_page${i + 1}.pdf`, blob, size: blob.size });
         }
         setResults(res);
@@ -238,7 +238,7 @@ function SplitPdf({ onDone }: { onDone: () => void }) {
         const pages = await rangeDoc.copyPages(doc, indices);
         pages.forEach(p => rangeDoc.addPage(p));
         const b = await rangeDoc.save();
-        const blob = new Blob([b], { type: "application/pdf" });
+        const blob = new Blob([b as any], { type: "application/pdf" });
         setResults([{ name: `${baseName(files[0])}_pages${from}-${to}.pdf`, blob, size: blob.size }]);
       }
       onDone();
@@ -289,7 +289,7 @@ function CompressPdf({ onDone }: { onDone: () => void }) {
       const bytes = await files[0].arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       const pdfBytes = await doc.save({ useObjectStreams: true, addDefaultPage: false });
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_compressed.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -334,7 +334,7 @@ function PdfToJpg({ onDone }: { onDone: () => void }) {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d")!;
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport } as any).promise;
         const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
         const blob = dataURLtoBlob(dataUrl);
         const arr = await blob.arrayBuffer();
@@ -389,7 +389,7 @@ function JpgToPdf({ onDone }: { onDone: () => void }) {
         page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
       }
       const pdfBytes = await doc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: "images.pdf", blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -428,7 +428,7 @@ function RotatePdf({ onDone }: { onDone: () => void }) {
       const deg = parseInt(angle);
       doc.getPages().forEach(p => p.setRotation(degrees((p.getRotation().angle + deg) % 360)));
       const pdfBytes = await doc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_rotated.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -491,7 +491,7 @@ function WatermarkPdf({ onDone }: { onDone: () => void }) {
         });
       });
       const pdfBytes = await doc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_watermarked.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -536,7 +536,7 @@ function PdfToText({ onDone }: { onDone: () => void }) {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        parts.push(`--- Page ${i} ---\n` + content.items.map((it: { str?: string }) => it.str ?? "").join(" "));
+        parts.push(`--- Page ${i} ---\n` + content.items.map((it: any) => it.str ?? "").join(" "));
       }
       setOutputText(parts.join("\n\n"));
       onDone();
@@ -599,8 +599,8 @@ function ProtectPdf({ onDone }: { onDone: () => void }) {
         userPassword: password,
         ownerPassword: password,
         permissions: { modifying: false, copying: false, annotating: false, fillingForms: false },
-      });
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      } as any);
+      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_protected.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -1943,7 +1943,7 @@ function RemovePdfPages({ onDone }: { onDone: () => void }) {
       const pages = await newDoc.copyPages(src, keepIndices);
       pages.forEach(p => newDoc.addPage(p));
       const b = await newDoc.save();
-      const blob = new Blob([b], { type: "application/pdf" });
+      const blob = new Blob([b as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_modified.pdf`, blob, size: blob.size }]);
       onDone();
     } catch { toast({ title: "Error processing PDF", variant: "destructive" }); }
@@ -1999,7 +1999,7 @@ function AddPageNumbers({ onDone }: { onDone: () => void }) {
         });
       }
       const b = await doc.save();
-      const blob = new Blob([b], { type: "application/pdf" });
+      const blob = new Blob([b as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_numbered.pdf`, blob, size: blob.size }]);
       onDone();
     } catch { toast({ title: "Error adding page numbers", variant: "destructive" }); }
@@ -2221,8 +2221,8 @@ export function ToolPage() {
         {tool?.description && <p className="text-muted-foreground">{tool.description}</p>}
         {!!(tool?.inputFormats?.length || tool?.outputFormats?.length) && (
           <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-            {tool.inputFormats?.length > 0 && <span>Input: {tool.inputFormats.join(", ").toUpperCase()}</span>}
-            {tool.outputFormats?.length > 0 && <span>Output: {tool.outputFormats.join(", ").toUpperCase()}</span>}
+            {!!tool?.inputFormats?.length && <span>Input: {tool.inputFormats.join(", ").toUpperCase()}</span>}
+            {!!tool?.outputFormats?.length && <span>Output: {tool.outputFormats.join(", ").toUpperCase()}</span>}
           </div>
         )}
       </div>
