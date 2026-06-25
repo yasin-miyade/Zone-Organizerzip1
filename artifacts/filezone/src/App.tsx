@@ -14,6 +14,7 @@ import { TermsOfService } from "@/pages/TermsOfService";
 import { CookiePolicy } from "@/pages/CookiePolicy";
 import { ContactUs } from "@/pages/ContactUs";
 import { FAQ } from "@/pages/FAQ";
+import { ThemeProvider } from "next-themes";
 import { CookieBanner } from "@/components/CookieBanner";
 import NotFound from "@/pages/not-found";
 
@@ -57,13 +58,15 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-          <CookieBanner />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+            <CookieBanner />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

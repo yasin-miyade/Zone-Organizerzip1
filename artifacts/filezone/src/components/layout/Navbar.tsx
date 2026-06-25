@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Layers, Image as ImageIcon, FileText, ArrowRightLeft, Info, Calculator, AlignLeft, Menu, X } from "lucide-react";
+import { Layers, Image as ImageIcon, FileText, ArrowRightLeft, Info, Calculator, AlignLeft, Menu, X, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 const allNavItems = [
   { href: "/pdf",        label: "PDF Tools",   icon: FileText,        key: "pdf" },
@@ -16,8 +17,11 @@ const allNavItems = [
 export function Navbar({ hiddenPages = [] }: { hiddenPages?: string[] }) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setOpen(false); }, [location]);
+  useEffect(() => { setMounted(true); }, []);
 
   const navItems = allNavItems.filter(item => !hiddenPages.includes(item.key));
 
@@ -49,14 +53,30 @@ export function Navbar({ hiddenPages = [] }: { hiddenPages?: string[] }) {
           ))}
         </nav>
 
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          onClick={() => setOpen(o => !o)}
-          aria-label={open ? "Close menu" : "Open menu"}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Right action container */}
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            aria-label="Toggle Theme"
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            onClick={() => setOpen(o => !o)}
+            aria-label={open ? "Close menu" : "Open menu"}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown */}
