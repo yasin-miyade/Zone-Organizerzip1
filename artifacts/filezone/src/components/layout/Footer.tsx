@@ -142,8 +142,7 @@ export function Footer({ hiddenPages = [] }: { hiddenPages?: string[] }) {
 
         <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div>
-            <span>&copy; {new Date().getFullYear()} FileZone by </span>
-            <span className="font-medium text-foreground">Yasin Miyade</span>
+            <span>&copy; {new Date().getFullYear()} FileZone</span>
             <span>. All rights reserved.</span>
           </div>
           <div className="flex flex-wrap gap-4">
