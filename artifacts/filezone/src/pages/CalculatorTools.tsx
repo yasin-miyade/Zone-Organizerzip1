@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -449,9 +449,20 @@ export function IncomeTaxCalculator() {
 }
 
 // ==================== CURRENCY CONVERTER ====================
-const RATES: Record<string, number> = {
+const FALLBACK_RATES: Record<string, number> = {
   USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, JPY: 150.2, CAD: 1.36, AUD: 1.53,
   CHF: 0.90, CNY: 7.24, SGD: 1.34, HKD: 7.82, NOK: 10.55, SEK: 10.42, NZD: 1.63, AED: 3.67,
+  MXN: 17.15, BRL: 4.97, ZAR: 18.63, KRW: 1325, THB: 35.2, MYR: 4.72,
+};
+
+const CURRENCY_NAMES: Record<string, string> = {
+  USD: "US Dollar", EUR: "Euro", GBP: "British Pound", INR: "Indian Rupee",
+  JPY: "Japanese Yen", CAD: "Canadian Dollar", AUD: "Australian Dollar",
+  CHF: "Swiss Franc", CNY: "Chinese Yuan", SGD: "Singapore Dollar",
+  HKD: "Hong Kong Dollar", NOK: "Norwegian Krone", SEK: "Swedish Krona",
+  NZD: "New Zealand Dollar", AED: "UAE Dirham", MXN: "Mexican Peso",
+  BRL: "Brazilian Real", ZAR: "South African Rand", KRW: "South Korean Won",
+  THB: "Thai Baht", MYR: "Malaysian Ringgit",
 };
 
 export function CurrencyConverter() {
@@ -459,40 +470,73 @@ export function CurrencyConverter() {
   const [from, setFrom] = useState("USD");
   const [to, setTo] = useState("INR");
   const [result, setResult] = useState<number | null>(null);
+  const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
+  const [ratesDate, setRatesDate] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [usingLive, setUsingLive] = useState(false);
+
+  useEffect(() => {
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then(r => r.json())
+      .then(data => {
+        if (data.rates && typeof data.rates === "object") {
+          const supported: Record<string, number> = {};
+          for (const key of Object.keys(FALLBACK_RATES)) {
+            if (data.rates[key]) supported[key] = data.rates[key];
+          }
+          setRates(supported);
+          setRatesDate(data.time_last_update_utc?.split(" ").slice(0, 4).join(" ") ?? null);
+          setUsingLive(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   function convert() {
     const a = parseFloat(amount);
-    if (!a) return;
-    const converted = (a / RATES[from]) * RATES[to];
-    setResult(Math.round(converted * 10000) / 10000);
+    if (!a || isNaN(a)) return;
+    const converted = (a / rates[from]) * rates[to];
+    setResult(Math.round(converted * 100000) / 100000);
   }
 
-  const currencies = Object.keys(RATES);
+  const currencies = Object.keys(rates).sort();
 
   return (
     <CalcCard>
-      <div className="space-y-1.5"><Label>Amount</Label><Input type="number" value={amount} onChange={e => setAmount(e.target.value)} /></div>
+      {loading && <p className="text-xs text-muted-foreground text-center">Fetching live exchange rates…</p>}
+      <div className="space-y-1.5"><Label>Amount</Label>
+        <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} min="0" step="any" />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5"><Label>From</Label>
           <Select value={from} onValueChange={setFrom}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {currencies.map(c => <SelectItem key={c} value={c}>{c} — {CURRENCY_NAMES[c] ?? c}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5"><Label>To</Label>
           <Select value={to} onValueChange={setTo}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{currencies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {currencies.map(c => <SelectItem key={c} value={c}>{c} — {CURRENCY_NAMES[c] ?? c}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
       </div>
       <Button className="w-full" onClick={convert} data-testid="button-process">Convert</Button>
       {result !== null && (
-        <div className="rounded-xl border bg-muted/40 p-5 text-center">
+        <div className="rounded-xl border bg-muted/40 p-5 text-center space-y-2">
           <p className="text-sm text-muted-foreground">{amount} {from} =</p>
-          <p className="text-3xl font-bold text-primary mt-1">{result.toLocaleString()} {to}</p>
-          <p className="text-xs text-muted-foreground mt-2">Rate: 1 {from} = {(RATES[to] / RATES[from]).toFixed(4)} {to}</p>
-          <p className="text-xs text-muted-foreground">*Indicative rates, not real-time</p>
+          <p className="text-3xl font-bold text-primary">{result.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })} {to}</p>
+          <p className="text-xs text-muted-foreground">1 {from} = {(rates[to] / rates[from]).toFixed(5)} {to}</p>
+          <p className="text-xs text-muted-foreground">
+            {usingLive
+              ? <span className="text-emerald-600 font-medium">✓ Live rates{ratesDate ? ` · Updated ${ratesDate}` : ""}</span>
+              : "Using cached rates"}
+          </p>
         </div>
       )}
     </CalcCard>

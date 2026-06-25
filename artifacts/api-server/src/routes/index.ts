@@ -26,7 +26,7 @@ router.get("/public-settings", async (req, res) => {
     for (const row of rows) {
       if (PUBLIC_KEYS.includes(row.key)) map[row.key] = row.value;
     }
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Cache-Control", "no-store");
     res.json(map);
   } catch {
     res.json({});

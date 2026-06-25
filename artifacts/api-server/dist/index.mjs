@@ -56515,7 +56515,7 @@ router4.get("/public-settings", async (req, res) => {
     for (const row of rows) {
       if (PUBLIC_KEYS.includes(row.key)) map2[row.key] = row.value;
     }
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Cache-Control", "no-store");
     res.json(map2);
   } catch {
     res.json({});

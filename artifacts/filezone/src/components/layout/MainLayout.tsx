@@ -17,7 +17,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
       fetch("/api/visit", { method: "POST" }).catch(() => {});
       sessionStorage.setItem("visit_tracked", "1");
     }
-    fetch("/api/public-settings")
+    fetch("/api/public-settings", { cache: "no-store" })
       .then(r => r.json())
       .then((d: PublicSettings) => setSettings(d))
       .catch(() => {});

@@ -692,7 +692,7 @@ function SeoPanel() {
     { label: "Canonical URLs on every page", done: true },
     { label: "Sitemap.xml (auto-generated from DB)", done: true },
     { label: "robots.txt (allows crawling, blocks /admin)", done: true },
-    { label: "noindex on Privacy Policy & Terms", done: true },
+    { label: "Privacy, Terms & Cookie Policy are fully indexable", done: true },
   ];
 
   return (
@@ -795,7 +795,18 @@ export function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
   const [addingTool, setAddingTool] = useState(false);
-  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "settings" | "ads" | "seo">("tools");
+  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "contacts" | "settings" | "ads" | "seo">("tools");
+  const [contactCount, setContactCount] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/admin/contacts`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then((d: { isRead: boolean }[]) => {
+        if (Array.isArray(d)) setContactCount(d.filter(c => !c.isRead).length);
+      })
+      .catch(() => {});
+  }, [token]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const { toast } = useToast();
@@ -967,6 +978,12 @@ export function AdminPage() {
           <Button variant={activeTab === "ads" ? "default" : "outline"} onClick={() => setActiveTab("ads")} size="sm">
             <Megaphone className="h-4 w-4 mr-1.5" /> Ad Settings
           </Button>
+          <Button variant={activeTab === "contacts" ? "default" : "outline"} onClick={() => { setActiveTab("contacts"); setContactCount(0); }} size="sm" className="relative">
+            <Mail className="h-4 w-4 mr-1.5" /> Contacts
+            {contactCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">{contactCount}</span>
+            )}
+          </Button>
           <Button variant={activeTab === "seo" ? "default" : "outline"} onClick={() => setActiveTab("seo")} size="sm">
             <Search className="h-4 w-4 mr-1.5" /> SEO &amp; Indexing
           </Button>
@@ -1041,6 +1058,15 @@ export function AdminPage() {
             <h2 className="font-semibold text-lg mb-1">Ad Settings</h2>
             <p className="text-sm text-muted-foreground mb-6">Configure Google AdSense to monetize your site. All settings are stored in the database and take effect without a redeployment.</p>
             <AdsPanel token={token} />
+          </div>
+        )}
+
+        {/* Contacts Tab */}
+        {activeTab === "contacts" && (
+          <div className="bg-card border rounded-2xl p-6">
+            <h2 className="font-semibold text-lg mb-1">Contact Messages</h2>
+            <p className="text-sm text-muted-foreground mb-6">Messages submitted via the Contact Us page. Click a message to expand and read it.</p>
+            <ContactsPanel token={token} />
           </div>
         )}
 
