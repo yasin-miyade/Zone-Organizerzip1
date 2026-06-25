@@ -84,15 +84,11 @@ export function Home() {
       )}
 
       {/* Stats Bar */}
-      {stats && !search && (
+      {!search && (
         <section className="border-y bg-muted/30">
           <div className="max-w-5xl mx-auto px-4 py-5 flex flex-wrap justify-center gap-8 text-center">
             <div>
-              <p className="text-2xl font-bold text-foreground">{stats.totalConversions.toLocaleString()}+</p>
-              <p className="text-xs text-muted-foreground">Files Processed</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.totalTools}</p>
+              <p className="text-2xl font-bold text-foreground">{stats ? stats.totalTools : "50"}+</p>
               <p className="text-xs text-muted-foreground">Online Tools</p>
             </div>
             <div>
@@ -100,8 +96,12 @@ export function Home() {
               <p className="text-xs text-muted-foreground">Browser-Based</p>
             </div>
             <div>
+              <p className="text-2xl font-bold text-foreground">0 Uploads</p>
+              <p className="text-xs text-muted-foreground">Files Stay on Your Device</p>
+            </div>
+            <div>
               <p className="text-2xl font-bold text-foreground">Free</p>
-              <p className="text-xs text-muted-foreground">Always</p>
+              <p className="text-xs text-muted-foreground">Always & Forever</p>
             </div>
           </div>
         </section>

@@ -11,8 +11,10 @@ import { About } from "@/pages/About";
 import { AdminPage } from "@/pages/AdminPage";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { TermsOfService } from "@/pages/TermsOfService";
+import { CookiePolicy } from "@/pages/CookiePolicy";
 import { ContactUs } from "@/pages/ContactUs";
 import { FAQ } from "@/pages/FAQ";
+import { CookieBanner } from "@/components/CookieBanner";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -41,6 +43,7 @@ function Router() {
             <Route path="/about" component={About} />
             <Route path="/privacy" component={PrivacyPolicy} />
             <Route path="/terms" component={TermsOfService} />
+            <Route path="/cookie-policy" component={CookiePolicy} />
             <Route path="/contact" component={ContactUs} />
             <Route path="/faq" component={FAQ} />
             <Route component={NotFound} />
@@ -57,6 +60,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
+          <CookieBanner />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

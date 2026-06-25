@@ -7,7 +7,6 @@ export function PrivacyPolicy() {
       <SEO
         title="Privacy Policy"
         description="FileZone's privacy policy. We never upload your files. All processing is local. We collect only anonymous usage statistics."
-        noIndex={true}
       />
       <div className="text-center mb-12">
         <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">

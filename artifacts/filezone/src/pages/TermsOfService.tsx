@@ -7,7 +7,6 @@ export function TermsOfService() {
       <SEO
         title="Terms of Service"
         description="FileZone terms of service. Free to use, no account required. All file processing happens locally in your browser."
-        noIndex={true}
       />
       <div className="text-center mb-12">
         <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">

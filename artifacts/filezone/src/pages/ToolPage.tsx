@@ -68,26 +68,73 @@ function baseName(f: File) {
 // ---- RESULT CARD ----
 interface ResultFile { name: string; blob: Blob; size: number }
 
-function ResultCard({ results }: { results: ResultFile[] }) {
-  const [previews] = useState(() =>
-    results.map(r => r.blob.type.startsWith("image/") ? URL.createObjectURL(r.blob) : null)
-  );
+function PdfPreviewThumb({ blob }: { blob: Blob }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d")!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        if (!cancelled) setDataUrl(canvas.toDataURL("image/jpeg", 0.85));
+      } catch { if (!cancelled) setError(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [blob]);
+
+  if (error) return null;
+  if (!dataUrl) return (
+    <div className="bg-muted/40 flex items-center justify-center border-b h-32">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+  return (
+    <div className="bg-muted/40 flex items-center justify-center p-3 border-b max-h-64 overflow-hidden">
+      <img src={dataUrl} alt="PDF preview" className="max-h-60 max-w-full object-contain rounded shadow-sm" />
+    </div>
+  );
+}
+
+function TextPreviewThumb({ blob }: { blob: Blob }) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    blob.text().then(t => setText(t.slice(0, 400)));
+  }, [blob]);
+  if (!text) return null;
+  return (
+    <div className="bg-muted/40 border-b p-4 max-h-40 overflow-hidden">
+      <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap line-clamp-6">{text}</pre>
+    </div>
+  );
+}
+
+function ResultCard({ results }: { results: ResultFile[] }) {
   if (!results.length) return null;
 
   return (
     <div className="mt-6 space-y-4">
       {results.map((r, i) => (
         <div key={i} className="rounded-xl border bg-card overflow-hidden shadow-sm">
-          {previews[i] && (
+          {r.blob.type.startsWith("image/") && (
             <div className="bg-muted/40 flex items-center justify-center p-3 border-b max-h-64 overflow-hidden">
               <img
-                src={previews[i]!}
+                src={URL.createObjectURL(r.blob)}
                 alt={r.name}
                 className="max-h-60 max-w-full object-contain rounded"
               />
             </div>
           )}
+          {r.blob.type === "application/pdf" && <PdfPreviewThumb blob={r.blob} />}
+          {r.blob.type === "text/plain" && <TextPreviewThumb blob={r.blob} />}
           <div className="flex items-center gap-3 p-4">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -1765,6 +1812,178 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
   );
 }
 
+// ---- REMOVE PDF PAGES ----
+function RemovePdfPages({ onDone }: { onDone: () => void }) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [pagesToRemove, setPagesToRemove] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [results, setResults] = useState<ResultFile[]>([]);
+  const [pageCount, setPageCount] = useState(0);
+  const { toast } = useToast();
+
+  async function loadInfo(f: File) {
+    try {
+      const bytes = await f.arrayBuffer();
+      const doc = await PDFDocument.load(bytes);
+      setPageCount(doc.getPageCount());
+    } catch { /* ignore */ }
+  }
+
+  async function handle() {
+    if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
+    const removeSet = new Set(
+      pagesToRemove.split(",").map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n) && n >= 0)
+    );
+    if (!removeSet.size) { toast({ title: "Enter page numbers to remove" }); return; }
+    setProcessing(true);
+    try {
+      const bytes = await files[0].arrayBuffer();
+      const src = await PDFDocument.load(bytes);
+      const total = src.getPageCount();
+      const keepIndices = Array.from({ length: total }, (_, i) => i).filter(i => !removeSet.has(i));
+      if (!keepIndices.length) { toast({ title: "Cannot remove all pages", variant: "destructive" }); setProcessing(false); return; }
+      const newDoc = await PDFDocument.create();
+      const pages = await newDoc.copyPages(src, keepIndices);
+      pages.forEach(p => newDoc.addPage(p));
+      const b = await newDoc.save();
+      const blob = new Blob([b], { type: "application/pdf" });
+      setResults([{ name: `${baseName(files[0])}_modified.pdf`, blob, size: blob.size }]);
+      onDone();
+    } catch { toast({ title: "Error processing PDF", variant: "destructive" }); }
+    finally { setProcessing(false); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <UploadZone accept=".pdf" onFiles={f => { setFiles(f); if (f[0]) loadInfo(f[0]); }} files={files}
+        onRemove={() => { setFiles([]); setPageCount(0); setResults([]); }} />
+      {pageCount > 0 && <p className="text-sm text-muted-foreground">Document has <strong>{pageCount}</strong> pages.</p>}
+      {files[0] && (
+        <div className="space-y-1.5">
+          <Label>Page numbers to remove (comma-separated)</Label>
+          <Input value={pagesToRemove} onChange={e => setPagesToRemove(e.target.value)} placeholder="e.g. 1, 3, 5" />
+          <p className="text-xs text-muted-foreground">Enter the page numbers you want to delete, separated by commas</p>
+        </div>
+      )}
+      {files[0] && pagesToRemove.trim() && (
+        <Button className="mt-4 w-full" onClick={handle} disabled={processing} data-testid="button-process">
+          {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Removing pages…</> : "Remove Pages & Download"}
+        </Button>
+      )}
+      <ResultCard results={results} />
+    </div>
+  );
+}
+
+// ---- ADD PAGE NUMBERS ----
+function AddPageNumbers({ onDone }: { onDone: () => void }) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [results, setResults] = useState<ResultFile[]>([]);
+  const { toast } = useToast();
+
+  async function handle() {
+    if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
+    setProcessing(true);
+    try {
+      const bytes = await files[0].arrayBuffer();
+      const doc = await PDFDocument.load(bytes);
+      const font = await doc.embedFont(StandardFonts.Helvetica);
+      const total = doc.getPageCount();
+      for (let i = 0; i < total; i++) {
+        const page = doc.getPage(i);
+        const { width } = page.getSize();
+        page.drawText(`${i + 1} / ${total}`, {
+          x: width / 2 - 18,
+          y: 18,
+          size: 10,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+      }
+      const b = await doc.save();
+      const blob = new Blob([b], { type: "application/pdf" });
+      setResults([{ name: `${baseName(files[0])}_numbered.pdf`, blob, size: blob.size }]);
+      onDone();
+    } catch { toast({ title: "Error adding page numbers", variant: "destructive" }); }
+    finally { setProcessing(false); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <UploadZone accept=".pdf" onFiles={setFiles} files={files} onRemove={() => { setFiles([]); setResults([]); }}
+        label="Drop your PDF here" sublabel="Page numbers will be added at the bottom center of each page" />
+      {files[0] && (
+        <Button className="mt-4 w-full" onClick={handle} disabled={processing} data-testid="button-process">
+          {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Adding page numbers…</> : "Add Page Numbers"}
+        </Button>
+      )}
+      <ResultCard results={results} />
+    </div>
+  );
+}
+
+// ---- SVG TO PNG ----
+function SvgToPng({ onDone }: { onDone: () => void }) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [scale, setScale] = useState(2);
+  const [processing, setProcessing] = useState(false);
+  const [results, setResults] = useState<ResultFile[]>([]);
+  const { toast } = useToast();
+
+  async function handle() {
+    if (!files[0]) { toast({ title: "Upload an SVG file" }); return; }
+    setProcessing(true);
+    try {
+      const text = await files[0].text();
+      const svgBlob = new Blob([text], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = url;
+      });
+      const w = (img.naturalWidth || 800) * scale;
+      const h = (img.naturalHeight || 600) * scale;
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => {
+        if (!b) { toast({ title: "Conversion failed", variant: "destructive" }); setProcessing(false); return; }
+        setResults([{ name: `${baseName(files[0])}.png`, blob: b, size: b.size }]);
+        setProcessing(false);
+        onDone();
+      }, "image/png");
+    } catch {
+      toast({ title: "Error converting SVG", variant: "destructive" });
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <UploadZone accept=".svg" onFiles={setFiles} files={files} onRemove={() => { setFiles([]); setResults([]); }}
+        label="Drop SVG file here" sublabel="Upload an SVG vector file to convert to PNG" />
+      {files[0] && (
+        <div className="space-y-1.5">
+          <Label>Output Scale (×{scale})</Label>
+          <Slider value={[scale]} onValueChange={([v]) => setScale(v)} min={1} max={4} step={0.5} className="mt-2" />
+          <p className="text-xs text-muted-foreground">Higher scale produces a larger, sharper PNG image</p>
+        </div>
+      )}
+      {files[0] && (
+        <Button className="mt-4 w-full" onClick={handle} disabled={processing} data-testid="button-process">
+          {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Converting…</> : `Convert to PNG (${scale}×)`}
+        </Button>
+      )}
+      <ResultCard results={results} />
+    </div>
+  );
+}
+
 // ---- TOOL REGISTRY ----
 const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }>> = {
   "merge-pdf": MergePdf,
@@ -1776,6 +1995,8 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }
   "watermark-pdf": WatermarkPdf,
   "pdf-to-text": PdfToText,
   "protect-pdf": ProtectPdf,
+  "remove-pdf-pages": RemovePdfPages,
+  "add-page-numbers": AddPageNumbers,
   "compress-image": CompressImage,
   "resize-image": ResizeImage,
   "convert-image": ConvertImage,
@@ -1785,6 +2006,7 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }
   "rotate-image": RotateImage,
   "watermark-image": WatermarkImage,
   "image-to-base64": ImageToBase64,
+  "svg-to-png": SvgToPng,
   "word-counter": WordCounter,
   "qr-generator": QrGenerator,
   "base64": Base64Tool,

@@ -1,0 +1,2 @@
+- [PDF preview in ResultCard](pdf-preview-resultcard.md) — PdfPreviewThumb renders page 1 via pdfjs canvas; TextPreviewThumb shows first 400 chars of .txt output.
+- [DB seed pattern](db-seed-pattern.md) — DB tools table uses snake_case columns (usage_count, is_featured, is_hidden); seed uses ON CONFLICT(slug) DO UPDATE for idempotency; input/output formats must be cast as `{val1,val2}::text[]`.

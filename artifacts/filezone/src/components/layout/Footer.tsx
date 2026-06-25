@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Layers, Calculator, X } from "lucide-react";
+import { Layers, Calculator, X, Shield, Github, Twitter } from "lucide-react";
 
 function FooterCalculator() {
   const [display, setDisplay] = useState("0");
@@ -74,55 +74,84 @@ export function Footer({ hiddenPages = [] }: { hiddenPages?: string[] }) {
   const show = (key: string) => !hiddenPages.includes(key);
 
   return (
-    <footer className="border-t bg-white py-12 mt-16">
-      <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-primary p-1.5 rounded-lg"><Layers className="h-4 w-4 text-primary-foreground" /></div>
-            <h3 className="font-bold text-lg">FileZone</h3>
+    <footer className="border-t bg-background py-14 mt-16">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+          {/* Brand */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-primary p-1.5 rounded-lg"><Layers className="h-4 w-4 text-primary-foreground" /></div>
+              <h3 className="font-bold text-lg">FileZone</h3>
+            </div>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-5 max-w-xs">
+              The complete free toolkit for everyday file work — PDFs, images, converters, calculators, and text tools. All processing happens securely in your browser, never on our servers.
+            </p>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1.5">
+                <Shield className="h-3 w-3" /> Privacy First
+              </div>
+              <div className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1.5">
+                100% Free
+              </div>
+            </div>
+            <FooterCalculator />
           </div>
-          <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-            The go-to toolkit for everyday file work. Fast, clean, and capable.
-            All processing happens securely in your browser.
-          </p>
-          <FooterCalculator />
+
+          {/* PDF & Image */}
+          <div>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">PDF Tools</h4>
+            <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <li><Link href="/tools/merge-pdf" className="hover:text-primary transition-colors">Merge PDF</Link></li>
+              <li><Link href="/tools/split-pdf" className="hover:text-primary transition-colors">Split PDF</Link></li>
+              <li><Link href="/tools/compress-pdf" className="hover:text-primary transition-colors">Compress PDF</Link></li>
+              <li><Link href="/tools/pdf-to-jpg" className="hover:text-primary transition-colors">PDF to JPG</Link></li>
+              <li><Link href="/tools/protect-pdf" className="hover:text-primary transition-colors">Protect PDF</Link></li>
+              <li><Link href="/pdf" className="hover:text-primary transition-colors font-medium text-foreground/70">All PDF Tools →</Link></li>
+            </ul>
+          </div>
+
+          {/* Image & Convert */}
+          <div>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">Image & Convert</h4>
+            <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <li><Link href="/tools/compress-image" className="hover:text-primary transition-colors">Compress Image</Link></li>
+              <li><Link href="/tools/resize-image" className="hover:text-primary transition-colors">Resize Image</Link></li>
+              <li><Link href="/tools/convert-image" className="hover:text-primary transition-colors">Convert Image</Link></li>
+              <li><Link href="/tools/csv-to-json" className="hover:text-primary transition-colors">CSV to JSON</Link></li>
+              <li><Link href="/tools/qr-generator" className="hover:text-primary transition-colors">QR Generator</Link></li>
+              <li><Link href="/image" className="hover:text-primary transition-colors font-medium text-foreground/70">All Image Tools →</Link></li>
+            </ul>
+          </div>
+
+          {/* Company & Legal */}
+          <div>
+            <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-muted-foreground">Company</h4>
+            <ul className="space-y-2.5 text-sm text-muted-foreground">
+              {show("about") && <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>}
+              {show("contact") && <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>}
+              {show("faq") && <li><Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link></li>}
+            </ul>
+            <h4 className="font-semibold mb-4 mt-8 text-sm uppercase tracking-wider text-muted-foreground">Legal</h4>
+            <ul className="space-y-2.5 text-sm text-muted-foreground">
+              {show("privacy") && <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>}
+              {show("terms") && <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>}
+              <li><Link href="/cookie-policy" className="hover:text-primary transition-colors">Cookie Policy</Link></li>
+            </ul>
+          </div>
         </div>
 
-        <div>
-          <h4 className="font-medium mb-4">Tools</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/pdf" className="hover:text-primary transition-colors">PDF Tools</Link></li>
-            <li><Link href="/image" className="hover:text-primary transition-colors">Image Tools</Link></li>
-            <li><Link href="/convert" className="hover:text-primary transition-colors">Converters</Link></li>
-            <li><Link href="/calculator" className="hover:text-primary transition-colors">Calculators</Link></li>
-            <li><Link href="/text" className="hover:text-primary transition-colors">Text Tools</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-medium mb-4">Company</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {show("about") && <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>}
-            {show("contact") && <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>}
-            {show("faq") && <li><Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link></li>}
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-medium mb-4">Legal</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {show("privacy") && <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>}
-            {show("terms") && <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>}
-          </ul>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 mt-12 pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>&copy; {new Date().getFullYear()} FileZone. All rights reserved.</span>
-        <div className="flex gap-4">
-          {show("privacy") && <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>}
-          {show("terms") && <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>}
-          {show("contact") && <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>}
+        <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div>
+            <span>&copy; {new Date().getFullYear()} FileZone by </span>
+            <span className="font-medium text-foreground">Yasin Miyade</span>
+            <span>. All rights reserved.</span>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {show("privacy") && <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>}
+            {show("terms") && <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>}
+            <Link href="/cookie-policy" className="hover:text-primary transition-colors">Cookies</Link>
+            {show("contact") && <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>}
+          </div>
         </div>
       </div>
     </footer>
