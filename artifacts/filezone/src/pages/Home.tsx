@@ -96,8 +96,8 @@ export function Home() {
               <p className="text-xs text-muted-foreground">Browser-Based</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">0 Uploads</p>
-              <p className="text-xs text-muted-foreground">Files Stay on Your Device</p>
+              <p className="text-2xl font-bold text-foreground">{stats ? stats.totalConversions.toLocaleString() : "0"}</p>
+              <p className="text-xs text-muted-foreground">Files Processed (100% Local)</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">Free</p>

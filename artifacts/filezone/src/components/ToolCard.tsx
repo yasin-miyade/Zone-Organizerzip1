@@ -10,10 +10,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 const categoryColors: Record<string, { bg: string; text: string; badge: string }> = {
-  pdf:     { bg: "bg-red-50 hover:bg-red-100",     text: "text-red-600",    badge: "bg-red-100 text-red-700" },
-  image:   { bg: "bg-blue-50 hover:bg-blue-100",   text: "text-blue-600",   badge: "bg-blue-100 text-blue-700" },
-  convert: { bg: "bg-violet-50 hover:bg-violet-100", text: "text-violet-600", badge: "bg-violet-100 text-violet-700" },
-  text:    { bg: "bg-emerald-50 hover:bg-emerald-100", text: "text-emerald-600", badge: "bg-emerald-100 text-emerald-700" },
+  pdf:        { bg: "bg-red-50/50 hover:bg-red-100/50 dark:bg-red-950/20 dark:hover:bg-red-950/30", text: "text-red-600 dark:text-red-400", badge: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  image:      { bg: "bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  convert:    { bg: "bg-violet-50/50 hover:bg-violet-100/50 dark:bg-violet-950/20 dark:hover:bg-violet-950/30", text: "text-violet-600 dark:text-violet-400", badge: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
+  text:       { bg: "bg-emerald-50/50 hover:bg-emerald-100/50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  calculator: { bg: "bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
 };
 
 interface ToolCardProps {
