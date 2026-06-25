@@ -63,11 +63,13 @@ router.post("/contact", async (req, res) => {
 
 // POST /clipboard — save clipboard content, return handle
 router.post("/clipboard", async (req, res) => {
-  const { content } = req.body as { content?: string };
+  const { content, expiresInHours } = req.body as { content?: string; expiresInHours?: number };
   if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+  const hours = typeof expiresInHours === "number" && expiresInHours > 0 && expiresInHours <= 168
+    ? expiresInHours : 24;
   try {
     const handle = Math.random().toString(36).slice(2, 9);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000);
     await db.insert(clipboardsTable).values({ handle, content, expiresAt });
     res.json({ handle });
   } catch {
@@ -88,6 +90,25 @@ router.get("/clipboard/:handle", async (req, res) => {
     res.json({ content: row.content, expiresAt: row.expiresAt });
   } catch {
     res.status(500).json({ error: "Failed to retrieve clipboard" });
+  }
+});
+
+// PUT /clipboard/:handle — update clipboard content
+router.put("/clipboard/:handle", async (req, res) => {
+  const { handle } = req.params;
+  const { content } = req.body as { content?: string };
+  if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+  try {
+    const [row] = await db.select().from(clipboardsTable).where(eq(clipboardsTable.handle, handle)).limit(1);
+    if (!row) return res.status(404).json({ error: "Not found" });
+    if (new Date() > row.expiresAt) {
+      await db.delete(clipboardsTable).where(eq(clipboardsTable.handle, handle));
+      return res.status(410).json({ error: "Expired" });
+    }
+    await db.update(clipboardsTable).set({ content }).where(eq(clipboardsTable.handle, handle));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to update clipboard" });
   }
 });
 

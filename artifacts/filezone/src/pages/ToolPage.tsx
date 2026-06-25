@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check
+  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check, Pencil, Shield
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -1666,6 +1666,15 @@ function NumberBase() {
 }
 
 // ---- ONLINE CLIPBOARD ----
+const EXPIRY_OPTIONS = [
+  { label: "1 hour", value: 1 },
+  { label: "6 hours", value: 6 },
+  { label: "12 hours", value: 12 },
+  { label: "24 hours", value: 24 },
+  { label: "2 days", value: 48 },
+  { label: "7 days", value: 168 },
+];
+
 function OnlineClipboard({ onDone }: { onDone: () => void }) {
   const [content, setContent] = useState("");
   const [handle, setHandle] = useState<string | null>(null);
@@ -1674,10 +1683,13 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
   const [loading, setLoading] = useState(false);
   const [loadingShared, setLoadingShared] = useState(false);
   const [sharedContent, setSharedContent] = useState<string | null>(null);
+  const [sharedExpiresAt, setSharedExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [expiresInHours, setExpiresInHours] = useState(24);
+  const [editMode, setEditMode] = useState(false);
+  const [savedContent, setSavedContent] = useState("");
   const { toast } = useToast();
 
-  // On mount, check for ?code= query param to auto-load shared clipboard
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -1686,8 +1698,12 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
       fetch(`/api/clipboard/${code}`)
         .then(r => r.json())
         .then(data => {
-          if (data.content) setSharedContent(data.content);
-          else toast({ title: "Clipboard not found or expired", variant: "destructive" });
+          if (data.content) {
+            setSharedContent(data.content);
+            setSharedExpiresAt(data.expiresAt ?? null);
+          } else {
+            toast({ title: "Clipboard not found or expired", variant: "destructive" });
+          }
         })
         .catch(() => toast({ title: "Failed to load clipboard", variant: "destructive" }))
         .finally(() => setLoadingShared(false));
@@ -1701,18 +1717,37 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
       const res = await fetch("/api/clipboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, expiresInHours }),
       });
       if (!res.ok) throw new Error();
       const { handle: h } = await res.json();
       const url = `${window.location.origin}/tools/online-clipboard?code=${h}`;
       setHandle(h);
       setShareUrl(url);
+      setSavedContent(content);
       const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 2 });
       setQrDataUrl(dataUrl);
       onDone();
     } catch {
       toast({ title: "Failed to save clipboard", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  async function updateClipboard() {
+    if (!content.trim() || !handle) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/clipboard/${handle}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error();
+      setSavedContent(content);
+      setEditMode(false);
+      toast({ title: "Clipboard updated!" });
+    } catch {
+      toast({ title: "Failed to update clipboard", variant: "destructive" });
     } finally { setLoading(false); }
   }
 
@@ -1729,11 +1764,21 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
   }
 
   function reset() {
-    setHandle(null); setShareUrl(""); setQrDataUrl(""); setContent(""); setSharedContent(null);
+    setHandle(null); setShareUrl(""); setQrDataUrl(""); setContent("");
+    setSharedContent(null); setSharedExpiresAt(null); setEditMode(false); setSavedContent("");
     window.history.replaceState({}, "", window.location.pathname);
   }
 
-  // Shared clipboard view
+  function startEdit() {
+    setContent(savedContent);
+    setEditMode(true);
+  }
+
+  function cancelEdit() {
+    setContent(savedContent);
+    setEditMode(false);
+  }
+
   if (loadingShared) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -1743,11 +1788,14 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
   }
 
   if (sharedContent !== null) {
+    const expiryStr = sharedExpiresAt
+      ? new Date(sharedExpiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+      : null;
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Shared clipboard — content expires in 24 hours</span>
+          <span>Shared clipboard{expiryStr ? ` · Expires ${expiryStr}` : " · Expires in 24 hours"}</span>
         </div>
         <Textarea value={sharedContent} readOnly className="font-mono text-sm min-h-40 resize-none" />
         <div className="flex gap-2">
@@ -1758,13 +1806,42 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
     );
   }
 
+  // Edit mode — update existing clipboard
+  if (editMode && handle) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <Pencil className="h-4 w-4 shrink-0" />
+          <span>Editing clipboard — same link stays valid after saving</span>
+        </div>
+        <div>
+          <Label className="mb-2 block">Edit your text</Label>
+          <Textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            className="min-h-48 font-mono text-sm resize-none"
+            autoFocus
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">{content.length} characters</p>
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={updateClipboard} disabled={loading || !content.trim()}>
+            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Check className="h-4 w-4 mr-2" />Save Changes</>}
+          </Button>
+          <Button variant="outline" onClick={cancelEdit}>Cancel</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Result view after saving
   if (handle) {
+    const expiryLabel = EXPIRY_OPTIONS.find(o => o.value === expiresInHours)?.label ?? "24 hours";
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Clipboard saved! Link expires in 24 hours.</span>
+          <span>Clipboard saved! Link expires in {expiryLabel}.</span>
         </div>
         <div className="space-y-2">
           <Label>Shareable Link</Label>
@@ -1787,7 +1864,12 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
             </Button>
           </div>
         )}
-        <Button variant="outline" className="w-full" onClick={reset}>Create New Clipboard</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={startEdit}>
+            <Pencil className="h-4 w-4 mr-2" /> Edit Content
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={reset}>New Clipboard</Button>
+        </div>
       </div>
     );
   }
@@ -1795,6 +1877,10 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
   // Input view
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 border rounded-lg px-3 py-2">
+        <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+        <span>Text is encrypted in transit and auto-deleted when the link expires. No account needed.</span>
+      </div>
       <div>
         <Label className="mb-2 block">Paste or type your text</Label>
         <Textarea
@@ -1803,7 +1889,18 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
           placeholder="Paste any text here — code snippets, notes, URLs, passwords, anything…"
           className="min-h-48 font-mono text-sm resize-none"
         />
-        <p className="text-xs text-muted-foreground mt-1.5">{content.length} characters · Link expires in 24 hours</p>
+        <p className="text-xs text-muted-foreground mt-1.5">{content.length} characters</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Link expires after</Label>
+        <Select value={String(expiresInHours)} onValueChange={v => setExpiresInHours(Number(v))}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {EXPIRY_OPTIONS.map(o => (
+              <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Button className="w-full" onClick={save} disabled={loading || !content.trim()}>
         {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : "Save & Get Shareable Link"}
@@ -2122,7 +2219,7 @@ export function ToolPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">{tool?.name ?? slug}</h1>
         {tool?.description && <p className="text-muted-foreground">{tool.description}</p>}
-        {(tool?.inputFormats?.length || tool?.outputFormats?.length) && (
+        {!!(tool?.inputFormats?.length || tool?.outputFormats?.length) && (
           <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
             {tool.inputFormats?.length > 0 && <span>Input: {tool.inputFormats.join(", ").toUpperCase()}</span>}
             {tool.outputFormats?.length > 0 && <span>Output: {tool.outputFormats.join(", ").toUpperCase()}</span>}
