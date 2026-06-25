@@ -697,6 +697,38 @@ function ResizeImage({ onDone }: { onDone: () => void }) {
   );
 }
 
+const IMAGE_FORMATS = [
+  { value: "jpg",  label: "JPG",  mime: "image/jpeg" },
+  { value: "png",  label: "PNG",  mime: "image/png" },
+  { value: "webp", label: "WebP", mime: "image/webp" },
+  { value: "gif",  label: "GIF",  mime: "image/gif" },
+  { value: "bmp",  label: "BMP",  mime: "image/bmp" },
+  { value: "ico",  label: "ICO",  mime: "image/x-icon" },
+  { value: "tiff", label: "TIFF", mime: "image/tiff" },
+  { value: "svg",  label: "SVG",  mime: "image/svg+xml" },
+];
+
+async function convertToSvg(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${img.naturalWidth}" height="${img.naturalHeight}" viewBox="0 0 ${img.naturalWidth} ${img.naturalHeight}">
+  <image width="${img.naturalWidth}" height="${img.naturalHeight}" xlink:href="${dataUrl}"/>
+</svg>`;
+        resolve(new Blob([svg], { type: "image/svg+xml" }));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function ConvertImage({ onDone }: { onDone: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
   const [format, setFormat] = useState("png");
@@ -705,43 +737,53 @@ function ConvertImage({ onDone }: { onDone: () => void }) {
   const [results, setResults] = useState<ResultFile[]>([]);
   const { toast } = useToast();
 
+  const fmtInfo = IMAGE_FORMATS.find(f => f.value === format)!;
+
   async function handle() {
     if (!files.length) { toast({ title: "Upload at least one image" }); return; }
     setProcessing(true);
     try {
       const res: ResultFile[] = [];
       for (const file of files) {
-        const bmp = await createImageBitmap(file);
-        const canvas = document.createElement("canvas");
-        canvas.width = bmp.width; canvas.height = bmp.height;
-        canvas.getContext("2d")!.drawImage(bmp, 0, 0);
-        const mime = `image/${format === "jpg" ? "jpeg" : format}`;
-        const dataUrl = canvas.toDataURL(mime, quality / 100);
-        const blob = dataURLtoBlob(dataUrl);
+        let blob: Blob;
+        if (format === "svg") {
+          blob = await convertToSvg(file);
+        } else {
+          const bmp = await createImageBitmap(file);
+          const canvas = document.createElement("canvas");
+          canvas.width = bmp.width; canvas.height = bmp.height;
+          canvas.getContext("2d")!.drawImage(bmp, 0, 0);
+          const dataUrl = canvas.toDataURL(fmtInfo.mime, quality / 100);
+          blob = dataURLtoBlob(dataUrl);
+        }
         res.push({ name: `${baseName(file)}.${format}`, blob, size: blob.size });
       }
       setResults(res);
       onDone();
-    } catch (e) {
+    } catch {
       toast({ title: "Error converting image", variant: "destructive" });
     } finally { setProcessing(false); }
   }
 
   return (
     <div className="space-y-4">
-      <UploadZone accept=".jpg,.jpeg,.png,.webp,.gif,.bmp" multiple onFiles={setFiles} files={files}
+      <UploadZone accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg" multiple onFiles={setFiles} files={files}
         onRemove={i => setFiles(f => f.filter((_, j) => j !== i))} />
       <div className="space-y-1.5"><Label>Convert to</Label>
         <Select value={format} onValueChange={setFormat}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="jpg">JPG</SelectItem>
-            <SelectItem value="png">PNG</SelectItem>
-            <SelectItem value="webp">WebP</SelectItem>
-            <SelectItem value="gif">GIF</SelectItem>
+            {IMAGE_FORMATS.map(f => (
+              <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
+      {format === "svg" && (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700">
+          SVG wraps your image as an embedded raster — great for web use. For true vector artwork, use a dedicated vector editor.
+        </div>
+      )}
       {(format === "jpg" || format === "webp") && (
         <div className="space-y-2"><Label>Quality: {quality}%</Label>
           <Slider min={10} max={100} step={5} value={[quality]} onValueChange={([v]) => setQuality(v)} />
@@ -749,7 +791,7 @@ function ConvertImage({ onDone }: { onDone: () => void }) {
       )}
       {files.length > 0 && (
         <Button className="w-full" onClick={handle} disabled={processing} data-testid="button-process">
-          {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Converting…</> : "Convert Images"}
+          {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Converting…</> : `Convert to ${fmtInfo.label}`}
         </Button>
       )}
       <ResultCard results={results} />

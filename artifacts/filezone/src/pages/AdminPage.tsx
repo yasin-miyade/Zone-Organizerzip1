@@ -45,6 +45,8 @@ interface SiteSettings {
   adsense_slot_leaderboard?: string;
   adsense_slot_rectangle?: string;
   adsense_slot_responsive?: string;
+  maintenance_mode?: string;
+  maintenance_message?: string;
 }
 
 interface AdminStats {
@@ -324,8 +326,35 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
 
   if (loading) return <p className="text-muted-foreground text-sm">Loading settings…</p>;
 
+  const isMaintenanceOn = settings.maintenance_mode === "true";
+
   return (
     <div className="space-y-5 max-w-2xl">
+      {/* Maintenance Mode */}
+      <div className={`rounded-xl p-4 flex items-start gap-3 ${isMaintenanceOn ? "bg-red-50 border border-red-200" : "bg-muted/50 border"}`}>
+        <div className={`p-1.5 rounded-lg shrink-0 ${isMaintenanceOn ? "bg-red-100" : "bg-muted"}`}>
+          <Settings className={`h-4 w-4 ${isMaintenanceOn ? "text-red-600" : "text-muted-foreground"}`} />
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${isMaintenanceOn ? "text-red-800" : ""}`}>
+            {isMaintenanceOn ? "⚠️ Maintenance mode is ON — site shows maintenance page to visitors" : "Maintenance mode is off"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">When enabled, visitors see a maintenance notice. Admins can still access /admin.</p>
+        </div>
+        <Switch
+          checked={isMaintenanceOn}
+          onCheckedChange={v => set("maintenance_mode", v ? "true" : "false")}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Maintenance Message (shown to visitors)</Label>
+        <Input
+          value={settings.maintenance_message ?? ""}
+          onChange={e => set("maintenance_message", e.target.value)}
+          placeholder="We're performing scheduled maintenance. Back soon!"
+        />
+      </div>
+      <Separator />
       <div className="space-y-1.5">
         <Label>Site Title</Label>
         <Input value={settings.site_title ?? ""} onChange={e => set("site_title", e.target.value)} />

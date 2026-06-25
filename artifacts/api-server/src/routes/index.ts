@@ -17,7 +17,7 @@ router.get("/public-settings", async (req, res) => {
   const PUBLIC_KEYS = [
     "adsense_enabled", "adsense_client",
     "adsense_slot_leaderboard", "adsense_slot_rectangle", "adsense_slot_responsive",
-    "site_title", "site_description",
+    "site_title", "site_description", "maintenance_mode", "maintenance_message",
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);

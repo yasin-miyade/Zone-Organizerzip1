@@ -56452,7 +56452,9 @@ router4.get("/public-settings", async (req, res) => {
     "adsense_slot_rectangle",
     "adsense_slot_responsive",
     "site_title",
-    "site_description"
+    "site_description",
+    "maintenance_mode",
+    "maintenance_message"
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);
