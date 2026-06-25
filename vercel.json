@@ -23,6 +23,9 @@
       "dest": "https://zone-organizerzip1.onrender.com/api/robots.txt"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
