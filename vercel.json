@@ -12,15 +12,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://filezone-api.onrender.com/api/$1"
+      "dest": "https://zone-organizerzip1.onrender.com/api/$1"
     },
     {
       "src": "/sitemap.xml",
-      "dest": "https://filezone-api.onrender.com/api/sitemap.xml"
+      "dest": "https://zone-organizerzip1.onrender.com/api/sitemap.xml"
     },
     {
       "src": "/robots.txt",
-      "dest": "https://filezone-api.onrender.com/api/robots.txt"
+      "dest": "https://zone-organizerzip1.onrender.com/api/robots.txt"
     },
     {
       "src": "/(.*)",

@@ -41,7 +41,7 @@
 4. Add it as `DATABASE_URL` in your Web Service's environment variables
 
 ### Your Backend URL
-After deploy: `https://filezone-api.onrender.com`
+After deploy: `https://zone-organizerzip1.onrender.com`
 
 ---
 
@@ -62,7 +62,7 @@ After deploy: `https://filezone-api.onrender.com`
 
 | Key | Value |
 |-----|-------|
-| `VITE_API_URL` | `https://filezone-api.onrender.com/api` |
+| `VITE_API_URL` | `https://zone-organizerzip1.onrender.com/api` |
 | `BASE_PATH` | `/` |
 | `PORT` | `3000` |
 

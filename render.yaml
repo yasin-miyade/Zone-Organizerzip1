@@ -28,7 +28,7 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://filezone-api.onrender.com/api/$1
+        destination: https://zone-organizerzip1.onrender.com/api/$1
       - type: rewrite
         source: /*
         destination: /index.html
