@@ -50,11 +50,6 @@ export function ToolCard({ slug, name, description, category, icon, route, usage
         </div>
         <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">{name}</h3>
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
-        {usageCount !== undefined && (
-          <p className="text-xs text-muted-foreground mt-2 font-medium">
-            {usageCount.toLocaleString()} uses
-          </p>
-        )}
         <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
           <ArrowRight className={cn("h-4 w-4", colors.text)} />
         </div>

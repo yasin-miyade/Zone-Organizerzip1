@@ -1,10 +1,10 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import healthRouter from "./health";
 import toolsRouter from "./tools";
 import adminRouter from "./admin";
 import { db } from "@workspace/db";
-import { toolsTable, siteSettingsTable } from "@workspace/db";
+import { toolsTable, siteSettingsTable, contactsTable, clipboardsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -12,12 +12,13 @@ router.use(healthRouter);
 router.use(toolsRouter);
 router.use(adminRouter);
 
-// GET /public-settings — returns non-sensitive settings (adsense config, site meta)
+// GET /public-settings
 router.get("/public-settings", async (req, res) => {
   const PUBLIC_KEYS = [
     "adsense_enabled", "adsense_client",
     "adsense_slot_leaderboard", "adsense_slot_rectangle", "adsense_slot_responsive",
     "site_title", "site_description", "maintenance_mode", "maintenance_message",
+    "hidden_pages",
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);
@@ -32,29 +33,61 @@ router.get("/public-settings", async (req, res) => {
   }
 });
 
-// POST /visit — increment unique visitor counter
+// POST /visit
 router.post("/visit", async (req, res) => {
   try {
-    const [existing] = await db
-      .select()
-      .from(siteSettingsTable)
-      .where(eq(siteSettingsTable.key, "total_visitors"))
-      .limit(1);
-
+    const [existing] = await db.select().from(siteSettingsTable).where(eq(siteSettingsTable.key, "total_visitors")).limit(1);
     const current = parseInt(existing?.value ?? "0", 10);
     const newCount = current + 1;
-
-    await db
-      .insert(siteSettingsTable)
-      .values({ key: "total_visitors", value: String(newCount) })
-      .onConflictDoUpdate({
-        target: siteSettingsTable.key,
-        set: { value: String(newCount), updatedAt: new Date() },
-      });
-
+    await db.insert(siteSettingsTable).values({ key: "total_visitors", value: String(newCount) })
+      .onConflictDoUpdate({ target: siteSettingsTable.key, set: { value: String(newCount), updatedAt: new Date() } });
     res.json({ success: true, totalVisitors: newCount });
   } catch {
     res.json({ success: true });
+  }
+});
+
+// POST /contact — save contact form submission
+router.post("/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body as { name?: string; email?: string; subject?: string; message?: string };
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+  try {
+    await db.insert(contactsTable).values({ name, email, subject, message });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to save message" });
+  }
+});
+
+// POST /clipboard — save clipboard content, return handle
+router.post("/clipboard", async (req, res) => {
+  const { content } = req.body as { content?: string };
+  if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+  try {
+    const handle = Math.random().toString(36).slice(2, 9);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    await db.insert(clipboardsTable).values({ handle, content, expiresAt });
+    res.json({ handle });
+  } catch {
+    res.status(500).json({ error: "Failed to save clipboard" });
+  }
+});
+
+// GET /clipboard/:handle — retrieve clipboard content
+router.get("/clipboard/:handle", async (req, res) => {
+  const { handle } = req.params;
+  try {
+    const [row] = await db.select().from(clipboardsTable).where(eq(clipboardsTable.handle, handle)).limit(1);
+    if (!row) return res.status(404).json({ error: "Not found" });
+    if (new Date() > row.expiresAt) {
+      await db.delete(clipboardsTable).where(eq(clipboardsTable.handle, handle));
+      return res.status(410).json({ error: "Expired" });
+    }
+    res.json({ content: row.content, expiresAt: row.expiresAt });
+  } catch {
+    res.status(500).json({ error: "Failed to retrieve clipboard" });
   }
 });
 
@@ -66,9 +99,7 @@ router.get("/sitemap.xml", async (req, res) => {
       ?? (process.env.REPLIT_DOMAINS?.split(",")[0]
         ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
         : "https://filezone.app");
-
     const now = new Date().toISOString().split("T")[0];
-
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
       { url: "/pdf", priority: "0.9", changefreq: "weekly" },
@@ -80,35 +111,26 @@ router.get("/sitemap.xml", async (req, res) => {
       { url: "/privacy", priority: "0.4", changefreq: "yearly" },
       { url: "/terms", priority: "0.4", changefreq: "yearly" },
       { url: "/contact", priority: "0.5", changefreq: "monthly" },
+      { url: "/faq", priority: "0.6", changefreq: "monthly" },
     ];
-
-    const toolPages = tools
-      .filter((t) => !t.isHidden)
-      .map((t) => ({
-        url: `/tools/${t.slug}`,
-        priority: t.isFeatured ? "0.8" : "0.7",
-        changefreq: "monthly",
-      }));
-
+    const toolPages = tools.filter((t) => !t.isHidden).map((t) => ({
+      url: `/tools/${t.slug}`,
+      priority: t.isFeatured ? "0.8" : "0.7",
+      changefreq: "monthly",
+    }));
     const allPages = [...staticPages, ...toolPages];
-
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-${allPages
-  .map(
-    (p) => `  <url>
+${allPages.map((p) => `  <url>
     <loc>${host}${p.url}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
-  </url>`
-  )
-  .join("\n")}
+  </url>`).join("\n")}
 </urlset>`;
-
     res.setHeader("Content-Type", "application/xml");
     res.setHeader("Cache-Control", "public, max-age=3600");
     res.send(xml);
@@ -121,13 +143,7 @@ ${allPages
 router.get("/robots.txt", (req, res) => {
   const host = process.env.FRONTEND_URL ?? "https://filezone.app";
   res.setHeader("Content-Type", "text/plain");
-  res.send(`User-agent: *
-Allow: /
-
-Sitemap: ${host}/sitemap.xml
-
-Disallow: /admin
-Disallow: /api/admin/`);
+  res.send(`User-agent: *\nAllow: /\n\nSitemap: ${host}/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });
 
 export default router;

@@ -12,7 +12,7 @@ import {
   Layers, LogOut, Eye, EyeOff, Star, StarOff, Pencil, Trash2,
   Save, X, ArrowLeft, Settings, BarChart2, RefreshCw, Users,
   FileStack, Plus, TrendingUp, Megaphone, Search, CheckCircle2,
-  ExternalLink, Globe, FileText, Copy
+  ExternalLink, Globe, FileText, Copy, Mail, Inbox, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,17 @@ interface SiteSettings {
   adsense_slot_responsive?: string;
   maintenance_mode?: string;
   maintenance_message?: string;
+  hidden_pages?: string;
+}
+
+interface Contact {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 interface AdminStats {
@@ -514,6 +525,119 @@ function AdsPanel({ token }: { token: string }) {
       <Button onClick={handleSave} disabled={saving}>
         <Save className="h-4 w-4 mr-2" />{saving ? "Saving…" : "Save Ad Settings"}
       </Button>
+    </div>
+  );
+}
+
+// ----- Contacts Panel -----
+function ContactsPanel({ token }: { token: string }) {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API}/admin/contacts`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setContacts(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [token]);
+
+  async function markRead(id: number) {
+    await fetch(`${API}/admin/contacts/${id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, isRead: true } : c));
+  }
+
+  async function deleteContact(id: number) {
+    if (!confirm("Delete this message?")) return;
+    await fetch(`${API}/admin/contacts/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setContacts(prev => prev.filter(c => c.id !== id));
+    toast({ title: "Message deleted" });
+  }
+
+  const unread = contacts.filter(c => !c.isRead).length;
+
+  if (loading) return <p className="text-muted-foreground text-sm p-2">Loading messages…</p>;
+
+  return (
+    <div className="space-y-4">
+      {unread > 0 && (
+        <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <Inbox className="h-4 w-4 shrink-0" />
+          <span>{unread} unread message{unread > 1 ? "s" : ""}</span>
+        </div>
+      )}
+      {contacts.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Mail className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No contact submissions yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {contacts.map(c => (
+            <div
+              key={c.id}
+              className={cn(
+                "rounded-xl border transition-colors",
+                !c.isRead ? "bg-blue-50/50 border-blue-200" : "bg-card"
+              )}
+            >
+              <div
+                className="flex items-start justify-between gap-4 p-4 cursor-pointer"
+                onClick={() => { setExpanded(expanded === c.id ? null : c.id); if (!c.isRead) markRead(c.id); }}
+              >
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={cn("p-2 rounded-lg shrink-0 mt-0.5", !c.isRead ? "bg-blue-100" : "bg-muted")}>
+                    <Mail className={cn("h-3.5 w-3.5", !c.isRead ? "text-blue-600" : "text-muted-foreground")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-medium text-sm truncate">{c.name}</p>
+                      {!c.isRead && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-medium">New</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{c.email} · {c.subject}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {new Date(c.createdAt).toLocaleDateString()}
+                  </span>
+                  <Button
+                    variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                    onClick={e => { e.stopPropagation(); deleteContact(c.id); }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              {expanded === c.id && (
+                <div className="px-4 pb-4 border-t pt-3 mx-4 space-y-2">
+                  <div className="flex gap-4 text-xs text-muted-foreground">
+                    <span><span className="font-medium text-foreground">From:</span> {c.name} &lt;{c.email}&gt;</span>
+                    <span><span className="font-medium text-foreground">Subject:</span> {c.subject}</span>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                    {c.message}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                      <a href={`mailto:${c.email}?subject=Re: ${c.subject}`}>Reply via Email</a>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

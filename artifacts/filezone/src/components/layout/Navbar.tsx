@@ -3,20 +3,23 @@ import { Link, useLocation } from "wouter";
 import { Layers, Image as ImageIcon, FileText, ArrowRightLeft, Info, Calculator, AlignLeft, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/pdf", label: "PDF Tools", icon: FileText },
-  { href: "/image", label: "Image Tools", icon: ImageIcon },
-  { href: "/convert", label: "Convert", icon: ArrowRightLeft },
-  { href: "/calculator", label: "Calculators", icon: Calculator },
-  { href: "/text", label: "Text Tools", icon: AlignLeft },
-  { href: "/about", label: "About", icon: Info },
+const allNavItems = [
+  { href: "/pdf",        label: "PDF Tools",   icon: FileText,        key: "pdf" },
+  { href: "/image",      label: "Image Tools",  icon: ImageIcon,       key: "image" },
+  { href: "/convert",    label: "Convert",      icon: ArrowRightLeft,  key: "convert" },
+  { href: "/calculator", label: "Calculators",  icon: Calculator,      key: "calculator" },
+  { href: "/text",       label: "Text Tools",   icon: AlignLeft,       key: "text" },
+  { href: "/about",      label: "About",        icon: Info,            key: "about" },
+  { href: "/faq",        label: "FAQ",          icon: Info,            key: "faq" },
 ];
 
-export function Navbar() {
+export function Navbar({ hiddenPages = [] }: { hiddenPages?: string[] }) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => { setOpen(false); }, [location]);
+
+  const navItems = allNavItems.filter(item => !hiddenPages.includes(item.key));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

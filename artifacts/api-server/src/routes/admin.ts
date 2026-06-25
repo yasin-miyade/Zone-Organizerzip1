@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { toolsTable, siteSettingsTable } from "@workspace/db";
+import { toolsTable, siteSettingsTable, contactsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 
@@ -237,6 +237,40 @@ router.post("/admin/tools/:slug/reset-usage", requireAdmin, async (req, res) => 
   const { slug } = req.params;
   try {
     await db.update(toolsTable).set({ usageCount: 0 }).where(eq(toolsTable.slug, slug));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /admin/contacts — list all contact submissions
+router.get("/admin/contacts", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.select().from(contactsTable).orderBy(desc(contactsTable.createdAt));
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /admin/contacts/:id/read — mark as read
+router.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    await db.update(contactsTable).set({ isRead: true }).where(eq(contactsTable.id, id));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /admin/contacts/:id — delete a contact submission
+router.delete("/admin/contacts/:id", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    await db.delete(contactsTable).where(eq(contactsTable.id, id));
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Internal server error" });

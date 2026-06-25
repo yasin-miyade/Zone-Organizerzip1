@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useGetTool, getGetToolQueryKey, useTrackToolUsage, useListTools } from "@workspace/api-client-react";
 import { UploadZone } from "@/components/UploadZone";
@@ -69,18 +69,39 @@ function baseName(f: File) {
 interface ResultFile { name: string; blob: Blob; size: number }
 
 function ResultCard({ results }: { results: ResultFile[] }) {
+  const [previews] = useState(() =>
+    results.map(r => r.blob.type.startsWith("image/") ? URL.createObjectURL(r.blob) : null)
+  );
+
+  if (!results.length) return null;
+
   return (
-    <div className="mt-6 space-y-3">
+    <div className="mt-6 space-y-4">
       {results.map((r, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 rounded-xl border bg-emerald-50 border-emerald-200">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-emerald-900 truncate">{r.name}</p>
-            <p className="text-xs text-emerald-700">{(r.size / 1024).toFixed(1)} KB</p>
+        <div key={i} className="rounded-xl border bg-card overflow-hidden shadow-sm">
+          {previews[i] && (
+            <div className="bg-muted/40 flex items-center justify-center p-3 border-b max-h-64 overflow-hidden">
+              <img
+                src={previews[i]!}
+                alt={r.name}
+                className="max-h-60 max-w-full object-contain rounded"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-3 p-4">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{r.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {r.size >= 1024 * 1024
+                  ? `${(r.size / (1024 * 1024)).toFixed(2)} MB`
+                  : `${(r.size / 1024).toFixed(1)} KB`}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => downloadBlob(r.blob, r.name)} className="shrink-0">
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+            </Button>
           </div>
-          <Button size="sm" onClick={() => downloadBlob(r.blob, r.name)} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
-            <Download className="h-3.5 w-3.5 mr-1.5" /> Download
-          </Button>
         </div>
       ))}
     </div>
@@ -1597,6 +1618,153 @@ function NumberBase() {
   );
 }
 
+// ---- ONLINE CLIPBOARD ----
+function OnlineClipboard({ onDone }: { onDone: () => void }) {
+  const [content, setContent] = useState("");
+  const [handle, setHandle] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingShared, setLoadingShared] = useState(false);
+  const [sharedContent, setSharedContent] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  // On mount, check for ?code= query param to auto-load shared clipboard
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      setLoadingShared(true);
+      fetch(`/api/clipboard/${code}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.content) setSharedContent(data.content);
+          else toast({ title: "Clipboard not found or expired", variant: "destructive" });
+        })
+        .catch(() => toast({ title: "Failed to load clipboard", variant: "destructive" }))
+        .finally(() => setLoadingShared(false));
+    }
+  }, []);
+
+  async function save() {
+    if (!content.trim()) { toast({ title: "Please enter some text first" }); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/clipboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) throw new Error();
+      const { handle: h } = await res.json();
+      const url = `${window.location.origin}/tools/online-clipboard?code=${h}`;
+      setHandle(h);
+      setShareUrl(url);
+      const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 2 });
+      setQrDataUrl(dataUrl);
+      onDone();
+    } catch {
+      toast({ title: "Failed to save clipboard", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Link copied!" });
+    });
+  }
+
+  function copyContent() {
+    navigator.clipboard.writeText(sharedContent ?? "").then(() => toast({ title: "Copied!" }));
+  }
+
+  function reset() {
+    setHandle(null); setShareUrl(""); setQrDataUrl(""); setContent(""); setSharedContent(null);
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
+  // Shared clipboard view
+  if (loadingShared) {
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading shared clipboard…
+      </div>
+    );
+  }
+
+  if (sharedContent !== null) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>Shared clipboard — content expires in 24 hours</span>
+        </div>
+        <Textarea value={sharedContent} readOnly className="font-mono text-sm min-h-40 resize-none" />
+        <div className="flex gap-2">
+          <Button onClick={copyContent} className="flex-1"><Copy className="h-4 w-4 mr-2" /> Copy Content</Button>
+          <Button variant="outline" onClick={reset}>New Clipboard</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Result view after saving
+  if (handle) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>Clipboard saved! Link expires in 24 hours.</span>
+        </div>
+        <div className="space-y-2">
+          <Label>Shareable Link</Label>
+          <div className="flex gap-2">
+            <Input value={shareUrl} readOnly className="font-mono text-xs flex-1" />
+            <Button size="sm" onClick={copyLink} className="shrink-0">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        {qrDataUrl && (
+          <div className="flex flex-col items-center gap-3 p-5 border rounded-xl bg-muted/30">
+            <img src={qrDataUrl} alt="QR Code" className="w-36 h-36 rounded" />
+            <p className="text-xs text-muted-foreground">Scan to open on another device</p>
+            <Button size="sm" variant="outline" onClick={() => {
+              const a = document.createElement("a"); a.href = qrDataUrl;
+              a.download = "clipboard-qr.png"; a.click();
+            }}>
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Save QR
+            </Button>
+          </div>
+        )}
+        <Button variant="outline" className="w-full" onClick={reset}>Create New Clipboard</Button>
+      </div>
+    );
+  }
+
+  // Input view
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label className="mb-2 block">Paste or type your text</Label>
+        <Textarea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder="Paste any text here — code snippets, notes, URLs, passwords, anything…"
+          className="min-h-48 font-mono text-sm resize-none"
+        />
+        <p className="text-xs text-muted-foreground mt-1.5">{content.length} characters · Link expires in 24 hours</p>
+      </div>
+      <Button className="w-full" onClick={save} disabled={loading || !content.trim()}>
+        {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</> : "Save & Get Shareable Link"}
+      </Button>
+    </div>
+  );
+}
+
 // ---- TOOL REGISTRY ----
 const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }>> = {
   "merge-pdf": MergePdf,
@@ -1621,6 +1789,7 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }
   "qr-generator": QrGenerator,
   "base64": Base64Tool,
   "json-formatter": JsonFormatter,
+  "online-clipboard": OnlineClipboard,
   // Calculators
   "age-calculator": AgeCalculator,
   "bmi-calculator": BmiCalculator,
@@ -1656,6 +1825,7 @@ const NO_DONE_TOOLS = new Set([
   // Convert tools (text-based, no file tracking needed)
   "csv-to-json", "json-to-csv", "markdown-to-html", "html-to-text",
   "url-encoder", "color-converter", "number-base",
+  "online-clipboard",
 ]);
 
 const categoryBadgeColors: Record<string, string> = {
@@ -1726,9 +1896,6 @@ export function ToolPage() {
             <Badge className={cn("text-xs font-medium border-0", categoryBadgeColors[tool.category] ?? "bg-muted text-muted-foreground")}>
               {tool.category.toUpperCase()}
             </Badge>
-          )}
-          {tool?.usageCount && tool.usageCount > 0 && (
-            <span className="text-xs text-muted-foreground">{tool.usageCount.toLocaleString()} uses</span>
           )}
         </div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">{tool?.name ?? slug}</h1>

@@ -3,8 +3,14 @@ import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { Wrench } from "lucide-react";
 
+interface PublicSettings {
+  maintenance_mode?: string;
+  maintenance_message?: string;
+  hidden_pages?: string;
+}
+
 export function MainLayout({ children }: { children: ReactNode }) {
-  const [maintenance, setMaintenance] = useState<{ on: boolean; msg: string }>({ on: false, msg: "" });
+  const [settings, setSettings] = useState<PublicSettings>({});
 
   useEffect(() => {
     if (!sessionStorage.getItem("visit_tracked")) {
@@ -13,18 +19,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
     }
     fetch("/api/public-settings")
       .then(r => r.json())
-      .then((d: Record<string, string>) => {
-        if (d.maintenance_mode === "true") {
-          setMaintenance({
-            on: true,
-            msg: d.maintenance_message || "We're performing scheduled maintenance. We'll be back soon!",
-          });
-        }
-      })
+      .then((d: PublicSettings) => setSettings(d))
       .catch(() => {});
   }, []);
 
-  if (maintenance.on) {
+  const hiddenPages = (settings.hidden_pages ?? "").split(",").map(s => s.trim()).filter(Boolean);
+
+  if (settings.maintenance_mode === "true") {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center px-4">
         <div className="max-w-md text-center space-y-6">
@@ -32,7 +33,9 @@ export function MainLayout({ children }: { children: ReactNode }) {
             <Wrench className="h-10 w-10 text-amber-600" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Under Maintenance</h1>
-          <p className="text-muted-foreground text-lg">{maintenance.msg}</p>
+          <p className="text-muted-foreground text-lg">
+            {settings.maintenance_message || "We're performing scheduled maintenance. We'll be back soon!"}
+          </p>
           <p className="text-sm text-muted-foreground">— The FileZone Team</p>
         </div>
       </div>
@@ -41,11 +44,11 @@ export function MainLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Navbar />
+      <Navbar hiddenPages={hiddenPages} />
       <main className="flex-1">
         {children}
       </main>
-      <Footer />
+      <Footer hiddenPages={hiddenPages} />
     </div>
   );
 }

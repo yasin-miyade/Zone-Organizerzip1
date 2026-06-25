@@ -12,6 +12,7 @@ import { AdminPage } from "@/pages/AdminPage";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { TermsOfService } from "@/pages/TermsOfService";
 import { ContactUs } from "@/pages/ContactUs";
+import { FAQ } from "@/pages/FAQ";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ function Router() {
             <Route path="/privacy" component={PrivacyPolicy} />
             <Route path="/terms" component={TermsOfService} />
             <Route path="/contact" component={ContactUs} />
+            <Route path="/faq" component={FAQ} />
             <Route component={NotFound} />
           </Switch>
         </MainLayout>
