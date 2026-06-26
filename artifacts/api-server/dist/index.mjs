@@ -57286,7 +57286,10 @@ router6.get("/public-settings", async (req, res) => {
     "site_description",
     "maintenance_mode",
     "maintenance_message",
-    "hidden_pages"
+    "hidden_pages",
+    "footer_copyright",
+    "title_animation",
+    "website_animations"
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);

@@ -30,8 +30,8 @@ export function About() {
     <div className="max-w-5xl mx-auto px-4 py-16">
       <SEO
         title="About 5toolbox — Free Browser-Based File Tools"
-        description="5toolbox is a free, privacy-first browser-based file toolkit by Yasin Miyade. 50+ tools including PDF merge, image compress, converters, calculators — no uploads, no sign-up, all processing in your browser."
-        keywords="about 5toolbox, yasin miyade, file tools, privacy first, pdf tools, image tools, free online tools"
+        description="5toolbox is a free, privacy-first browser-based file toolkit. 50+ tools including PDF merge, image compress, converters, calculators — no uploads, no sign-up, all processing in your browser."
+        keywords="about 5toolbox, file tools, privacy first, pdf tools, image tools, free online tools"
       />
 
       {/* Hero */}
@@ -107,9 +107,9 @@ export function About() {
             <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-2">Built by Yasin Miyade</h2>
+            <h2 className="text-2xl font-bold mb-2">Built by 5toolbox Team</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              5toolbox is an independent project built and maintained by <strong>Yasin Miyade</strong>. The goal was to create a truly free, no-nonsense file toolkit that respects user privacy and works for everyone regardless of their technical skill level.
+              5toolbox is an independent project built and maintained by the <strong>5toolbox Team</strong>. The goal was to create a truly free, no-nonsense file toolkit that respects user privacy and works for everyone regardless of their technical skill level.
             </p>
             <p className="text-muted-foreground leading-relaxed">
               If you find 5toolbox useful, the best way to support it is to share it with others and allow ads to run — that's how we keep the lights on and everything free.

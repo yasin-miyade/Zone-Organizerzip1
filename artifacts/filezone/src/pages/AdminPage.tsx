@@ -64,6 +64,9 @@ interface SiteSettings {
   maintenance_mode?: string;
   maintenance_message?: string;
   hidden_pages?: string;
+  footer_copyright?: string;
+  title_animation?: string;
+  website_animations?: string;
 }
 
 interface Contact {
@@ -707,6 +710,40 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
       <div className="space-y-1.5">
         <Label>Analytics / Header Code (HTML)</Label>
         <Textarea value={settings.analytics_code ?? ""} onChange={e => set("analytics_code", e.target.value)} placeholder="<!-- Google Analytics or other scripts -->" className="font-mono text-xs resize-none h-24" />
+      </div>
+      <Separator />
+      <div className="space-y-1.5">
+        <Label>Title Animation Style</Label>
+        <select
+          value={settings.title_animation ?? "none"}
+          onChange={e => set("title_animation", e.target.value)}
+          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+        >
+          <option value="none">Static Title (No Animation)</option>
+          <option value="scrolling">Scrolling Title Text</option>
+          <option value="typing">Typing Text Effect</option>
+          <option value="bounce">Bouncing Promotional Titles</option>
+        </select>
+        <p className="text-xs text-muted-foreground">Animates the browser tab title text dynamically.</p>
+      </div>
+      <div className="flex items-center justify-between p-4 rounded-xl border bg-card">
+        <div>
+          <p className="font-medium text-sm">Enable Site-wide Animations</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Smooth modern slide-up entrance transitions for pages</p>
+        </div>
+        <Switch
+          checked={settings.website_animations !== "false"}
+          onCheckedChange={v => set("website_animations", v ? "true" : "false")}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Footer Copyright Text</Label>
+        <Input
+          value={settings.footer_copyright ?? ""}
+          onChange={e => set("footer_copyright", e.target.value)}
+          placeholder="e.g. &copy; 2026 5toolbox. All rights reserved."
+        />
+        <p className="text-xs text-muted-foreground">Leave blank to use default copyright text.</p>
       </div>
       <Separator />
       <div className="space-y-1.5">

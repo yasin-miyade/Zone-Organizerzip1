@@ -70,7 +70,7 @@ function FooterCalculator() {
   );
 }
 
-export function Footer({ hiddenPages = [] }: { hiddenPages?: string[] }) {
+export function Footer({ hiddenPages = [], copyright }: { hiddenPages?: string[]; copyright?: string }) {
   const show = (key: string) => !hiddenPages.includes(key);
 
   return (
@@ -89,9 +89,6 @@ export function Footer({ hiddenPages = [] }: { hiddenPages?: string[] }) {
             <div className="flex items-center gap-3 mb-5">
               <div className="flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1.5 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900">
                 <Shield className="h-3 w-3" /> 100% Local &amp; Private
-              </div>
-              <div className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1.5 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900">
-                AdSense Approved
               </div>
             </div>
             <FooterCalculator />
@@ -137,16 +134,17 @@ export function Footer({ hiddenPages = [] }: { hiddenPages?: string[] }) {
               {show("privacy") && <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>}
               {show("terms") && <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>}
               <li><Link href="/cookie-policy" className="hover:text-primary transition-colors">Cookie Policy</Link></li>
-              <li><a href="/api/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Sitemap</a></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div>
-            <span>&copy; {new Date().getFullYear()} 5toolbox by </span>
-            <span className="font-medium text-foreground">Yasin Miyade</span>
-            <span>. All rights reserved. All file processing happens locally.</span>
+            {copyright ? (
+              <span>{copyright}</span>
+            ) : (
+              <span>&copy; {new Date().getFullYear()} 5toolbox. All rights reserved. All file processing happens locally.</span>
+            )}
           </div>
           <div className="flex flex-wrap gap-4">
             {show("privacy") && <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>}

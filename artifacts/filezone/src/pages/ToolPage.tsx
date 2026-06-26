@@ -2156,6 +2156,38 @@ const categoryBadgeColors: Record<string, string> = {
   calculator: "bg-amber-100 text-amber-700",
 };
 
+function getFallbackSteps(category: string, toolName: string): string[] {
+  const cat = (category || "").toLowerCase();
+  if (cat === "pdf") {
+    return [
+      `Click the file selection area to upload your PDF files, or drag and drop them directly into the zone.`,
+      `Adjust any settings if needed (such as page order, password, or compression level).`,
+      `Click the processing button to run the tool. All processing happens 100% locally in your browser.`,
+      `Once completed, click the download button to save your processed PDF file to your device.`
+    ];
+  } else if (cat === "image") {
+    return [
+      `Choose your image file (JPEG, PNG, WebP, etc.) from your device or drag it into the dropzone.`,
+      `Specify your target dimensions, quality, or output format settings in the options panel.`,
+      `Click the conversion or optimization button to process the image in real-time.`,
+      `Preview the output size savings and click download to save the new image.`
+    ];
+  } else if (cat === "convert" || cat === "text" || cat === "calculator") {
+    return [
+      `Input your raw data, text, or file into the input area.`,
+      `Configure the tool parameters (such as formatting settings, conversions, or calculations).`,
+      `The results will be generated automatically or after clicking the action button.`,
+      `Click the "Copy to Clipboard" button or "Download" to save your result.`
+    ];
+  }
+  return [
+    `Upload or enter your input data into the tool.`,
+    `Adjust the options and settings to your preference.`,
+    `Run the tool to process your data locally and securely.`,
+    `Copy or download your finalized output.`
+  ];
+}
+
 // ---- MAIN TOOL PAGE ----
 export function ToolPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -2387,18 +2419,23 @@ export function ToolPage() {
           )}
 
           {/* Steps / How To */}
-          {tool.steps && safeJsonParse<string[]>(tool.steps, []).length > 0 && (
-            <section className="bg-muted/30 p-6 rounded-2xl border">
-              <h2 className="text-xl font-bold text-foreground mb-4">How to Use {tool.name}</h2>
-              <ol className="space-y-3 list-decimal pl-5">
-                {safeJsonParse<string[]>(tool.steps, []).map((stepText, i) => (
-                  <li key={i} className="text-muted-foreground text-sm leading-relaxed pl-1">
-                    {stepText}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          )}
+          {(() => {
+            const steps = tool.steps && safeJsonParse<string[]>(tool.steps, []).length > 0
+              ? safeJsonParse<string[]>(tool.steps, [])
+              : getFallbackSteps(tool.category, tool.name);
+            return (
+              <section className="bg-muted/30 p-6 rounded-2xl border">
+                <h2 className="text-xl font-bold text-foreground mb-4">How to Use {tool.name}</h2>
+                <ol className="space-y-3 list-decimal pl-5">
+                  {steps.map((stepText, i) => (
+                    <li key={i} className="text-muted-foreground text-sm leading-relaxed pl-1">
+                      {stepText}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            );
+          })()}
 
           {/* Features, Benefits & Advantages Grid */}
           {(tool.features || tool.benefits || tool.advantages) && (

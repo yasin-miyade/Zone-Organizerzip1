@@ -13,7 +13,7 @@ export function TermsOfService() {
           <FileText className="h-7 w-7 text-primary" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-3">Terms of Service</h1>
-        <p className="text-muted-foreground text-sm">Last updated: June 2026 · 5toolbox by Yasin Miyade</p>
+        <p className="text-muted-foreground text-sm">Last updated: June 2026 · 5toolbox</p>
       </div>
 
       <div className="space-y-6">
