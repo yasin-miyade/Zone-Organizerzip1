@@ -123,10 +123,17 @@ router.get("/sitemap.xml", async (req, res) => {
     const blogs = await db.select().from(blogsTable);
     const articles = await db.select().from(articlesTable);
 
-    const host = process.env.FRONTEND_URL
-      ?? (process.env.REPLIT_DOMAINS?.split(",")[0]
-        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : "https://5toolbox.app");
+    const forwardedHost = req.headers["x-forwarded-host"];
+    let reqHost = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
+    if (reqHost && reqHost.includes(",")) {
+      reqHost = reqHost.split(",")[0].trim();
+    }
+    if (!reqHost) {
+      reqHost = req.get("host");
+    }
+    const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+    const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.app");
+
     const now = new Date().toISOString().split("T")[0];
     
     const staticPages = [
@@ -186,7 +193,17 @@ ${allPages.map((p) => `  <url>
 
 // GET /robots.txt
 router.get("/robots.txt", (req, res) => {
-  const host = process.env.FRONTEND_URL ?? "https://5toolbox.app";
+  const forwardedHost = req.headers["x-forwarded-host"];
+  let reqHost = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
+  if (reqHost && reqHost.includes(",")) {
+    reqHost = reqHost.split(",")[0].trim();
+  }
+  if (!reqHost) {
+    reqHost = req.get("host");
+  }
+  const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+  const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.app");
+
   res.setHeader("Content-Type", "text/plain");
   res.send(`User-agent: *\nAllow: /\n\nSitemap: ${host}/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });
