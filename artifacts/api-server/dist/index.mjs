@@ -57208,7 +57208,7 @@ router5.post("/ratings/:toolSlug", async (req, res) => {
         eq(ratingsTable.ipAddress, ipAddress)
       )
     ).orderBy(desc(ratingsTable.createdAt)).limit(1);
-    if (existing[0] && Date.now() - existing[0].createdAt.getTime() < 6e4) {
+    if (existing[0] && Date.now() - new Date(existing[0].createdAt).getTime() < 6e4) {
       return res.status(429).json({ error: "You can submit a rating once per minute" });
     }
     const [newRating] = await db.insert(ratingsTable).values({
@@ -57237,6 +57237,33 @@ router5.delete("/admin/comments/:id", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error40) {
     res.status(500).json({ error: "Failed to delete comment" });
+  }
+});
+router5.get("/admin/ratings", requireAdmin, async (req, res) => {
+  try {
+    const list = await db.select().from(ratingsTable).orderBy(desc(ratingsTable.createdAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch ratings" });
+  }
+});
+router5.delete("/admin/ratings/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const [deleted] = await db.delete(ratingsTable).where(eq(ratingsTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Rating not found" });
+    res.json({ success: true });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to delete rating" });
+  }
+});
+router5.delete("/admin/ratings/tool/:toolSlug", requireAdmin, async (req, res) => {
+  const toolSlug = req.params.toolSlug;
+  try {
+    await db.delete(ratingsTable).where(eq(ratingsTable.toolSlug, toolSlug));
+    res.json({ success: true });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to reset ratings" });
   }
 });
 var comments_default = router5;

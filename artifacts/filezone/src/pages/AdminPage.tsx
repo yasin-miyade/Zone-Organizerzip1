@@ -1125,7 +1125,7 @@ export function AdminPage() {
   const [addingBlog, setAddingBlog] = useState(false);
   const [editingArticle, setEditingArticle] = useState<any | null>(null);
   const [addingArticle, setAddingArticle] = useState(false);
-  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "contacts" | "settings" | "ads" | "seo" | "blogs" | "articles" | "comments">("tools");
+  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "contacts" | "settings" | "ads" | "seo" | "blogs" | "articles" | "comments" | "ratings">("tools");
   const [contactCount, setContactCount] = useState(0);
 
   useEffect(() => {
@@ -1307,6 +1307,9 @@ export function AdminPage() {
           </Button>
           <Button variant={activeTab === "comments" ? "default" : "outline"} onClick={() => setActiveTab("comments")} size="sm">
             <MessageSquare className="h-4 w-4 mr-1.5" /> Comments
+          </Button>
+          <Button variant={activeTab === "ratings" ? "default" : "outline"} onClick={() => setActiveTab("ratings")} size="sm">
+            <Star className="h-4 w-4 mr-1.5" /> Ratings Moderation
           </Button>
           <Button variant={activeTab === "stats" ? "default" : "outline"} onClick={() => setActiveTab("stats")} size="sm">
             <TrendingUp className="h-4 w-4 mr-1.5" /> Analytics
@@ -1526,6 +1529,11 @@ export function AdminPage() {
         {/* Comments Panel Tab */}
         {activeTab === "comments" && (
           <CommentsPanel token={token} />
+        )}
+
+        {/* Ratings Panel Tab */}
+        {activeTab === "ratings" && (
+          <RatingsPanel token={token} tools={tools} />
         )}
       </div>
 
@@ -1853,6 +1861,145 @@ function CommentsPanel({ token }: { token: string }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function RatingsPanel({ token, tools }: { token: string; tools: Tool[] }) {
+  const [ratings, setRatings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [resettingTool, setResettingTool] = useState("");
+  const { toast } = useToast();
+
+  async function loadRatings() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/ratings`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setRatings(Array.isArray(data) ? data : []);
+    } catch {
+      toast({ title: "Failed to load ratings", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadRatings(); }, []);
+
+  async function deleteRating(id: number) {
+    if (!confirm("Are you sure you want to delete this rating?")) return;
+    try {
+      const res = await fetch(`${API}/admin/ratings/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setRatings(prev => prev.filter(r => r.id !== id));
+        toast({ title: "Rating deleted" });
+      } else throw new Error();
+    } catch {
+      toast({ title: "Failed to delete rating", variant: "destructive" });
+    }
+  }
+
+  async function handleResetToolRatings() {
+    if (!resettingTool) return;
+    const toolName = tools.find(t => t.slug === resettingTool)?.name || resettingTool;
+    if (!confirm(`Are you sure you want to reset all ratings for "${toolName}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/admin/ratings/tool/${resettingTool}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setRatings(prev => prev.filter(r => r.toolSlug !== resettingTool));
+        toast({ title: `Ratings for "${toolName}" reset successfully` });
+        setResettingTool("");
+      } else throw new Error();
+    } catch {
+      toast({ title: "Failed to reset ratings", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Reset Tool Ratings Option */}
+      <div className="bg-card border rounded-2xl p-6">
+        <h3 className="font-semibold text-base mb-2">Reset Ratings for Tool</h3>
+        <p className="text-xs text-muted-foreground mb-4">Select a tool to wipe all its ratings and start fresh.</p>
+        <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+          <select
+            value={resettingTool}
+            onChange={e => setResettingTool(e.target.value)}
+            className="flex-1 border rounded-md px-3 py-2 text-sm bg-background"
+          >
+            <option value="">-- Select a Tool --</option>
+            {tools.map(t => (
+              <option key={t.slug} value={t.slug}>{t.name} ({t.slug})</option>
+            ))}
+          </select>
+          <Button onClick={handleResetToolRatings} disabled={!resettingTool} variant="destructive" size="sm">
+            Reset All Ratings
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-2xl overflow-hidden">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h2 className="font-semibold text-lg">User Ratings Moderation</h2>
+        </div>
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">Loading ratings…</div>
+        ) : ratings.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">No user ratings found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tool Slug</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">IP Address</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ratings.map(r => (
+                  <tr key={r.id} className="border-t hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs">{r.toolSlug}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex text-amber-500">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={cn(
+                              "h-4 w-4",
+                              i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{r.ipAddress}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => deleteRating(r.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
