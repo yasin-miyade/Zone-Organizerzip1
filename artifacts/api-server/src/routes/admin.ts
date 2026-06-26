@@ -7,7 +7,7 @@ import type { Request, Response, NextFunction } from "express";
 const router = Router();
 
 // ----- Auth middleware -----
-async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -114,6 +114,21 @@ router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
     sortOrder?: number;
     inputFormats?: string[];
     outputFormats?: string[];
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    introduction?: string | null;
+    features?: string | null;
+    benefits?: string | null;
+    steps?: string | null;
+    faqs?: string | null;
+    advantages?: string | null;
+    commonErrors?: string | null;
+    useCases?: string | null;
+    examples?: string | null;
+    tips?: string | null;
+    version?: string;
+    license?: string;
+    developer?: string;
   };
 
   try {
@@ -136,6 +151,22 @@ router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
         sortOrder: body.sortOrder ?? existing.sortOrder,
         inputFormats: body.inputFormats ?? existing.inputFormats,
         outputFormats: body.outputFormats ?? existing.outputFormats,
+        metaTitle: body.metaTitle !== undefined ? body.metaTitle : existing.metaTitle,
+        metaDescription: body.metaDescription !== undefined ? body.metaDescription : existing.metaDescription,
+        introduction: body.introduction !== undefined ? body.introduction : existing.introduction,
+        features: body.features !== undefined ? body.features : existing.features,
+        benefits: body.benefits !== undefined ? body.benefits : existing.benefits,
+        steps: body.steps !== undefined ? body.steps : existing.steps,
+        faqs: body.faqs !== undefined ? body.faqs : existing.faqs,
+        advantages: body.advantages !== undefined ? body.advantages : existing.advantages,
+        commonErrors: body.commonErrors !== undefined ? body.commonErrors : existing.commonErrors,
+        useCases: body.useCases !== undefined ? body.useCases : existing.useCases,
+        examples: body.examples !== undefined ? body.examples : existing.examples,
+        tips: body.tips !== undefined ? body.tips : existing.tips,
+        version: body.version ?? existing.version,
+        license: body.license ?? existing.license,
+        developer: body.developer ?? existing.developer,
+        lastUpdated: new Date(),
       })
       .where(eq(toolsTable.slug, slug))
       .returning();
@@ -157,7 +188,6 @@ router.delete("/admin/tools/:slug", requireAdmin, async (req, res) => {
   }
 });
 
-// POST /admin/tools — create a new tool
 router.post("/admin/tools", requireAdmin, async (req, res) => {
   const body = req.body as {
     slug: string;
@@ -171,6 +201,21 @@ router.post("/admin/tools", requireAdmin, async (req, res) => {
     sortOrder?: number;
     inputFormats?: string[];
     outputFormats?: string[];
+    metaTitle?: string;
+    metaDescription?: string;
+    introduction?: string;
+    features?: string;
+    benefits?: string;
+    steps?: string;
+    faqs?: string;
+    advantages?: string;
+    commonErrors?: string;
+    useCases?: string;
+    examples?: string;
+    tips?: string;
+    version?: string;
+    license?: string;
+    developer?: string;
   };
 
   if (!body.slug || !body.name || !body.description || !body.category) {
@@ -193,6 +238,21 @@ router.post("/admin/tools", requireAdmin, async (req, res) => {
         inputFormats: body.inputFormats ?? [],
         outputFormats: body.outputFormats ?? [],
         usageCount: 0,
+        metaTitle: body.metaTitle || null,
+        metaDescription: body.metaDescription || null,
+        introduction: body.introduction || null,
+        features: body.features || null,
+        benefits: body.benefits || null,
+        steps: body.steps || null,
+        faqs: body.faqs || null,
+        advantages: body.advantages || null,
+        commonErrors: body.commonErrors || null,
+        useCases: body.useCases || null,
+        examples: body.examples || null,
+        tips: body.tips || null,
+        version: body.version || "1.0.0",
+        license: body.license || "MIT",
+        developer: body.developer || "5toolbox",
       })
       .returning();
     res.status(201).json(created);

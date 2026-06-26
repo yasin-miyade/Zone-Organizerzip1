@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
-const SITE_NAME = "FileZone";
-const BASE_URL = "https://filezone.app";
+const SITE_NAME = "5toolbox";
+const BASE_URL = "https://5toolbox.app";
 const DEFAULT_DESC = "Free online file toolkit — merge PDFs, compress images, convert files, and more. All processing happens in your browser. No uploads, no sign-up, no limits.";
 
 interface SEOProps {
@@ -10,6 +10,8 @@ interface SEOProps {
   description?: string;
   keywords?: string;
   noIndex?: boolean;
+  ogType?: "website" | "article" | "blog";
+  ogImage?: string;
 }
 
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
@@ -32,7 +34,25 @@ function setCanonical(url: string) {
   el.setAttribute("href", url);
 }
 
-export function SEO({ title, description = DEFAULT_DESC, keywords, noIndex = false }: SEOProps) {
+function setHreflang(lang: string, url: string) {
+  let el = document.querySelector(`link[rel="alternate"][hreflang="${lang}"]`) as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", "alternate");
+    el.setAttribute("hreflang", lang);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", url);
+}
+
+export function SEO({
+  title,
+  description = DEFAULT_DESC,
+  keywords,
+  noIndex = false,
+  ogType = "website",
+  ogImage = "https://5toolbox.app/og-image.png"
+}: SEOProps) {
   const [location] = useLocation();
 
   useEffect(() => {
@@ -42,21 +62,32 @@ export function SEO({ title, description = DEFAULT_DESC, keywords, noIndex = fal
     document.title = fullTitle;
 
     setMeta("description", description);
-    if (keywords) setMeta("keywords", keywords);
+    if (keywords) {
+      setMeta("keywords", keywords);
+    } else {
+      // Remove keywords if not provided to avoid stale tags
+      const el = document.querySelector('meta[name="keywords"]');
+      if (el) el.remove();
+    }
     setMeta("robots", noIndex ? "noindex, nofollow" : "index, follow");
 
     setMeta("og:title", fullTitle, "property");
     setMeta("og:description", description, "property");
     setMeta("og:url", canonical, "property");
-    setMeta("og:type", "website", "property");
+    setMeta("og:type", ogType, "property");
     setMeta("og:site_name", SITE_NAME, "property");
+    setMeta("og:image", ogImage, "property");
 
     setMeta("twitter:title", fullTitle, "name");
     setMeta("twitter:description", description, "name");
     setMeta("twitter:card", "summary_large_image", "name");
+    setMeta("twitter:image", ogImage, "name");
 
     setCanonical(canonical);
-  }, [title, description, keywords, location, noIndex]);
+    setHreflang("en", canonical);
+    setHreflang("x-default", canonical);
+  }, [title, description, keywords, location, noIndex, ogType, ogImage]);
 
   return null;
 }
+

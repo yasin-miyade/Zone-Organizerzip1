@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 
 const features = [
   { icon: Shield, title: "Privacy First", desc: "Your files never leave your browser. All processing happens locally on your device — nothing is ever uploaded to our servers. We have no access to your files." },
-  { icon: Zap, title: "Lightning Fast", desc: "Powered by WebAssembly and modern browser APIs, FileZone processes files in seconds without any waiting, queues, or server round-trips." },
-  { icon: Globe, title: "Works Everywhere", desc: "No installation, no account, no app required. FileZone runs in any modern browser on any device — desktop, tablet, or mobile — for free." },
+  { icon: Zap, title: "Lightning Fast", desc: "Powered by WebAssembly and modern browser APIs, 5toolbox processes files in seconds without any waiting, queues, or server round-trips." },
+  { icon: Globe, title: "Works Everywhere", desc: "No installation, no account, no app required. 5toolbox runs in any modern browser on any device — desktop, tablet, or mobile — for free." },
   { icon: Lock, title: "Always Free", desc: "All 50+ tools are completely free to use with no sign-up, no limits, no watermarks, and no hidden paywalls. Our tools are supported by non-intrusive ads." },
 ];
 
@@ -29,9 +29,9 @@ export function About() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <SEO
-        title="About FileZone — Free Browser-Based File Tools"
-        description="FileZone is a free, privacy-first browser-based file toolkit by Yasin Miyade. 50+ tools including PDF merge, image compress, converters, calculators — no uploads, no sign-up, all processing in your browser."
-        keywords="about filezone, yasin miyade, file tools, privacy first, pdf tools, image tools, free online tools"
+        title="About 5toolbox — Free Browser-Based File Tools"
+        description="5toolbox is a free, privacy-first browser-based file toolkit by Yasin Miyade. 50+ tools including PDF merge, image compress, converters, calculators — no uploads, no sign-up, all processing in your browser."
+        keywords="about 5toolbox, yasin miyade, file tools, privacy first, pdf tools, image tools, free online tools"
       />
 
       {/* Hero */}
@@ -39,9 +39,9 @@ export function About() {
         <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-5">
           <Heart className="h-4 w-4" /> Made with care for everyone
         </div>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">About FileZone</h1>
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">About 5toolbox</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          FileZone is a completely free, privacy-first online toolkit for everyday file tasks. Merge PDFs, compress images, convert files, generate QR codes — all without installing anything or uploading files to a server.
+          5toolbox is a completely free, privacy-first online toolkit for everyday file tasks. Merge PDFs, compress images, convert files, generate QR codes — all without installing anything or uploading files to a server.
         </p>
       </div>
 
@@ -59,10 +59,10 @@ export function About() {
       <div className="p-8 rounded-2xl border bg-card mb-12">
         <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
         <p className="text-muted-foreground leading-relaxed mb-4">
-          FileZone was created with one simple goal: give everyone access to powerful file processing tools without the frustration of sign-ups, subscriptions, file uploads, or watermarks. We believe privacy and convenience should not be in conflict.
+          5toolbox was created with one simple goal: give everyone access to powerful file processing tools without the frustration of sign-ups, subscriptions, file uploads, or watermarks. We believe privacy and convenience should not be in conflict.
         </p>
         <p className="text-muted-foreground leading-relaxed">
-          Every tool on FileZone runs entirely in your browser using modern web technologies like WebAssembly. This means your files <strong>never leave your device</strong>, processing is <strong>instant</strong>, and the tools work even <strong>offline</strong> once loaded. We store only anonymous, aggregate usage counts — never your files or personal data.
+          Every tool on 5toolbox runs entirely in your browser using modern web technologies like WebAssembly. This means your files <strong>never leave your device</strong>, processing is <strong>instant</strong>, and the tools work even <strong>offline</strong> once loaded. We store only anonymous, aggregate usage counts — never your files or personal data.
         </p>
       </div>
 
@@ -109,10 +109,10 @@ export function About() {
           <div>
             <h2 className="text-2xl font-bold mb-2">Built by Yasin Miyade</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              FileZone is an independent project built and maintained by <strong>Yasin Miyade</strong>. The goal was to create a truly free, no-nonsense file toolkit that respects user privacy and works for everyone regardless of their technical skill level.
+              5toolbox is an independent project built and maintained by <strong>Yasin Miyade</strong>. The goal was to create a truly free, no-nonsense file toolkit that respects user privacy and works for everyone regardless of their technical skill level.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              If you find FileZone useful, the best way to support it is to share it with others and allow ads to run — that's how we keep the lights on and everything free.
+              If you find 5toolbox useful, the best way to support it is to share it with others and allow ads to run — that's how we keep the lights on and everything free.
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function About() {
           <div>
             <h2 className="text-xl font-bold mb-2">Content Policy</h2>
             <p className="text-muted-foreground leading-relaxed text-sm">
-              FileZone processes all files on the user's device. We do not have access to, store, or transmit any user files. Our tools are designed for legitimate, lawful file management tasks. We do not facilitate illegal content, copyright infringement, or harmful activities. All content on FileZone is original and created to genuinely help users with their file management needs.
+              5toolbox processes all files on the user's device. We do not have access to, store, or transmit any user files. Our tools are designed for legitimate, lawful file management tasks. We do not facilitate illegal content, copyright infringement, or harmful activities. All content on 5toolbox is original and created to genuinely help users with their file management needs.
             </p>
           </div>
         </div>

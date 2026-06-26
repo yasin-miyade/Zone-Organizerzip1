@@ -8,8 +8,8 @@ const faqs = [
     category: "General",
     items: [
       {
-        q: "Is FileZone completely free?",
-        a: "Yes — FileZone is 100% free to use with no sign-up, no subscription, and no hidden fees. Every tool on this site works at no cost.",
+        q: "Is 5toolbox completely free?",
+        a: "Yes — 5toolbox is 100% free to use with no sign-up, no subscription, and no hidden fees. Every tool on this site works at no cost.",
       },
       {
         q: "Do I need to create an account?",
@@ -26,7 +26,7 @@ const faqs = [
     items: [
       {
         q: "Are my files uploaded to your servers?",
-        a: "No. FileZone processes all files directly in your browser using WebAssembly and browser APIs. Your files never leave your device — they are not uploaded, stored, or transmitted to any server. This is a core architectural decision we made to protect your privacy.",
+        a: "No. 5toolbox processes all files directly in your browser using WebAssembly and browser APIs. Your files never leave your device — they are not uploaded, stored, or transmitted to any server. This is a core architectural decision we made to protect your privacy.",
       },
       {
         q: "Is my data safe?",
@@ -38,7 +38,7 @@ const faqs = [
       },
       {
         q: "Is it safe to process sensitive documents?",
-        a: "Yes. Since all processing is done in your browser, sensitive documents (financial records, legal documents, medical files) never leave your device. This makes FileZone a safer choice compared to tools that require file uploads.",
+        a: "Yes. Since all processing is done in your browser, sensitive documents (financial records, legal documents, medical files) never leave your device. This makes 5toolbox a safer choice compared to tools that require file uploads.",
       },
     ],
   },
@@ -68,7 +68,7 @@ const faqs = [
     items: [
       {
         q: "What image formats are supported for conversion?",
-        a: "FileZone supports converting between JPG, PNG, WebP, GIF, BMP, ICO, TIFF, and SVG formats. SVG export embeds the raster image as base64 data inside the SVG container.",
+        a: "5toolbox supports converting between JPG, PNG, WebP, GIF, BMP, ICO, TIFF, and SVG formats. SVG export embeds the raster image as base64 data inside the SVG container.",
       },
       {
         q: "Will compressing an image reduce its quality?",
@@ -114,16 +114,16 @@ const faqs = [
     category: "Technical",
     items: [
       {
-        q: "Which browsers does FileZone support?",
-        a: "FileZone works best in modern browsers: Chrome 90+, Firefox 88+, Edge 90+, and Safari 14+. Some WebAssembly-powered features (like PDF processing) may not work in very old browsers.",
+        q: "Which browsers does 5toolbox support?",
+        a: "5toolbox works best in modern browsers: Chrome 90+, Firefox 88+, Edge 90+, and Safari 14+. Some WebAssembly-powered features (like PDF processing) may not work in very old browsers.",
       },
       {
         q: "Why does PDF processing sometimes take a while?",
         a: "PDF processing runs entirely in your browser using WebAssembly (a compiled binary format). The first time a PDF tool loads, it downloads and compiles the WASM module (~2–5 MB), which can take a few seconds on slower connections. Subsequent uses within the same session are instant.",
       },
       {
-        q: "Can I use FileZone on my phone?",
-        a: "Yes — FileZone is fully responsive and works on mobile browsers. However, some tools (like PDF merge with many files) work better on a desktop due to the larger screen and more available memory.",
+        q: "Can I use 5toolbox on my phone?",
+        a: "Yes — 5toolbox is fully responsive and works on mobile browsers. However, some tools (like PDF merge with many files) work better on a desktop due to the larger screen and more available memory.",
       },
     ],
   },
@@ -161,8 +161,8 @@ export function FAQ() {
     <div className="max-w-3xl mx-auto px-4 py-16">
       <SEO
         title="FAQ — Frequently Asked Questions"
-        description="Find answers to common questions about FileZone — how it works, privacy, file security, supported formats, and more."
-        keywords="filezone faq, frequently asked questions, file tools help, pdf tools faq"
+        description="Find answers to common questions about 5toolbox — how it works, privacy, file security, supported formats, and more."
+        keywords="5toolbox faq, frequently asked questions, file tools help, pdf tools faq"
       />
 
       <div className="text-center mb-12">
@@ -171,7 +171,7 @@ export function FAQ() {
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-3">Frequently Asked Questions</h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Everything you need to know about FileZone — how it works, privacy, supported formats, and more.
+          Everything you need to know about 5toolbox — how it works, privacy, supported formats, and more.
         </p>
       </div>
 

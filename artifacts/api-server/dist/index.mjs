@@ -20651,27 +20651,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router5;
+    module.exports = Router7;
     module.exports.Route = Route;
-    function Router5(options) {
-      if (!(this instanceof Router5)) {
-        return new Router5(options);
+    function Router7(options) {
+      if (!(this instanceof Router7)) {
+        return new Router7(options);
       }
       const opts = options || {};
-      function router5(req, res, next) {
-        router5.handle(req, res, next);
+      function router7(req, res, next) {
+        router7.handle(req, res, next);
       }
-      Object.setPrototypeOf(router5, this);
-      router5.caseSensitive = opts.caseSensitive;
-      router5.mergeParams = opts.mergeParams;
-      router5.params = {};
-      router5.strict = opts.strict;
-      router5.stack = [];
-      return router5;
+      Object.setPrototypeOf(router7, this);
+      router7.caseSensitive = opts.caseSensitive;
+      router7.mergeParams = opts.mergeParams;
+      router7.params = {};
+      router7.strict = opts.strict;
+      router7.stack = [];
+      return router7;
     }
-    Router5.prototype = function() {
+    Router7.prototype = function() {
     };
-    Router5.prototype.param = function param(name, fn) {
+    Router7.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20691,7 +20691,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router5.prototype.handle = function handle(req, res, callback) {
+    Router7.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20818,7 +20818,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router5.prototype.use = function use(handler) {
+    Router7.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20851,7 +20851,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router5.prototype.route = function route(path2) {
+    Router7.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20866,7 +20866,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router5.prototype[method] = function(path2) {
+      Router7.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -21049,13 +21049,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router5 = require_router();
+    var Router7 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router5 = null;
+      var router7 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21064,13 +21064,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router5 === null) {
-            router5 = new Router5({
+          if (router7 === null) {
+            router7 = new Router7({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router5;
+          return router7;
         }
       });
     };
@@ -21141,15 +21141,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router5 = this.router;
+      var router7 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router5.use(path2, fn2);
+          return router7.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router5.use(path2, function mounted_app(req, res, next) {
+        router7.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23722,7 +23722,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router5 = require_router();
+    var Router7 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23744,8 +23744,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router5.Route;
-    exports.Router = Router5;
+    exports.Route = Router7.Route;
+    exports.Router = Router7;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -34073,12 +34073,12 @@ var require_lib5 = __commonJS({
 });
 
 // src/app.ts
-var import_express5 = __toESM(require_express2(), 1);
+var import_express7 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 
 // src/routes/index.ts
-var import_express4 = __toESM(require_express2(), 1);
+var import_express6 = __toESM(require_express2(), 1);
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/entity.js
 var entityKind = /* @__PURE__ */ Symbol.for("drizzle:entityKind");
@@ -34696,10 +34696,10 @@ var PgEnumColumn = class extends PgColumn {
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/subquery.js
 var Subquery = class {
   static [entityKind] = "Subquery";
-  constructor(sql3, fields, alias, isWith = false, usedTables = []) {
+  constructor(sql4, fields, alias, isWith = false, usedTables = []) {
     this._ = {
       brand: "Subquery",
-      sql: sql3,
+      sql: sql4,
       selectedFields: fields,
       alias,
       isWith,
@@ -44308,10 +44308,10 @@ var PgRelationalQuery = class extends QueryPromise {
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.22.0/node_modules/drizzle-orm/pg-core/query-builders/raw.js
 var PgRaw = class extends QueryPromise {
-  constructor(execute, sql3, query, mapBatchResult) {
+  constructor(execute, sql4, query, mapBatchResult) {
     super();
     this.execute = execute;
-    this.sql = sql3;
+    this.sql = sql4;
     this.query = query;
     this.mapBatchResult = mapBatchResult;
   }
@@ -44631,8 +44631,8 @@ var NoopCache = class extends Cache {
   async onMutate(_params) {
   }
 };
-async function hashQuery(sql3, params) {
-  const dataToHash = `${sql3}-${JSON.stringify(params)}`;
+async function hashQuery(sql4, params) {
+  const dataToHash = `${sql4}-${JSON.stringify(params)}`;
   const encoder = new TextEncoder();
   const data = encoder.encode(dataToHash);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -45092,11 +45092,19 @@ function drizzle(...params) {
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  articlesTable: () => articlesTable,
+  blogsTable: () => blogsTable,
   clipboardsTable: () => clipboardsTable,
+  commentsTable: () => commentsTable,
   contactsTable: () => contactsTable,
+  insertArticleSchema: () => insertArticleSchema,
+  insertBlogSchema: () => insertBlogSchema,
+  insertCommentSchema: () => insertCommentSchema,
   insertContactSchema: () => insertContactSchema,
+  insertRatingSchema: () => insertRatingSchema,
   insertSettingSchema: () => insertSettingSchema,
   insertToolSchema: () => insertToolSchema,
+  ratingsTable: () => ratingsTable,
   siteSettingsTable: () => siteSettingsTable,
   toolsTable: () => toolsTable
 });
@@ -56502,9 +56510,34 @@ var toolsTable = pgTable("tools", {
   sortOrder: integer("sort_order").notNull().default(0),
   inputFormats: text("input_formats").array().notNull().default([]),
   outputFormats: text("output_formats").array().notNull().default([]),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  introduction: text("introduction"),
+  features: text("features"),
+  // JSON string array
+  benefits: text("benefits"),
+  // JSON string array
+  steps: text("steps"),
+  // JSON string array of steps
+  faqs: text("faqs"),
+  // JSON string array of Q&As
+  advantages: text("advantages"),
+  // JSON string array
+  commonErrors: text("common_errors"),
+  // JSON string array
+  useCases: text("use_cases"),
+  // JSON string array
+  examples: text("examples"),
+  // JSON string array
+  tips: text("tips"),
+  // JSON string array
+  version: text("version").notNull().default("1.0.0"),
+  license: text("license").notNull().default("MIT"),
+  developer: text("developer").notNull().default("5toolbox"),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull()
 });
-var insertToolSchema = createInsertSchema(toolsTable).omit({ id: true, createdAt: true });
+var insertToolSchema = createInsertSchema(toolsTable).omit({ id: true, createdAt: true, lastUpdated: true });
 
 // ../../lib/db/src/schema/settings.ts
 var siteSettingsTable = pgTable("site_settings", {
@@ -56535,6 +56568,67 @@ var clipboardsTable = pgTable("clipboards", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull()
 });
+
+// ../../lib/db/src/schema/blogs.ts
+var blogsTable = pgTable("blogs", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  summary: text("summary").notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  coverImage: text("cover_image"),
+  authorName: text("author_name").notNull().default("5toolbox Team"),
+  authorAvatar: text("author_avatar"),
+  readTime: integer("read_time").notNull().default(5),
+  tags: text("tags").array().notNull().default([]),
+  category: text("category").notNull().default("General"),
+  views: integer("views").notNull().default(0),
+  likes: integer("likes").notNull().default(0),
+  bookmarks: integer("bookmarks").notNull().default(0),
+  publishedAt: timestamp("published_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+var insertBlogSchema = createInsertSchema(blogsTable).omit({ id: true, publishedAt: true, updatedAt: true });
+
+// ../../lib/db/src/schema/articles.ts
+var articlesTable = pgTable("articles", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  summary: text("summary").notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  authorName: text("author_name").notNull().default("5toolbox Team"),
+  readTime: integer("read_time").notNull().default(5),
+  views: integer("views").notNull().default(0),
+  publishedAt: timestamp("published_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+});
+var insertArticleSchema = createInsertSchema(articlesTable).omit({ id: true, publishedAt: true, updatedAt: true });
+
+// ../../lib/db/src/schema/comments.ts
+var commentsTable = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  pageType: text("page_type").notNull(),
+  // 'tool', 'blog', 'article'
+  pageSlug: text("page_slug").notNull(),
+  userName: text("user_name").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var ratingsTable = pgTable("ratings", {
+  id: serial("id").primaryKey(),
+  toolSlug: text("tool_slug").notNull(),
+  rating: integer("rating").notNull(),
+  // 1-5
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var insertCommentSchema = createInsertSchema(commentsTable).omit({ id: true, createdAt: true });
+var insertRatingSchema = createInsertSchema(ratingsTable).omit({ id: true, createdAt: true });
 
 // ../../lib/db/src/index.ts
 var findEnv = () => {
@@ -56735,7 +56829,23 @@ router3.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
       isHidden: body.isHidden ?? existing.isHidden,
       sortOrder: body.sortOrder ?? existing.sortOrder,
       inputFormats: body.inputFormats ?? existing.inputFormats,
-      outputFormats: body.outputFormats ?? existing.outputFormats
+      outputFormats: body.outputFormats ?? existing.outputFormats,
+      metaTitle: body.metaTitle !== void 0 ? body.metaTitle : existing.metaTitle,
+      metaDescription: body.metaDescription !== void 0 ? body.metaDescription : existing.metaDescription,
+      introduction: body.introduction !== void 0 ? body.introduction : existing.introduction,
+      features: body.features !== void 0 ? body.features : existing.features,
+      benefits: body.benefits !== void 0 ? body.benefits : existing.benefits,
+      steps: body.steps !== void 0 ? body.steps : existing.steps,
+      faqs: body.faqs !== void 0 ? body.faqs : existing.faqs,
+      advantages: body.advantages !== void 0 ? body.advantages : existing.advantages,
+      commonErrors: body.commonErrors !== void 0 ? body.commonErrors : existing.commonErrors,
+      useCases: body.useCases !== void 0 ? body.useCases : existing.useCases,
+      examples: body.examples !== void 0 ? body.examples : existing.examples,
+      tips: body.tips !== void 0 ? body.tips : existing.tips,
+      version: body.version ?? existing.version,
+      license: body.license ?? existing.license,
+      developer: body.developer ?? existing.developer,
+      lastUpdated: /* @__PURE__ */ new Date()
     }).where(eq(toolsTable.slug, slug)).returning();
     res.json(updated);
   } catch {
@@ -56769,7 +56879,22 @@ router3.post("/admin/tools", requireAdmin, async (req, res) => {
       sortOrder: body.sortOrder ?? 0,
       inputFormats: body.inputFormats ?? [],
       outputFormats: body.outputFormats ?? [],
-      usageCount: 0
+      usageCount: 0,
+      metaTitle: body.metaTitle || null,
+      metaDescription: body.metaDescription || null,
+      introduction: body.introduction || null,
+      features: body.features || null,
+      benefits: body.benefits || null,
+      steps: body.steps || null,
+      faqs: body.faqs || null,
+      advantages: body.advantages || null,
+      commonErrors: body.commonErrors || null,
+      useCases: body.useCases || null,
+      examples: body.examples || null,
+      tips: body.tips || null,
+      version: body.version || "1.0.0",
+      license: body.license || "MIT",
+      developer: body.developer || "5toolbox"
     }).returning();
     res.status(201).json(created);
   } catch {
@@ -56839,12 +56964,291 @@ router3.delete("/admin/contacts/:id", requireAdmin, async (req, res) => {
 });
 var admin_default = router3;
 
-// src/routes/index.ts
+// src/routes/blogs.ts
+var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
-router4.use(health_default);
-router4.use(tools_default);
-router4.use(admin_default);
-router4.get("/public-settings", async (req, res) => {
+router4.get("/blogs", async (req, res) => {
+  try {
+    const list = await db.select().from(blogsTable).orderBy(desc(blogsTable.publishedAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch blogs" });
+  }
+});
+router4.get("/articles", async (req, res) => {
+  try {
+    const list = await db.select().from(articlesTable).orderBy(desc(articlesTable.publishedAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch articles" });
+  }
+});
+router4.get("/blogs/:slug", async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const [blog] = await db.select().from(blogsTable).where(eq(blogsTable.slug, slug)).limit(1);
+    if (!blog) {
+      return res.status(404).json({ error: "Blog post not found" });
+    }
+    await db.update(blogsTable).set({ views: blog.views + 1 }).where(eq(blogsTable.slug, slug));
+    res.json({ ...blog, views: blog.views + 1 });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch blog post" });
+  }
+});
+router4.get("/articles/:slug", async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const [article] = await db.select().from(articlesTable).where(eq(articlesTable.slug, slug)).limit(1);
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    await db.update(articlesTable).set({ views: article.views + 1 }).where(eq(articlesTable.slug, slug));
+    res.json({ ...article, views: article.views + 1 });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch article" });
+  }
+});
+router4.post("/blogs/:slug/like", async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const [blog] = await db.select().from(blogsTable).where(eq(blogsTable.slug, slug)).limit(1);
+    if (!blog) {
+      return res.status(404).json({ error: "Blog post not found" });
+    }
+    const [updated] = await db.update(blogsTable).set({ likes: blog.likes + 1 }).where(eq(blogsTable.slug, slug)).returning();
+    res.json({ likes: updated.likes });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to update likes" });
+  }
+});
+router4.get("/admin/blogs", requireAdmin, async (req, res) => {
+  try {
+    const list = await db.select().from(blogsTable).orderBy(desc(blogsTable.publishedAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch blogs" });
+  }
+});
+router4.post("/admin/blogs", requireAdmin, async (req, res) => {
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  if (!slug || !title || !content || !summary) {
+    return res.status(400).json({ error: "Required fields missing" });
+  }
+  try {
+    const [newBlog] = await db.insert(blogsTable).values({
+      slug,
+      title,
+      content,
+      summary,
+      metaTitle,
+      metaDescription,
+      coverImage,
+      authorName: authorName || "5toolbox Team",
+      readTime: Number(readTime) || 5,
+      tags: tags || [],
+      category: category || "General"
+    }).returning();
+    res.json(newBlog);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to create blog post (check unique slug)" });
+  }
+});
+router4.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  try {
+    const [updated] = await db.update(blogsTable).set({
+      slug,
+      title,
+      content,
+      summary,
+      metaTitle,
+      metaDescription,
+      coverImage,
+      authorName,
+      readTime: Number(readTime) || 5,
+      tags,
+      category,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(blogsTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Blog post not found" });
+    res.json(updated);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to update blog post" });
+  }
+});
+router4.delete("/admin/blogs/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const [deleted] = await db.delete(blogsTable).where(eq(blogsTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Blog post not found" });
+    res.json({ success: true });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to delete blog post" });
+  }
+});
+router4.get("/admin/articles", requireAdmin, async (req, res) => {
+  try {
+    const list = await db.select().from(articlesTable).orderBy(desc(articlesTable.publishedAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch articles" });
+  }
+});
+router4.post("/admin/articles", requireAdmin, async (req, res) => {
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  if (!slug || !title || !content || !summary) {
+    return res.status(400).json({ error: "Required fields missing" });
+  }
+  try {
+    const [newArticle] = await db.insert(articlesTable).values({
+      slug,
+      title,
+      content,
+      summary,
+      metaTitle,
+      metaDescription,
+      authorName: authorName || "5toolbox Team",
+      readTime: Number(readTime) || 5
+    }).returning();
+    res.json(newArticle);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to create article (check unique slug)" });
+  }
+});
+router4.put("/admin/articles/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  try {
+    const [updated] = await db.update(articlesTable).set({
+      slug,
+      title,
+      content,
+      summary,
+      metaTitle,
+      metaDescription,
+      authorName,
+      readTime: Number(readTime) || 5,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(articlesTable.id, id)).returning();
+    if (!updated) return res.status(404).json({ error: "Article not found" });
+    res.json(updated);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to update article" });
+  }
+});
+router4.delete("/admin/articles/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const [deleted] = await db.delete(articlesTable).where(eq(articlesTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Article not found" });
+    res.json({ success: true });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to delete article" });
+  }
+});
+var blogs_default = router4;
+
+// src/routes/comments.ts
+var import_express5 = __toESM(require_express2(), 1);
+var router5 = (0, import_express5.Router)();
+router5.get("/comments/:pageType/:slug", async (req, res) => {
+  const { pageType, slug } = req.params;
+  try {
+    const list = await db.select().from(commentsTable).where(and(eq(commentsTable.pageType, pageType), eq(commentsTable.pageSlug, slug))).orderBy(desc(commentsTable.createdAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+router5.post("/comments/:pageType/:slug", async (req, res) => {
+  const { pageType, slug } = req.params;
+  const { userName, content } = req.body;
+  if (!userName?.trim() || !content?.trim()) {
+    return res.status(400).json({ error: "Username and content are required" });
+  }
+  try {
+    const [newComment] = await db.insert(commentsTable).values({
+      pageType,
+      pageSlug: slug,
+      userName: userName.trim(),
+      content: content.trim()
+    }).returning();
+    res.json(newComment);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to post comment" });
+  }
+});
+router5.get("/ratings/:toolSlug", async (req, res) => {
+  const { toolSlug } = req.params;
+  try {
+    const list = await db.select().from(ratingsTable).where(eq(ratingsTable.toolSlug, toolSlug));
+    if (list.length === 0) {
+      return res.json({ average: 0, count: 0 });
+    }
+    const total = list.reduce((acc, r) => acc + r.rating, 0);
+    const average = Number((total / list.length).toFixed(1));
+    res.json({ average, count: list.length });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch ratings" });
+  }
+});
+router5.post("/ratings/:toolSlug", async (req, res) => {
+  const { toolSlug } = req.params;
+  const { rating } = req.body;
+  if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: "Invalid rating value (must be between 1 and 5)" });
+  }
+  const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "anonymous";
+  try {
+    const existing = await db.select().from(ratingsTable).where(
+      and(
+        eq(ratingsTable.toolSlug, toolSlug),
+        eq(ratingsTable.ipAddress, ipAddress)
+      )
+    ).orderBy(desc(ratingsTable.createdAt)).limit(1);
+    if (existing[0] && Date.now() - existing[0].createdAt.getTime() < 6e4) {
+      return res.status(429).json({ error: "You can submit a rating once per minute" });
+    }
+    const [newRating] = await db.insert(ratingsTable).values({
+      toolSlug,
+      rating,
+      ipAddress
+    }).returning();
+    res.json(newRating);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to post rating" });
+  }
+});
+router5.get("/admin/comments", requireAdmin, async (req, res) => {
+  try {
+    const list = await db.select().from(commentsTable).orderBy(desc(commentsTable.createdAt));
+    res.json(list);
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+router5.delete("/admin/comments/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const [deleted] = await db.delete(commentsTable).where(eq(commentsTable.id, id)).returning();
+    if (!deleted) return res.status(404).json({ error: "Comment not found" });
+    res.json({ success: true });
+  } catch (error40) {
+    res.status(500).json({ error: "Failed to delete comment" });
+  }
+});
+var comments_default = router5;
+
+// src/routes/index.ts
+var router6 = (0, import_express6.Router)();
+router6.use(health_default);
+router6.use(tools_default);
+router6.use(admin_default);
+router6.use(blogs_default);
+router6.use(comments_default);
+router6.get("/public-settings", async (req, res) => {
   const PUBLIC_KEYS = [
     "adsense_enabled",
     "adsense_client",
@@ -56869,7 +57273,7 @@ router4.get("/public-settings", async (req, res) => {
     res.json({});
   }
 });
-router4.post("/visit", async (req, res) => {
+router6.post("/visit", async (req, res) => {
   try {
     const [existing] = await db.select().from(siteSettingsTable).where(eq(siteSettingsTable.key, "total_visitors")).limit(1);
     const current = parseInt(existing?.value ?? "0", 10);
@@ -56880,7 +57284,7 @@ router4.post("/visit", async (req, res) => {
     res.json({ success: true });
   }
 });
-router4.post("/contact", async (req, res) => {
+router6.post("/contact", async (req, res) => {
   const { name, email: email3, subject, message } = req.body;
   if (!name || !email3 || !subject || !message) {
     return res.status(400).json({ error: "All fields are required" });
@@ -56892,7 +57296,7 @@ router4.post("/contact", async (req, res) => {
     res.status(500).json({ error: "Failed to save message" });
   }
 });
-router4.post("/clipboard", async (req, res) => {
+router6.post("/clipboard", async (req, res) => {
   const { content, expiresInHours } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
   const hours = typeof expiresInHours === "number" && expiresInHours > 0 && expiresInHours <= 168 ? expiresInHours : 24;
@@ -56905,7 +57309,7 @@ router4.post("/clipboard", async (req, res) => {
     res.status(500).json({ error: "Failed to save clipboard" });
   }
 });
-router4.get("/clipboard/:handle", async (req, res) => {
+router6.get("/clipboard/:handle", async (req, res) => {
   const handle = req.params.handle;
   try {
     const [row] = await db.select().from(clipboardsTable).where(eq(clipboardsTable.handle, handle)).limit(1);
@@ -56919,7 +57323,7 @@ router4.get("/clipboard/:handle", async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve clipboard" });
   }
 });
-router4.put("/clipboard/:handle", async (req, res) => {
+router6.put("/clipboard/:handle", async (req, res) => {
   const handle = req.params.handle;
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
@@ -56936,10 +57340,12 @@ router4.put("/clipboard/:handle", async (req, res) => {
     res.status(500).json({ error: "Failed to update clipboard" });
   }
 });
-router4.get("/sitemap.xml", async (req, res) => {
+router6.get("/sitemap.xml", async (req, res) => {
   try {
     const tools = await db.select().from(toolsTable);
-    const host = process.env.FRONTEND_URL ?? (process.env.REPLIT_DOMAINS?.split(",")[0] ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://filezone.app");
+    const blogs = await db.select().from(blogsTable);
+    const articles = await db.select().from(articlesTable);
+    const host = process.env.FRONTEND_URL ?? (process.env.REPLIT_DOMAINS?.split(",")[0] ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}` : "https://5toolbox.app");
     const now = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
@@ -56948,6 +57354,7 @@ router4.get("/sitemap.xml", async (req, res) => {
       { url: "/convert", priority: "0.9", changefreq: "weekly" },
       { url: "/calculator", priority: "0.9", changefreq: "weekly" },
       { url: "/text", priority: "0.8", changefreq: "weekly" },
+      { url: "/blog", priority: "0.8", changefreq: "daily" },
       { url: "/about", priority: "0.6", changefreq: "monthly" },
       { url: "/privacy", priority: "0.4", changefreq: "yearly" },
       { url: "/terms", priority: "0.4", changefreq: "yearly" },
@@ -56959,7 +57366,17 @@ router4.get("/sitemap.xml", async (req, res) => {
       priority: t.isFeatured ? "0.8" : "0.7",
       changefreq: "monthly"
     }));
-    const allPages = [...staticPages, ...toolPages];
+    const blogPages = blogs.map((b) => ({
+      url: `/blog/${b.slug}`,
+      priority: "0.7",
+      changefreq: "weekly"
+    }));
+    const articlePages = articles.map((a) => ({
+      url: `/articles/${a.slug}`,
+      priority: "0.7",
+      changefreq: "weekly"
+    }));
+    const allPages = [...staticPages, ...toolPages, ...blogPages, ...articlePages];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -56979,8 +57396,8 @@ ${allPages.map((p) => `  <url>
     res.status(500).send("Error generating sitemap");
   }
 });
-router4.get("/robots.txt", (req, res) => {
-  const host = process.env.FRONTEND_URL ?? "https://filezone.app";
+router6.get("/robots.txt", (req, res) => {
+  const host = process.env.FRONTEND_URL ?? "https://5toolbox.app";
   res.setHeader("Content-Type", "text/plain");
   res.send(`User-agent: *
 Allow: /
@@ -56990,7 +57407,7 @@ Sitemap: ${host}/sitemap.xml
 Disallow: /admin
 Disallow: /api/admin/`);
 });
-var routes_default = router4;
+var routes_default = router6;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -57011,7 +57428,7 @@ var logger = (0, import_pino.default)({
 });
 
 // src/app.ts
-var app = (0, import_express5.default)();
+var app = (0, import_express7.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -57032,8 +57449,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express5.default.json());
-app.use(import_express5.default.urlencoded({ extended: true }));
+app.use(import_express7.default.json());
+app.use(import_express7.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var app_default = app;
 

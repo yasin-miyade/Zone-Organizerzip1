@@ -6,28 +6,28 @@ export function PrivacyPolicy() {
     <div className="max-w-4xl mx-auto px-4 py-16">
       <SEO
         title="Privacy Policy"
-        description="FileZone's privacy policy. We never upload your files. All processing is local. We collect only anonymous usage statistics."
+        description="5toolbox's privacy policy. We never upload your files. All processing is local. We collect only anonymous usage statistics."
       />
       <div className="text-center mb-12">
         <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
           <Shield className="h-7 w-7 text-primary" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-3">Privacy Policy</h1>
-        <p className="text-muted-foreground text-sm">Last updated: June 2026 · FileZone by Yasin Miyade</p>
+        <p className="text-muted-foreground text-sm">Last updated: June 2026 · 5toolbox by Yasin Miyade</p>
       </div>
 
       <div className="prose prose-sm max-w-none space-y-8">
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Welcome to FileZone ("we", "our", or "us"). We are committed to protecting your privacy. This Privacy Policy explains how FileZone handles information when you use our website and tools at filezone.app (the "Service").
+            Welcome to 5toolbox ("we", "our", or "us"). We are committed to protecting your privacy. This Privacy Policy explains how 5toolbox handles information when you use our website and tools at 5toolbox.app (the "Service").
           </p>
         </section>
 
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">2. Information We Do Not Collect</h2>
           <p className="text-muted-foreground leading-relaxed mb-3">
-            FileZone processes all files <strong>locally in your browser</strong>. This means:
+            5toolbox processes all files <strong>locally in your browser</strong>. This means:
           </p>
           <ul className="space-y-2 text-muted-foreground text-sm list-none">
             {[
@@ -55,14 +55,14 @@ export function PrivacyPolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">4. Cookies</h2>
           <p className="text-muted-foreground leading-relaxed">
-            FileZone uses only essential, functional cookies (such as session tokens for our admin interface). We do not use tracking cookies, advertising cookies, or third-party analytics cookies. You can disable cookies in your browser settings without affecting the functionality of FileZone's file processing tools.
+            5toolbox uses only essential, functional cookies (such as session tokens for our admin interface). We do not use tracking cookies, advertising cookies, or third-party analytics cookies. You can disable cookies in your browser settings without affecting the functionality of 5toolbox's file processing tools.
           </p>
         </section>
 
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">5. Third-Party Services</h2>
           <p className="text-muted-foreground leading-relaxed">
-            FileZone may use the following third-party services:
+            5toolbox may use the following third-party services:
           </p>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
             <li><strong>Google Fonts</strong> – for typography (subject to Google's privacy policy)</li>
@@ -83,7 +83,7 @@ export function PrivacyPolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">7. Children's Privacy</h2>
           <p className="text-muted-foreground leading-relaxed">
-            FileZone does not knowingly collect any information from children under the age of 13. Our Service is intended for general audiences. If you believe we have inadvertently collected information from a child, please contact us immediately.
+            5toolbox does not knowingly collect any information from children under the age of 13. Our Service is intended for general audiences. If you believe we have inadvertently collected information from a child, please contact us immediately.
           </p>
         </section>
 
@@ -98,7 +98,7 @@ export function PrivacyPolicy() {
           <h2 className="text-xl font-semibold mb-3">9. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
             If you have any questions about this Privacy Policy, please contact us at{" "}
-            <a href="mailto:privacy@filezone.app" className="text-primary hover:underline">privacy@filezone.app</a>{" "}
+            <a href="mailto:privacy@5toolbox.app" className="text-primary hover:underline">privacy@5toolbox.app</a>{" "}
             or use our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>

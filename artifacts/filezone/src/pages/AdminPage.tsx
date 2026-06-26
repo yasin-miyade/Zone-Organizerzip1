@@ -12,7 +12,7 @@ import {
   Layers, LogOut, Eye, EyeOff, Star, StarOff, Pencil, Trash2,
   Save, X, ArrowLeft, Settings, BarChart2, RefreshCw, Users,
   FileStack, Plus, TrendingUp, Megaphone, Search, CheckCircle2,
-  ExternalLink, Globe, FileText, Copy, Mail, Inbox, Clock
+  ExternalLink, Globe, FileText, Copy, Mail, Inbox, Clock, BookOpen, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,22 @@ interface Tool {
   sortOrder: number;
   inputFormats: string[];
   outputFormats: string[];
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  introduction?: string | null;
+  features?: string | null;
+  benefits?: string | null;
+  steps?: string | null;
+  faqs?: string | null;
+  advantages?: string | null;
+  commonErrors?: string | null;
+  useCases?: string | null;
+  examples?: string | null;
+  tips?: string | null;
+  version?: string;
+  license?: string;
+  developer?: string;
+  lastUpdated?: string;
 }
 
 interface SiteSettings {
@@ -107,7 +123,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
       <div className="w-full max-w-sm bg-card border rounded-2xl p-8 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
           <div className="bg-primary p-1.5 rounded-lg"><Layers className="h-5 w-5 text-primary-foreground" /></div>
-          <span className="font-bold text-lg">FileZone Admin</span>
+          <span className="font-bold text-lg">5toolbox Admin</span>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
@@ -125,12 +141,150 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
   );
 }
 
+// ----- Helpers & Sub-editors for Tool SEO Admin -----
+function safeJsonParse<T>(val: string | null | undefined, fallback: T): T {
+  if (!val) return fallback;
+  try {
+    return JSON.parse(val) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function StringListEditor({
+  label,
+  items,
+  onChange,
+  placeholder = "Add item..."
+}: {
+  label: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-2 border p-3 rounded-xl bg-muted/10">
+      <div className="flex items-center justify-between">
+        <Label className="font-semibold text-xs text-foreground">{label}</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={() => onChange([...items, ""])}
+        >
+          <Plus className="h-3 w-3 mr-1" /> Add
+        </Button>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">No items added yet.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+          {items.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-1.5">
+              <Input
+                value={item}
+                onChange={e => {
+                  const next = [...items];
+                  next[idx] = e.target.value;
+                  onChange(next);
+                }}
+                placeholder={placeholder}
+                className="h-8 text-xs font-normal"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive shrink-0"
+                onClick={() => onChange(items.filter((_, i) => i !== idx))}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FaqListEditor({
+  faqs,
+  onChange
+}: {
+  faqs: { q: string; a: string }[];
+  onChange: (faqs: { q: string; a: string }[]) => void;
+}) {
+  return (
+    <div className="space-y-2 border p-3 rounded-xl bg-muted/10">
+      <div className="flex items-center justify-between">
+        <Label className="font-semibold text-xs text-foreground">Frequently Asked Questions (FAQs)</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={() => onChange([...faqs, { q: "", a: "" }])}
+        >
+          <Plus className="h-3 w-3 mr-1" /> Add FAQ
+        </Button>
+      </div>
+      {faqs.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">No FAQs added yet.</p>
+      ) : (
+        <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="border p-2.5 rounded-lg bg-card relative space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">FAQ #{idx + 1}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive absolute top-1 right-1"
+                  onClick={() => onChange(faqs.filter((_, i) => i !== idx))}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                <Input
+                  value={faq.q}
+                  onChange={e => {
+                    const next = [...faqs];
+                    next[idx] = { ...next[idx], q: e.target.value };
+                    onChange(next);
+                  }}
+                  placeholder="Question..."
+                  className="h-8 text-xs font-normal"
+                />
+                <Textarea
+                  value={faq.a}
+                  onChange={e => {
+                    const next = [...faqs];
+                    next[idx] = { ...next[idx], a: e.target.value };
+                    onChange(next);
+                  }}
+                  placeholder="Answer..."
+                  className="h-14 text-xs font-normal resize-none"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ----- Edit Tool Modal -----
 function EditToolModal({ tool, token, onSave, onClose }: {
   tool: Tool; token: string;
   onSave: (updated: Tool) => void;
   onClose: () => void;
 }) {
+  const [modalTab, setModalTab] = useState<"basic" | "seo" | "content" | "details">("basic");
   const [form, setForm] = useState({
     name: tool.name,
     description: tool.description,
@@ -141,6 +295,21 @@ function EditToolModal({ tool, token, onSave, onClose }: {
     isFeatured: tool.isFeatured,
     isHidden: tool.isHidden,
     sortOrder: String(tool.sortOrder),
+    metaTitle: tool.metaTitle ?? "",
+    metaDescription: tool.metaDescription ?? "",
+    introduction: tool.introduction ?? "",
+    version: tool.version ?? "1.0.0",
+    license: tool.license ?? "MIT",
+    developer: tool.developer ?? "5toolbox",
+    steps: safeJsonParse<string[]>(tool.steps, []),
+    features: safeJsonParse<string[]>(tool.features, []),
+    benefits: safeJsonParse<string[]>(tool.benefits, []),
+    advantages: safeJsonParse<string[]>(tool.advantages, []),
+    commonErrors: safeJsonParse<string[]>(tool.commonErrors, []),
+    useCases: safeJsonParse<string[]>(tool.useCases, []),
+    examples: safeJsonParse<string[]>(tool.examples, []),
+    tips: safeJsonParse<string[]>(tool.tips, []),
+    faqs: safeJsonParse<{ q: string; a: string }[]>(tool.faqs, []),
   });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -161,6 +330,21 @@ function EditToolModal({ tool, token, onSave, onClose }: {
           sortOrder: parseInt(form.sortOrder) || 0,
           inputFormats: form.inputFormats.split(",").map(s => s.trim()).filter(Boolean),
           outputFormats: form.outputFormats.split(",").map(s => s.trim()).filter(Boolean),
+          metaTitle: form.metaTitle || null,
+          metaDescription: form.metaDescription || null,
+          introduction: form.introduction || null,
+          version: form.version,
+          license: form.license,
+          developer: form.developer,
+          steps: form.steps.length > 0 ? JSON.stringify(form.steps.filter(Boolean)) : null,
+          features: form.features.length > 0 ? JSON.stringify(form.features.filter(Boolean)) : null,
+          benefits: form.benefits.length > 0 ? JSON.stringify(form.benefits.filter(Boolean)) : null,
+          advantages: form.advantages.length > 0 ? JSON.stringify(form.advantages.filter(Boolean)) : null,
+          commonErrors: form.commonErrors.length > 0 ? JSON.stringify(form.commonErrors.filter(Boolean)) : null,
+          useCases: form.useCases.length > 0 ? JSON.stringify(form.useCases.filter(Boolean)) : null,
+          examples: form.examples.length > 0 ? JSON.stringify(form.examples.filter(Boolean)) : null,
+          tips: form.tips.length > 0 ? JSON.stringify(form.tips.filter(Boolean)) : null,
+          faqs: form.faqs.length > 0 ? JSON.stringify(form.faqs.filter(f => f.q.trim() || f.a.trim())) : null,
         }),
       });
       if (!res.ok) throw new Error();
@@ -172,40 +356,96 @@ function EditToolModal({ tool, token, onSave, onClose }: {
     } finally { setSaving(false); }
   }
 
-  function set(k: keyof typeof form, v: string | boolean) {
+  function set(k: string, v: any) {
     setForm(prev => ({ ...prev, [k]: v }));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="font-semibold text-lg">Edit: {tool.name}</h2>
+          <div>
+            <h2 className="font-semibold text-lg">Edit: {tool.name}</h2>
+            <p className="text-xs text-muted-foreground">Manage all parameters and SEO fields for this tool.</p>
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div className="p-5 space-y-4">
-          <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={e => set("name", e.target.value)} /></div>
-          <div className="space-y-1.5"><Label>Description</Label><Textarea value={form.description} onChange={e => set("description", e.target.value)} className="resize-none h-20" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Category</Label><Input value={form.category} onChange={e => set("category", e.target.value)} /></div>
-            <div className="space-y-1.5"><Label>Icon (Lucide name)</Label><Input value={form.icon} onChange={e => set("icon", e.target.value)} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Input Formats (comma sep)</Label><Input value={form.inputFormats} onChange={e => set("inputFormats", e.target.value)} /></div>
-            <div className="space-y-1.5"><Label>Output Formats (comma sep)</Label><Input value={form.outputFormats} onChange={e => set("outputFormats", e.target.value)} /></div>
-          </div>
-          <div className="space-y-1.5"><Label>Sort Order</Label><Input type="number" value={form.sortOrder} onChange={e => set("sortOrder", e.target.value)} /></div>
-          <div className="flex gap-6">
-            <div className="flex items-center gap-2">
-              <Switch id="featured" checked={form.isFeatured} onCheckedChange={v => set("isFeatured", v)} />
-              <Label htmlFor="featured">Featured</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="hidden" checked={form.isHidden} onCheckedChange={v => set("isHidden", v)} />
-              <Label htmlFor="hidden">Hidden</Label>
-            </div>
-          </div>
+
+        {/* Tab Selection */}
+        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
         </div>
+
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+          {modalTab === "basic" && (
+            <div className="space-y-4">
+              <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={e => set("name", e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Description</Label><Textarea value={form.description} onChange={e => set("description", e.target.value)} className="resize-none h-20" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Category</Label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
+                    {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5"><Label>Icon (Lucide name)</Label><Input value={form.icon} onChange={e => set("icon", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Input Formats (comma sep)</Label><Input value={form.inputFormats} onChange={e => set("inputFormats", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Output Formats (comma sep)</Label><Input value={form.outputFormats} onChange={e => set("outputFormats", e.target.value)} /></div>
+              </div>
+              <div className="space-y-1.5"><Label>Sort Order</Label><Input type="number" value={form.sortOrder} onChange={e => set("sortOrder", e.target.value)} /></div>
+              <div className="flex gap-6">
+                <div className="flex items-center gap-2">
+                  <Switch id="featured" checked={form.isFeatured} onCheckedChange={v => set("isFeatured", v)} />
+                  <Label htmlFor="featured">Featured</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="hidden" checked={form.isHidden} onCheckedChange={v => set("isHidden", v)} />
+                  <Label htmlFor="hidden">Hidden</Label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {modalTab === "seo" && (
+            <div className="space-y-4">
+              <div className="space-y-1.5"><Label>Meta Title (SEO)</Label><Input value={form.metaTitle} onChange={e => set("metaTitle", e.target.value)} placeholder="Google search title..." /></div>
+              <div className="space-y-1.5"><Label>Meta Description (SEO)</Label><Textarea value={form.metaDescription} onChange={e => set("metaDescription", e.target.value)} className="resize-none h-20" placeholder="Google snippet description..." /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5"><Label>Version</Label><Input value={form.version} onChange={e => set("version", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>License</Label><Input value={form.license} onChange={e => set("license", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Developer</Label><Input value={form.developer} onChange={e => set("developer", e.target.value)} /></div>
+              </div>
+            </div>
+          )}
+
+          {modalTab === "content" && (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Introduction Paragraph</Label>
+                <Textarea value={form.introduction} onChange={e => set("introduction", e.target.value)} className="resize-none h-24" placeholder="Detailed introduction explaining what the tool is and why users need it..." />
+              </div>
+              <StringListEditor label="How-To Steps (Ordered)" items={form.steps} onChange={items => set("steps", items)} placeholder="e.g. Select the PDF file you want to compress" />
+              <FaqListEditor faqs={form.faqs} onChange={faqs => set("faqs", faqs)} />
+            </div>
+          )}
+
+          {modalTab === "details" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StringListEditor label="Key Features" items={form.features} onChange={items => set("features", items)} placeholder="e.g. 100% free and secure" />
+              <StringListEditor label="Key Benefits" items={form.benefits} onChange={items => set("benefits", items)} placeholder="e.g. Saves local storage space" />
+              <StringListEditor label="Advantages" items={form.advantages} onChange={items => set("advantages", items)} placeholder="e.g. Runs fully in your browser" />
+              <StringListEditor label="Use Cases" items={form.useCases} onChange={items => set("useCases", items)} placeholder="e.g. Email attachments with size limits" />
+              <StringListEditor label="Useful Tips" items={form.tips} onChange={items => set("tips", items)} placeholder="e.g. Check content before formatting" />
+              <StringListEditor label="Common Errors &amp; Fixes" items={form.commonErrors} onChange={items => set("commonErrors", items)} placeholder="e.g. Invalid file format - convert first" />
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-3 p-5 border-t">
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             <Save className="h-4 w-4 mr-2" />{saving ? "Saving…" : "Save Changes"}
@@ -223,10 +463,22 @@ function AddToolModal({ token, onAdd, onClose }: {
   onAdd: (tool: Tool) => void;
   onClose: () => void;
 }) {
+  const [modalTab, setModalTab] = useState<"basic" | "seo" | "content" | "details">("basic");
   const [form, setForm] = useState({
     slug: "", name: "", description: "", category: "pdf",
     icon: "FileText", inputFormats: "", outputFormats: "",
     isFeatured: false, isHidden: false, sortOrder: "0",
+    metaTitle: "", metaDescription: "", introduction: "",
+    version: "1.0.0", license: "MIT", developer: "5toolbox",
+    steps: [] as string[],
+    features: [] as string[],
+    benefits: [] as string[],
+    advantages: [] as string[],
+    commonErrors: [] as string[],
+    useCases: [] as string[],
+    examples: [] as string[],
+    tips: [] as string[],
+    faqs: [] as { q: string; a: string }[],
   });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -241,10 +493,31 @@ function AddToolModal({ token, onAdd, onClose }: {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          ...form,
+          slug: form.slug,
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          icon: form.icon,
+          isFeatured: form.isFeatured,
+          isHidden: form.isHidden,
           sortOrder: parseInt(form.sortOrder) || 0,
           inputFormats: form.inputFormats.split(",").map(s => s.trim()).filter(Boolean),
           outputFormats: form.outputFormats.split(",").map(s => s.trim()).filter(Boolean),
+          metaTitle: form.metaTitle || null,
+          metaDescription: form.metaDescription || null,
+          introduction: form.introduction || null,
+          version: form.version,
+          license: form.license,
+          developer: form.developer,
+          steps: form.steps.length > 0 ? JSON.stringify(form.steps.filter(Boolean)) : null,
+          features: form.features.length > 0 ? JSON.stringify(form.features.filter(Boolean)) : null,
+          benefits: form.benefits.length > 0 ? JSON.stringify(form.benefits.filter(Boolean)) : null,
+          advantages: form.advantages.length > 0 ? JSON.stringify(form.advantages.filter(Boolean)) : null,
+          commonErrors: form.commonErrors.length > 0 ? JSON.stringify(form.commonErrors.filter(Boolean)) : null,
+          useCases: form.useCases.length > 0 ? JSON.stringify(form.useCases.filter(Boolean)) : null,
+          examples: form.examples.length > 0 ? JSON.stringify(form.examples.filter(Boolean)) : null,
+          tips: form.tips.length > 0 ? JSON.stringify(form.tips.filter(Boolean)) : null,
+          faqs: form.faqs.length > 0 ? JSON.stringify(form.faqs.filter(f => f.q.trim() || f.a.trim())) : null,
         }),
       });
       if (!res.ok) throw new Error();
@@ -256,44 +529,97 @@ function AddToolModal({ token, onAdd, onClose }: {
     } finally { setSaving(false); }
   }
 
-  function set(k: keyof typeof form, v: string | boolean) {
+  function set(k: string, v: any) {
     setForm(prev => ({ ...prev, [k]: v }));
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="font-semibold text-lg">Add New Tool</h2>
+          <div>
+            <h2 className="font-semibold text-lg">Add New Tool</h2>
+            <p className="text-xs text-muted-foreground">Create a new tool and define its SEO, introduction, and FAQs.</p>
+          </div>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Slug <span className="text-destructive">*</span></Label><Input value={form.slug} onChange={e => set("slug", e.target.value)} placeholder="e.g. pdf-compress" /></div>
-            <div className="space-y-1.5"><Label>Name <span className="text-destructive">*</span></Label><Input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Compress PDF" /></div>
-          </div>
-          <div className="space-y-1.5"><Label>Description <span className="text-destructive">*</span></Label><Textarea value={form.description} onChange={e => set("description", e.target.value)} className="resize-none h-20" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Category</Label>
-              <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
-                {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5"><Label>Icon (Lucide name)</Label><Input value={form.icon} onChange={e => set("icon", e.target.value)} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Input Formats (comma sep)</Label><Input value={form.inputFormats} onChange={e => set("inputFormats", e.target.value)} /></div>
-            <div className="space-y-1.5"><Label>Output Formats (comma sep)</Label><Input value={form.outputFormats} onChange={e => set("outputFormats", e.target.value)} /></div>
-          </div>
-          <div className="space-y-1.5"><Label>Sort Order</Label><Input type="number" value={form.sortOrder} onChange={e => set("sortOrder", e.target.value)} /></div>
-          <div className="flex gap-6">
-            <div className="flex items-center gap-2"><Switch checked={form.isFeatured} onCheckedChange={v => set("isFeatured", v)} /><Label>Featured</Label></div>
-            <div className="flex items-center gap-2"><Switch checked={form.isHidden} onCheckedChange={v => set("isHidden", v)} /><Label>Hidden</Label></div>
-          </div>
+
+        {/* Tab Selection */}
+        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
         </div>
+
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+          {modalTab === "basic" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Slug <span className="text-destructive">*</span></Label><Input value={form.slug} onChange={e => set("slug", e.target.value)} placeholder="e.g. pdf-compress" /></div>
+                <div className="space-y-1.5"><Label>Name <span className="text-destructive">*</span></Label><Input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Compress PDF" /></div>
+              </div>
+              <div className="space-y-1.5"><Label>Description <span className="text-destructive">*</span></Label><Textarea value={form.description} onChange={e => set("description", e.target.value)} className="resize-none h-20" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Category</Label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
+                    {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5"><Label>Icon (Lucide name)</Label><Input value={form.icon} onChange={e => set("icon", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Input Formats (comma sep)</Label><Input value={form.inputFormats} onChange={e => set("inputFormats", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Output Formats (comma sep)</Label><Input value={form.outputFormats} onChange={e => set("outputFormats", e.target.value)} /></div>
+              </div>
+              <div className="space-y-1.5"><Label>Sort Order</Label><Input type="number" value={form.sortOrder} onChange={e => set("sortOrder", e.target.value)} /></div>
+              <div className="flex gap-6">
+                <div className="flex items-center gap-2"><Switch checked={form.isFeatured} onCheckedChange={v => set("isFeatured", v)} /><Label>Featured</Label></div>
+                <div className="flex items-center gap-2"><Switch checked={form.isHidden} onCheckedChange={v => set("isHidden", v)} /><Label>Hidden</Label></div>
+              </div>
+            </div>
+          )}
+
+          {modalTab === "seo" && (
+            <div className="space-y-4">
+              <div className="space-y-1.5"><Label>Meta Title (SEO)</Label><Input value={form.metaTitle} onChange={e => set("metaTitle", e.target.value)} placeholder="Google search title..." /></div>
+              <div className="space-y-1.5"><Label>Meta Description (SEO)</Label><Textarea value={form.metaDescription} onChange={e => set("metaDescription", e.target.value)} className="resize-none h-20" placeholder="Google snippet description..." /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5"><Label>Version</Label><Input value={form.version} onChange={e => set("version", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>License</Label><Input value={form.license} onChange={e => set("license", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label>Developer</Label><Input value={form.developer} onChange={e => set("developer", e.target.value)} /></div>
+              </div>
+            </div>
+          )}
+
+          {modalTab === "content" && (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Introduction Paragraph</Label>
+                <Textarea value={form.introduction} onChange={e => set("introduction", e.target.value)} className="resize-none h-24" placeholder="Detailed introduction explaining what the tool is and why users need it..." />
+              </div>
+              <StringListEditor label="How-To Steps (Ordered)" items={form.steps} onChange={items => set("steps", items)} placeholder="e.g. Select the PDF file you want to compress" />
+              <FaqListEditor faqs={form.faqs} onChange={faqs => set("faqs", faqs)} />
+            </div>
+          )}
+
+          {modalTab === "details" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StringListEditor label="Key Features" items={form.features} onChange={items => set("features", items)} placeholder="e.g. 100% free and secure" />
+              <StringListEditor label="Key Benefits" items={form.benefits} onChange={items => set("benefits", items)} placeholder="e.g. Saves local storage space" />
+              <StringListEditor label="Advantages" items={form.advantages} onChange={items => set("advantages", items)} placeholder="e.g. Runs fully in your browser" />
+              <StringListEditor label="Use Cases" items={form.useCases} onChange={items => set("useCases", items)} placeholder="e.g. Email attachments with size limits" />
+              <StringListEditor label="Useful Tips" items={form.tips} onChange={items => set("tips", items)} placeholder="e.g. Check content before formatting" />
+              <StringListEditor label="Common Errors &amp; Fixes" items={form.commonErrors} onChange={items => set("commonErrors", items)} placeholder="e.g. Invalid file format - convert first" />
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleAdd} disabled={saving} className="flex-1"><Plus className="h-4 w-4 mr-2" />{saving ? "Creating…" : "Create Tool"}</Button>
+          <Button onClick={handleAdd} disabled={saving} className="flex-1">
+            <Plus className="h-4 w-4 mr-2" />{saving ? "Creating…" : "Create Tool"}
+          </Button>
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
@@ -645,7 +971,7 @@ function ContactsPanel({ token }: { token: string }) {
 // ----- SEO Panel -----
 function SeoPanel() {
   const { toast } = useToast();
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://filezone.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.app";
   const sitemapUrl = `${origin}/sitemap.xml`;
   const robotsUrl = `${origin}/robots.txt`;
 
@@ -663,7 +989,7 @@ function SeoPanel() {
     {
       num: 2,
       title: "Add your property",
-      desc: "Click \"Add property\", choose \"URL prefix\", and enter your site URL (e.g. https://filezone.app). Verify ownership using the HTML tag method by pasting the tag into your site's <head>.",
+      desc: "Click \"Add property\", choose \"URL prefix\", and enter your site URL (e.g. https://5toolbox.app). Verify ownership using the HTML tag method by pasting the tag into your site's <head>.",
       action: null,
     },
     {
@@ -795,7 +1121,11 @@ export function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
   const [addingTool, setAddingTool] = useState(false);
-  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "contacts" | "settings" | "ads" | "seo">("tools");
+  const [editingBlog, setEditingBlog] = useState<any | null>(null);
+  const [addingBlog, setAddingBlog] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<any | null>(null);
+  const [addingArticle, setAddingArticle] = useState(false);
+  const [activeTab, setActiveTab] = useState<"tools" | "stats" | "contacts" | "settings" | "ads" | "seo" | "blogs" | "articles" | "comments">("tools");
   const [contactCount, setContactCount] = useState(0);
 
   useEffect(() => {
@@ -913,7 +1243,7 @@ export function AdminPage() {
           </Link>
           <div className="flex items-center gap-2">
             <div className="bg-primary p-1.5 rounded-lg"><Layers className="h-4 w-4 text-primary-foreground" /></div>
-            <span className="font-bold">FileZone Admin</span>
+            <span className="font-bold">5toolbox Admin</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -968,6 +1298,15 @@ export function AdminPage() {
         <div className="flex gap-2 mb-6 flex-wrap">
           <Button variant={activeTab === "tools" ? "default" : "outline"} onClick={() => setActiveTab("tools")} size="sm">
             <BarChart2 className="h-4 w-4 mr-1.5" /> Tools Manager
+          </Button>
+          <Button variant={activeTab === "blogs" ? "default" : "outline"} onClick={() => setActiveTab("blogs")} size="sm">
+            <BookOpen className="h-4 w-4 mr-1.5" /> Blogs Manager
+          </Button>
+          <Button variant={activeTab === "articles" ? "default" : "outline"} onClick={() => setActiveTab("articles")} size="sm">
+            <FileText className="h-4 w-4 mr-1.5" /> Articles Manager
+          </Button>
+          <Button variant={activeTab === "comments" ? "default" : "outline"} onClick={() => setActiveTab("comments")} size="sm">
+            <MessageSquare className="h-4 w-4 mr-1.5" /> Comments
           </Button>
           <Button variant={activeTab === "stats" ? "default" : "outline"} onClick={() => setActiveTab("stats")} size="sm">
             <TrendingUp className="h-4 w-4 mr-1.5" /> Analytics
@@ -1074,7 +1413,7 @@ export function AdminPage() {
         {activeTab === "seo" && (
           <div className="bg-card border rounded-2xl p-6">
             <h2 className="font-semibold text-lg mb-1">SEO &amp; Search Indexing</h2>
-            <p className="text-sm text-muted-foreground mb-6">Preview your sitemap, check SEO health, and follow the guide to get FileZone indexed on Google.</p>
+            <p className="text-sm text-muted-foreground mb-6">Preview your sitemap, check SEO health, and follow the guide to get 5toolbox indexed on Google.</p>
             <SeoPanel />
           </div>
         )}
@@ -1173,6 +1512,21 @@ export function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* Blogs Panel Tab */}
+        {activeTab === "blogs" && (
+          <BlogsPanel token={token} onEditBlog={setEditingBlog} onAddBlog={() => setAddingBlog(true)} />
+        )}
+
+        {/* Articles Panel Tab */}
+        {activeTab === "articles" && (
+          <ArticlesPanel token={token} onEditArticle={setEditingArticle} onAddArticle={() => setAddingArticle(true)} />
+        )}
+
+        {/* Comments Panel Tab */}
+        {activeTab === "comments" && (
+          <CommentsPanel token={token} />
+        )}
       </div>
 
       {editingTool && (
@@ -1197,6 +1551,558 @@ export function AdminPage() {
           onClose={() => setAddingTool(false)}
         />
       )}
+
+      {editingBlog && (
+        <EditBlogModal
+          blog={editingBlog}
+          token={token}
+          onSave={() => {
+            setEditingBlog(null);
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+          }}
+          onClose={() => setEditingBlog(null)}
+        />
+      )}
+
+      {addingBlog && (
+        <AddBlogModal
+          token={token}
+          onAdd={() => {
+            setAddingBlog(false);
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+          }}
+          onClose={() => setAddingBlog(false)}
+        />
+      )}
+
+      {editingArticle && (
+        <EditArticleModal
+          article={editingArticle}
+          token={token}
+          onSave={() => {
+            setEditingArticle(null);
+            window.dispatchEvent(new CustomEvent("refresh-articles"));
+          }}
+          onClose={() => setEditingArticle(null)}
+        />
+      )}
+
+      {addingArticle && (
+        <AddArticleModal
+          token={token}
+          onAdd={() => {
+            setAddingArticle(false);
+            window.dispatchEvent(new CustomEvent("refresh-articles"));
+          }}
+          onClose={() => setAddingArticle(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// NEW BLOGS, ARTICLES & COMMENTS PANELS / MODALS
+// ==========================================
+
+function BlogsPanel({ token, onEditBlog, onAddBlog }: { token: string; onEditBlog: (b: any) => void; onAddBlog: () => void }) {
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  async function loadBlogs() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/blogs`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setBlogs(Array.isArray(data) ? data : []);
+    } catch {
+      toast({ title: "Failed to load blogs", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => {
+    loadBlogs();
+    const handleRefresh = () => loadBlogs();
+    window.addEventListener("refresh-blogs", handleRefresh);
+    return () => window.removeEventListener("refresh-blogs", handleRefresh);
+  }, []);
+
+  async function deleteBlog(id: number) {
+    if (!confirm("Are you sure you want to delete this blog post?")) return;
+    try {
+      const res = await fetch(`${API}/admin/blogs/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setBlogs(prev => prev.filter(b => b.id !== id));
+        toast({ title: "Blog post deleted" });
+      } else throw new Error();
+    } catch {
+      toast({ title: "Failed to delete blog post", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="bg-card border rounded-2xl overflow-hidden">
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="font-semibold text-lg">Blogs Manager</h2>
+        <Button size="sm" onClick={onAddBlog}><Plus className="h-4 w-4 mr-1.5" /> Add Blog Post</Button>
+      </div>
+      {loading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading blogs…</div>
+      ) : blogs.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground">No blog posts found.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Slug</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Author</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Views</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Likes</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {blogs.map(b => (
+                <tr key={b.id} className="border-t hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium">{b.title}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{b.slug}</td>
+                  <td className="px-4 py-3"><Badge variant="outline">{b.category}</Badge></td>
+                  <td className="px-4 py-3 text-muted-foreground">{b.authorName}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{b.views}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{b.likes}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditBlog(b)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteBlog(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ArticlesPanel({ token, onEditArticle, onAddArticle }: { token: string; onEditArticle: (a: any) => void; onAddArticle: () => void }) {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  async function loadArticles() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/articles`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setArticles(Array.isArray(data) ? data : []);
+    } catch {
+      toast({ title: "Failed to load articles", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => {
+    loadArticles();
+    const handleRefresh = () => loadArticles();
+    window.addEventListener("refresh-articles", handleRefresh);
+    return () => window.removeEventListener("refresh-articles", handleRefresh);
+  }, []);
+
+  async function deleteArticle(id: number) {
+    if (!confirm("Are you sure you want to delete this technical article?")) return;
+    try {
+      const res = await fetch(`${API}/admin/articles/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setArticles(prev => prev.filter(a => a.id !== id));
+        toast({ title: "Article deleted" });
+      } else throw new Error();
+    } catch {
+      toast({ title: "Failed to delete article", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="bg-card border rounded-2xl overflow-hidden">
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="font-semibold text-lg">Articles Manager</h2>
+        <Button size="sm" onClick={onAddArticle}><Plus className="h-4 w-4 mr-1.5" /> Add Article</Button>
+      </div>
+      {loading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading articles…</div>
+      ) : articles.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground">No technical articles found.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Slug</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Author</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Views</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {articles.map(a => (
+                <tr key={a.id} className="border-t hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium">{a.title}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{a.slug}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{a.authorName}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{a.views}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditArticle(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteArticle(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommentsPanel({ token }: { token: string }) {
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  async function loadComments() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/admin/comments`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setComments(Array.isArray(data) ? data : []);
+    } catch {
+      toast({ title: "Failed to load comments", variant: "destructive" });
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadComments(); }, []);
+
+  async function deleteComment(id: number) {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      const res = await fetch(`${API}/admin/comments/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setComments(prev => prev.filter(c => c.id !== id));
+        toast({ title: "Comment deleted" });
+      } else throw new Error();
+    } catch {
+      toast({ title: "Failed to delete comment", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="bg-card border rounded-2xl overflow-hidden">
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="font-semibold text-lg">User Comments Moderation</h2>
+      </div>
+      {loading ? (
+        <div className="p-8 text-center text-muted-foreground">Loading comments…</div>
+      ) : comments.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground">No user comments found.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Page</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">User</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Content</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comments.map(c => (
+                <tr key={c.id} className="border-t hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3">
+                    <span className="text-xs uppercase bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full mr-1.5">{c.pageType}</span>
+                    <span className="font-mono text-xs">{c.pageSlug}</span>
+                  </td>
+                  <td className="px-4 py-3 font-semibold">{c.userName}</td>
+                  <td className="px-4 py-3 max-w-sm truncate" title={c.content}>{c.content}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteComment(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Modals for Blogs
+function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => void; onClose: () => void }) {
+  const [form, setForm] = useState({
+    slug: "", title: "", content: "", summary: "", category: "General", coverImage: "", authorName: "5toolbox Team", readTime: "5", tags: "", metaTitle: "", metaDescription: ""
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  async function handleAdd() {
+    if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/blogs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...form,
+          tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+          readTime: parseInt(form.readTime) || 5
+        })
+      });
+      if (res.ok) { toast({ title: "Blog post added" }); onAdd(); }
+      else throw new Error();
+    } catch {
+      toast({ title: "Failed to create blog post", variant: "destructive" });
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold text-lg">Add New Blog Post</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Slug *</Label><Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="e.g. guide-to-pdf" /></div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Blog post title" /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Summary</Label><Input value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} placeholder="Short summary" /></div>
+          <div className="space-y-1.5"><Label>Content (Markdown support)</Label><Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="h-32" placeholder="Markdown blog post contents" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Category</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Cover Image URL</Label><Input value={form.coverImage} onChange={e => setForm({ ...form, coverImage: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Author Name</Label><Input value={form.authorName} onChange={e => setForm({ ...form, authorName: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Read Time (minutes)</Label><Input type="number" value={form.readTime} onChange={e => setForm({ ...form, readTime: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Tags (comma separated)</Label><Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="e.g. pdf, optimize, web" /></div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">SEO fields</h3>
+            <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Blog Post"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: string; onSave: () => void; onClose: () => void }) {
+  const [form, setForm] = useState({
+    slug: blog.slug, title: blog.title, content: blog.content, summary: blog.summary, category: blog.category, coverImage: blog.coverImage ?? "", authorName: blog.authorName, readTime: String(blog.readTime), tags: blog.tags.join(", "), metaTitle: blog.metaTitle ?? "", metaDescription: blog.metaDescription ?? ""
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  async function handleSave() {
+    if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/blogs/${blog.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...form,
+          tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
+          readTime: parseInt(form.readTime) || 5
+        })
+      });
+      if (res.ok) { toast({ title: "Blog post updated" }); onSave(); }
+      else throw new Error();
+    } catch {
+      toast({ title: "Failed to update blog post", variant: "destructive" });
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold text-lg">Edit Blog Post</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Slug *</Label><Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Summary</Label><Input value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label>Content (Markdown support)</Label><Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="h-32" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Category</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Cover Image URL</Label><Input value={form.coverImage} onChange={e => setForm({ ...form, coverImage: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Author Name</Label><Input value={form.authorName} onChange={e => setForm({ ...form, authorName: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Read Time (minutes)</Label><Input type="number" value={form.readTime} onChange={e => setForm({ ...form, readTime: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Tags (comma separated)</Label><Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} /></div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">SEO fields</h3>
+            <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modals for Articles
+function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () => void; onClose: () => void }) {
+  const [form, setForm] = useState({
+    slug: "", title: "", content: "", summary: "", authorName: "5toolbox Team", readTime: "5", metaTitle: "", metaDescription: ""
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  async function handleAdd() {
+    if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/articles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...form,
+          readTime: parseInt(form.readTime) || 5
+        })
+      });
+      if (res.ok) { toast({ title: "Article added" }); onAdd(); }
+      else throw new Error();
+    } catch {
+      toast({ title: "Failed to create article", variant: "destructive" });
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold text-lg">Add New Technical Article</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Slug *</Label><Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="e.g. how-it-works" /></div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Article title" /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Summary</Label><Input value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} placeholder="Short summary" /></div>
+          <div className="space-y-1.5"><Label>Content (Markdown support)</Label><Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="h-32" placeholder="Markdown article contents" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Author Name</Label><Input value={form.authorName} onChange={e => setForm({ ...form, authorName: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Read Time (minutes)</Label><Input type="number" value={form.readTime} onChange={e => setForm({ ...form, readTime: e.target.value })} /></div>
+          </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">SEO fields</h3>
+            <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Article"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditArticleModal({ article, token, onSave, onClose }: { article: any; token: string; onSave: () => void; onClose: () => void }) {
+  const [form, setForm] = useState({
+    slug: article.slug, title: article.title, content: article.content, summary: article.summary, authorName: article.authorName, readTime: String(article.readTime), metaTitle: article.metaTitle ?? "", metaDescription: article.metaDescription ?? ""
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  async function handleSave() {
+    if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/admin/articles/${article.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...form,
+          readTime: parseInt(form.readTime) || 5
+        })
+      });
+      if (res.ok) { toast({ title: "Article updated" }); onSave(); }
+      else throw new Error();
+    } catch {
+      toast({ title: "Failed to update article", variant: "destructive" });
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold text-lg">Edit Technical Article</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Slug *</Label><Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Summary</Label><Input value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} /></div>
+          <div className="space-y-1.5"><Label>Content (Markdown support)</Label><Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="h-32" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Author Name</Label><Input value={form.authorName} onChange={e => setForm({ ...form, authorName: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Read Time (minutes)</Label><Input type="number" value={form.readTime} onChange={e => setForm({ ...form, readTime: e.target.value })} /></div>
+          </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">SEO fields</h3>
+            <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Layers, Image as ImageIcon, FileText, ArrowRightLeft, Info, Calculator, AlignLeft, Menu, X, Sun, Moon } from "lucide-react";
+import { Layers, Image as ImageIcon, FileText, ArrowRightLeft, Info, Calculator, AlignLeft, Menu, X, Sun, Moon, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 
@@ -10,6 +10,7 @@ const allNavItems = [
   { href: "/convert",    label: "Convert",      icon: ArrowRightLeft,  key: "convert" },
   { href: "/calculator", label: "Calculators",  icon: Calculator,      key: "calculator" },
   { href: "/text",       label: "Text Tools",   icon: AlignLeft,       key: "text" },
+  { href: "/blog",       label: "Blog",         icon: BookOpen,        key: "blog" },
   { href: "/about",      label: "About",        icon: Info,            key: "about" },
   { href: "/faq",        label: "FAQ",          icon: Info,            key: "faq" },
 ];
@@ -32,8 +33,9 @@ export function Navbar({ hiddenPages = [] }: { hiddenPages?: string[] }) {
           <div className="bg-primary p-1.5 rounded-lg">
             <Layers className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-bold text-xl tracking-tight">FileZone</span>
+          <span className="font-bold text-xl tracking-tight">5toolbox</span>
         </Link>
+
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1 text-sm font-medium">

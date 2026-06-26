@@ -14,9 +14,13 @@ import { TermsOfService } from "@/pages/TermsOfService";
 import { CookiePolicy } from "@/pages/CookiePolicy";
 import { ContactUs } from "@/pages/ContactUs";
 import { FAQ } from "@/pages/FAQ";
+import { BlogIndex } from "@/pages/BlogIndex";
+import { BlogDetail } from "@/pages/BlogDetail";
+import { ArticleDetail } from "@/pages/ArticleDetail";
 import { ThemeProvider } from "next-themes";
 import { CookieBanner } from "@/components/CookieBanner";
 import NotFound from "@/pages/not-found";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +45,9 @@ function Router() {
             <Route path="/calculator" component={() => <CategoryPage category="calculator" />} />
             <Route path="/text" component={() => <CategoryPage category="text" />} />
             <Route path="/tools/:slug" component={ToolPage} />
+            <Route path="/blog" component={BlogIndex} />
+            <Route path="/blog/:slug" component={BlogDetail} />
+            <Route path="/articles/:slug" component={ArticleDetail} />
             <Route path="/about" component={About} />
             <Route path="/privacy" component={PrivacyPolicy} />
             <Route path="/terms" component={TermsOfService} />

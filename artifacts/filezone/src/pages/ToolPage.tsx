@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check, Pencil, Shield
+  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check, Pencil, Shield, Star, StarHalf, HelpCircle, MessageSquare, Send, Calendar, Clock, ShieldAlert, Award
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -970,7 +970,7 @@ function RotateImage({ onDone }: { onDone: () => void }) {
 
 function WatermarkImage({ onDone }: { onDone: () => void }) {
   const [files, setFiles] = useState<File[]>([]);
-  const [text, setText] = useState("FileZone");
+  const [text, setText] = useState("5toolbox");
   const [opacity, setOpacity] = useState(50);
   const [size, setSize] = useState(5);
   const [processing, setProcessing] = useState(false);
@@ -2159,11 +2159,101 @@ const categoryBadgeColors: Record<string, string> = {
 // ---- MAIN TOOL PAGE ----
 export function ToolPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: tool, isLoading } = useGetTool(slug, {
+  const { data: rawTool, isLoading } = useGetTool(slug, {
     query: { enabled: !!slug, queryKey: getGetToolQueryKey(slug) },
   });
+  const tool = rawTool as any;
   const trackMutation = useTrackToolUsage();
   const { data: allTools } = useListTools();
+
+  const [comments, setComments] = useState<any[]>([]);
+  const [ratings, setRatings] = useState<{ average: number; count: number }>({ average: 0, count: 0 });
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [ratingError, setRatingError] = useState("");
+  const [ratingSuccess, setRatingSuccess] = useState("");
+
+  const [commentName, setCommentName] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState("");
+
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`/api/comments/tool/${slug}`)
+      .then(res => res.json())
+      .then(data => setComments(Array.isArray(data) ? data : []))
+      .catch(console.error);
+
+    fetch(`/api/ratings/${slug}`)
+      .then(res => res.json())
+      .then(data => setRatings(data))
+      .catch(console.error);
+      
+    setUserRating(null);
+    setRatingError("");
+    setRatingSuccess("");
+    setCommentName("");
+    setCommentText("");
+    setCommentError("");
+  }, [slug]);
+
+  const handleRate = async (ratingVal: number) => {
+    try {
+      setRatingError("");
+      setRatingSuccess("");
+      const res = await fetch(`/api/ratings/${slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: ratingVal })
+      });
+      if (res.ok) {
+        setUserRating(ratingVal);
+        setRatingSuccess("Thank you for your rating!");
+        const data = await fetch(`/api/ratings/${slug}`).then(r => r.json());
+        setRatings(data);
+      } else {
+        const data = await res.json();
+        setRatingError(data.error || "Failed to submit rating");
+      }
+    } catch (err) {
+      setRatingError("Error connecting to server");
+    }
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentName.trim() || !commentText.trim()) return;
+    setCommentSubmitting(true);
+    setCommentError("");
+    try {
+      const res = await fetch(`/api/comments/tool/${slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName: commentName, content: commentText })
+      });
+      if (res.ok) {
+        const newComment = await res.json();
+        setComments(prev => [newComment, ...prev]);
+        setCommentText("");
+      } else {
+        const data = await res.json();
+        setCommentError(data.error || "Failed to submit comment");
+      }
+    } catch (err) {
+      setCommentError("Error connecting to server");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  function safeJsonParse<T>(val: string | null | undefined, fallback: T): T {
+    if (!val) return fallback;
+    try {
+      return JSON.parse(val) as T;
+    } catch {
+      return fallback;
+    }
+  }
 
   const ToolComponent = TOOL_COMPONENTS[slug];
 
@@ -2237,9 +2327,263 @@ export function ToolPage() {
         <AdBanner slot="rectangle" />
       </div>
 
+      {/* Interactive Rating Component */}
+      <div className="mt-10 p-6 border rounded-2xl bg-card shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-lg mb-1">User Ratings</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex text-amber-500">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const starVal = i + 1;
+                  const isFull = ratings.average >= starVal;
+                  const isHalf = !isFull && ratings.average >= starVal - 0.5;
+                  if (isFull) return <Star key={i} className="h-5 w-5 fill-amber-500" />;
+                  if (isHalf) return <StarHalf key={i} className="h-5 w-5 fill-amber-500" />;
+                  return <Star key={i} className="h-5 w-5" />;
+                })}
+              </div>
+              <span className="text-sm font-medium text-foreground">
+                {ratings.average > 0 ? `${ratings.average} / 5` : "No ratings yet"}
+              </span>
+              {ratings.count > 0 && (
+                <span className="text-xs text-muted-foreground">({ratings.count} reviews)</span>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-6 flex flex-col items-start sm:items-end">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Rate this tool:</span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => handleRate(star)}
+                  disabled={userRating !== null}
+                  className="text-muted hover:text-amber-500 cursor-pointer disabled:cursor-default transition-colors p-0.5 group"
+                  title={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                >
+                  <Star className={cn("h-6 w-6 transition-transform group-hover:scale-110",
+                    (userRating !== null && userRating >= star) ? "fill-amber-500 text-amber-500" : ""
+                  )} />
+                </button>
+              ))}
+            </div>
+            {ratingError && <p className="text-xs text-destructive mt-1.5">{ratingError}</p>}
+            {ratingSuccess && <p className="text-xs text-emerald-600 mt-1.5">{ratingSuccess}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Dynamic SEO Sections */}
+      {tool && (
+        <div className="mt-12 space-y-10 border-t pt-10">
+          {/* Introduction */}
+          {tool.introduction && (
+            <section className="prose dark:prose-invert max-w-none">
+              <h2 className="text-2xl font-bold text-foreground">About {tool.name}</h2>
+              <p className="text-muted-foreground leading-relaxed mt-2 text-base">{tool.introduction}</p>
+            </section>
+          )}
+
+          {/* Steps / How To */}
+          {tool.steps && safeJsonParse<string[]>(tool.steps, []).length > 0 && (
+            <section className="bg-muted/30 p-6 rounded-2xl border">
+              <h2 className="text-xl font-bold text-foreground mb-4">How to Use {tool.name}</h2>
+              <ol className="space-y-3 list-decimal pl-5">
+                {safeJsonParse<string[]>(tool.steps, []).map((stepText, i) => (
+                  <li key={i} className="text-muted-foreground text-sm leading-relaxed pl-1">
+                    {stepText}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* Features, Benefits & Advantages Grid */}
+          {(tool.features || tool.benefits || tool.advantages) && (
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {tool.features && safeJsonParse<string[]>(tool.features, []).length > 0 && (
+                <div className="p-5 border rounded-2xl bg-card">
+                  <h3 className="font-semibold text-md mb-3 text-foreground flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" /> Key Features
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {safeJsonParse<string[]>(tool.features, []).map((f, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-emerald-600 mt-0.5">•</span> <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {tool.advantages && safeJsonParse<string[]>(tool.advantages, []).length > 0 && (
+                <div className="p-5 border rounded-2xl bg-card">
+                  <h3 className="font-semibold text-md mb-3 text-foreground flex items-center gap-1.5">
+                    <Award className="h-4.5 w-4.5 text-primary" /> Advantages
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {safeJsonParse<string[]>(tool.advantages, []).map((adv, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-primary mt-0.5">•</span> <span>{adv}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Use cases & Tips */}
+          {(tool.useCases || tool.tips || tool.commonErrors) && (
+            <section className="space-y-6">
+              {tool.tips && safeJsonParse<string[]>(tool.tips, []).length > 0 && (
+                <div className="p-5 border rounded-2xl bg-amber-50/10 border-amber-500/20">
+                  <h3 className="font-semibold text-md mb-3 text-amber-600 dark:text-amber-500 flex items-center gap-1.5">
+                    <HelpCircle className="h-4.5 w-4.5" /> Professional Tips
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {safeJsonParse<string[]>(tool.tips, []).map((tip, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-amber-500 mt-0.5">•</span> <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {tool.commonErrors && safeJsonParse<string[]>(tool.commonErrors, []).length > 0 && (
+                <div className="p-5 border rounded-2xl bg-rose-50/10 border-rose-500/20">
+                  <h3 className="font-semibold text-md mb-3 text-rose-600 dark:text-rose-500 flex items-center gap-1.5">
+                    <ShieldAlert className="h-4.5 w-4.5" /> Common Errors &amp; Troubleshooting
+                  </h3>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {safeJsonParse<string[]>(tool.commonErrors, []).map((errText, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-rose-500 mt-0.5">•</span> <span>{errText}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* FAQ Accordion */}
+          {tool.faqs && safeJsonParse<{ q: string; a: string }[]>(tool.faqs, []).length > 0 && (
+            <section className="space-y-4">
+              <h2 className="text-xl font-bold text-foreground">Frequently Asked Questions</h2>
+              <div className="space-y-3">
+                {safeJsonParse<{ q: string; a: string }[]>(tool.faqs, []).map((faq, i) => (
+                  <div key={i} className="p-4 border rounded-xl bg-card">
+                    <h4 className="font-semibold text-sm text-foreground mb-1.5 flex items-start gap-1.5">
+                      <HelpCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" /> <span>{faq.q}</span>
+                    </h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-5">{faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Technical Info Metadata */}
+          <section className="p-4 bg-muted/20 border rounded-xl text-xs text-muted-foreground grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p className="font-semibold text-foreground uppercase tracking-wider text-[9px] mb-0.5">Developer</p>
+              <p>{tool.developer || "5toolbox"}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground uppercase tracking-wider text-[9px] mb-0.5">Version</p>
+              <p>{tool.version || "1.0.0"}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground uppercase tracking-wider text-[9px] mb-0.5">License</p>
+              <p>{tool.license || "MIT"}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground uppercase tracking-wider text-[9px] mb-0.5">Last Updated</p>
+              <p>{tool.lastUpdated ? new Date(tool.lastUpdated).toLocaleDateString() : "Recently"}</p>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Review Comments Section */}
+      <section className="mt-12 border-t pt-10">
+        <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+          <MessageSquare className="h-5.5 w-5.5 text-primary" /> User Reviews &amp; Feedback ({comments.length})
+        </h2>
+
+        {/* Comment Form */}
+        <form onSubmit={handleCommentSubmit} className="space-y-4 mb-8 bg-card border p-5 rounded-2xl shadow-sm">
+          {commentError && (
+            <div className="p-3 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+              {commentError}
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="comment-username" className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                Name
+              </label>
+              <input
+                id="comment-username"
+                type="text"
+                placeholder="Your name"
+                className="w-full px-3 py-1.5 border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                value={commentName}
+                onChange={(e) => setCommentName(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="comment-text" className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Review or Question
+            </label>
+            <textarea
+              id="comment-text"
+              placeholder="Post a review, suggest a feature, or report a bug. We read every comment."
+              rows={3}
+              className="w-full px-3 py-2 border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={commentSubmitting}
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-xl font-medium text-xs hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+          >
+            {commentSubmitting ? "Submitting..." : "Submit Review"}
+            <Send className="h-3.5 w-3.5" />
+          </button>
+        </form>
+
+        {/* Reviews List */}
+        {comments.length === 0 ? (
+          <div className="text-center py-8 border border-dashed rounded-2xl bg-muted/10">
+            <p className="text-muted-foreground text-xs">No reviews yet. Share your experience with this tool!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {comments.map((c) => (
+              <div key={c.id} className="p-4 border rounded-2xl bg-muted/10">
+                <div className="flex items-center justify-between gap-4 mb-1">
+                  <span className="font-semibold text-xs text-foreground">{c.userName}</span>
+                  <span className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</span>
+                </div>
+                <p className="text-muted-foreground text-xs leading-relaxed whitespace-pre-wrap">{c.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {related.length > 0 && (
-        <div className="mt-10">
-          <Separator className="mb-8" />
+        <div className="mt-12 border-t pt-10">
           <h2 className="font-semibold text-lg mb-4">Related Tools</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {related.map(t => (

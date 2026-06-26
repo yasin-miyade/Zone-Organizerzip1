@@ -38,8 +38,8 @@ export function ContactUs() {
     <div className="max-w-5xl mx-auto px-4 py-16">
       <SEO
         title="Contact Us"
-        description="Get in touch with the FileZone team. Have a question, found a bug, or want to suggest a feature? We'd love to hear from you."
-        keywords="contact filezone, support, feedback"
+        description="Get in touch with the 5toolbox team. Have a question, found a bug, or want to suggest a feature? We'd love to hear from you."
+        keywords="contact 5toolbox, support, feedback"
       />
       <div className="text-center mb-12">
         <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
@@ -60,7 +60,7 @@ export function ContactUs() {
             </div>
             <h3 className="font-semibold mb-1">Email Us</h3>
             <p className="text-sm text-muted-foreground">
-              <a href="mailto:hello@filezone.app" className="text-primary hover:underline">hello@filezone.app</a>
+              <a href="mailto:hello@5toolbox.app" className="text-primary hover:underline">hello@5toolbox.app</a>
             </p>
           </div>
 

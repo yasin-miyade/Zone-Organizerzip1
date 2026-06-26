@@ -6,15 +6,15 @@ export function CookiePolicy() {
     <div className="max-w-4xl mx-auto px-4 py-16">
       <SEO
         title="Cookie Policy"
-        description="FileZone's cookie policy. Learn about what cookies we use, why we use them, and how you can control them."
-        keywords="cookie policy, filezone cookies, privacy"
+        description="5toolbox's cookie policy. Learn about what cookies we use, why we use them, and how you can control them."
+        keywords="cookie policy, 5toolbox cookies, privacy"
       />
       <div className="text-center mb-12">
         <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
           <Cookie className="h-7 w-7 text-primary" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight mb-3">Cookie Policy</h1>
-        <p className="text-muted-foreground text-sm">Last updated: June 2026 · FileZone by Yasin Miyade</p>
+        <p className="text-muted-foreground text-sm">Last updated: June 2026 · 5toolbox by Yasin Miyade</p>
       </div>
 
       <div className="prose prose-sm max-w-none space-y-8">
@@ -28,7 +28,7 @@ export function CookiePolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">2. How We Use Cookies</h2>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            FileZone uses a minimal set of cookies to operate the Service. We respect your privacy and do not use cookies to track you across other websites or build advertising profiles.
+            5toolbox uses a minimal set of cookies to operate the Service. We respect your privacy and do not use cookies to track you across other websites or build advertising profiles.
           </p>
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-muted/40 border">
@@ -41,7 +41,7 @@ export function CookiePolicy() {
             </div>
             <div className="p-4 rounded-xl bg-muted/40 border">
               <h3 className="font-semibold text-sm mb-1">Advertising Cookies (Google AdSense)</h3>
-              <p className="text-sm text-muted-foreground">FileZone uses Google AdSense to display advertisements. Google may use cookies to serve ads based on your prior visits to our website or other websites. Google's use of advertising cookies enables it and its partners to serve ads based on your visit to our site and/or other sites on the Internet. You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Google Ads Settings</a>.</p>
+              <p className="text-sm text-muted-foreground">5toolbox uses Google AdSense to display advertisements. Google may use cookies to serve ads based on your prior visits to our website or other websites. Google's use of advertising cookies enables it and its partners to serve ads based on your visit to our site and/or other sites on the Internet. You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Google Ads Settings</a>.</p>
             </div>
           </div>
         </section>
@@ -78,7 +78,7 @@ export function CookiePolicy() {
           <h2 className="text-xl font-semibold mb-3">6. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
             If you have any questions about our use of cookies, please contact us at{" "}
-            <a href="mailto:privacy@filezone.app" className="text-primary hover:underline">privacy@filezone.app</a>{" "}
+            <a href="mailto:privacy@5toolbox.app" className="text-primary hover:underline">privacy@5toolbox.app</a>{" "}
             or use our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>

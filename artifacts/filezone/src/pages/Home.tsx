@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, ArrowRight, FileText, Image, RefreshCw, AlignLeft, Zap, Shield, Globe } from "lucide-react";
+import { Search, ArrowRight, FileText, Image, RefreshCw, AlignLeft, Zap, Shield, Globe, Clock } from "lucide-react";
 import { useListTools, useGetToolStats, useListToolCategories } from "@workspace/api-client-react";
 import { ToolCard } from "@/components/ToolCard";
 import { Input } from "@/components/ui/input";
@@ -21,9 +21,34 @@ const categoryColorMap: Record<string, string> = {
 
 export function Home() {
   const [search, setSearch] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const { data: tools, isLoading: toolsLoading } = useListTools();
   const { data: stats } = useGetToolStats();
   const { data: categories } = useListToolCategories();
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("search_history");
+      if (stored) {
+        setHistory(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const addToHistory = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const nextHistory = [trimmed, ...history.filter(h => h !== trimmed)].slice(0, 5);
+    setHistory(nextHistory);
+    try {
+      localStorage.setItem("search_history", JSON.stringify(nextHistory));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const filtered = tools?.filter(t =>
     !search || t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -31,6 +56,14 @@ export function Home() {
   ) ?? [];
 
   const featured = tools?.filter(t => t.isFeatured).slice(0, 6) ?? [];
+
+  const suggestions = tools?.filter(t =>
+    search.length >= 2 &&
+    (t.name.toLowerCase().includes(search.toLowerCase()) ||
+     t.description.toLowerCase().includes(search.toLowerCase()))
+  ).slice(0, 5) ?? [];
+
+  const trendingTerms = ["Compress PDF", "Resize Image", "JPG to PNG", "Base64", "QR Generator"];
 
   return (
     <div>
@@ -57,13 +90,84 @@ export function Home() {
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  addToHistory(search);
+                }
+              }}
               placeholder="Search tools — try 'compress PDF' or 'resize image'…"
               className="pl-10 h-13 rounded-2xl text-base shadow-sm border-border/60"
               data-testid="input-search"
             />
+            {showDropdown && (
+              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-card border rounded-2xl shadow-xl overflow-hidden text-left p-3 space-y-3">
+                {search.length >= 2 && suggestions.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 tracking-wider">Suggestions</p>
+                    <div className="mt-1 space-y-0.5">
+                      {suggestions.map(t => (
+                        <Link key={t.slug} href={`/tools/${t.slug}`}>
+                          <div
+                            onClick={() => addToHistory(t.name)}
+                            className="px-2 py-1.5 hover:bg-muted rounded-xl cursor-pointer text-sm font-medium flex justify-between items-center"
+                          >
+                            <span>{t.name}</span>
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] uppercase font-bold">{t.category}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {history.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-center px-2 py-0.5">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Recent Searches</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setHistory([]); localStorage.removeItem("search_history"); }}
+                        className="text-[10px] text-destructive hover:underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="mt-1 space-y-0.5">
+                      {history.map(h => (
+                        <div
+                          key={h}
+                          onClick={() => { setSearch(h); addToHistory(h); }}
+                          className="px-2 py-1.5 hover:bg-muted rounded-xl cursor-pointer text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
+                        >
+                          <Clock className="h-3.5 w-3.5 opacity-60" />
+                          <span>{h}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-0.5 tracking-wider">Trending</p>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {trendingTerms.map(term => (
+                      <button
+                        key={term}
+                        onClick={() => { setSearch(term); addToHistory(term); }}
+                        className="text-xs px-2.5 py-1 bg-muted hover:bg-primary/10 hover:text-primary rounded-lg font-medium cursor-pointer transition-colors text-muted-foreground"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
+
 
       {/* Search Results */}
       {search && (

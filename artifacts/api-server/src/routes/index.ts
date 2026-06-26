@@ -3,14 +3,18 @@ import { eq, desc } from "drizzle-orm";
 import healthRouter from "./health";
 import toolsRouter from "./tools";
 import adminRouter from "./admin";
+import blogsRouter from "./blogs";
+import commentsRouter from "./comments";
 import { db } from "@workspace/db";
-import { toolsTable, siteSettingsTable, contactsTable, clipboardsTable } from "@workspace/db";
+import { toolsTable, siteSettingsTable, contactsTable, clipboardsTable, blogsTable, articlesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(toolsRouter);
 router.use(adminRouter);
+router.use(blogsRouter);
+router.use(commentsRouter);
 
 // GET /public-settings
 router.get("/public-settings", async (req, res) => {
@@ -116,11 +120,15 @@ router.put("/clipboard/:handle", async (req, res) => {
 router.get("/sitemap.xml", async (req, res) => {
   try {
     const tools = await db.select().from(toolsTable);
+    const blogs = await db.select().from(blogsTable);
+    const articles = await db.select().from(articlesTable);
+
     const host = process.env.FRONTEND_URL
       ?? (process.env.REPLIT_DOMAINS?.split(",")[0]
         ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-        : "https://filezone.app");
+        : "https://5toolbox.app");
     const now = new Date().toISOString().split("T")[0];
+    
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
       { url: "/pdf", priority: "0.9", changefreq: "weekly" },
@@ -128,18 +136,34 @@ router.get("/sitemap.xml", async (req, res) => {
       { url: "/convert", priority: "0.9", changefreq: "weekly" },
       { url: "/calculator", priority: "0.9", changefreq: "weekly" },
       { url: "/text", priority: "0.8", changefreq: "weekly" },
+      { url: "/blog", priority: "0.8", changefreq: "daily" },
       { url: "/about", priority: "0.6", changefreq: "monthly" },
       { url: "/privacy", priority: "0.4", changefreq: "yearly" },
       { url: "/terms", priority: "0.4", changefreq: "yearly" },
       { url: "/contact", priority: "0.5", changefreq: "monthly" },
       { url: "/faq", priority: "0.6", changefreq: "monthly" },
     ];
+
     const toolPages = tools.filter((t) => !t.isHidden).map((t) => ({
       url: `/tools/${t.slug}`,
       priority: t.isFeatured ? "0.8" : "0.7",
       changefreq: "monthly",
     }));
-    const allPages = [...staticPages, ...toolPages];
+
+    const blogPages = blogs.map((b) => ({
+      url: `/blog/${b.slug}`,
+      priority: "0.7",
+      changefreq: "weekly",
+    }));
+
+    const articlePages = articles.map((a) => ({
+      url: `/articles/${a.slug}`,
+      priority: "0.7",
+      changefreq: "weekly",
+    }));
+
+    const allPages = [...staticPages, ...toolPages, ...blogPages, ...articlePages];
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -162,7 +186,7 @@ ${allPages.map((p) => `  <url>
 
 // GET /robots.txt
 router.get("/robots.txt", (req, res) => {
-  const host = process.env.FRONTEND_URL ?? "https://filezone.app";
+  const host = process.env.FRONTEND_URL ?? "https://5toolbox.app";
   res.setHeader("Content-Type", "text/plain");
   res.send(`User-agent: *\nAllow: /\n\nSitemap: ${host}/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });

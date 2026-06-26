@@ -36,7 +36,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
           <p className="text-muted-foreground text-lg">
             {settings.maintenance_message || "We're performing scheduled maintenance. We'll be back soon!"}
           </p>
-          <p className="text-sm text-muted-foreground">— The FileZone Team</p>
+          <p className="text-sm text-muted-foreground">— The 5toolbox Team</p>
         </div>
       </div>
     );
