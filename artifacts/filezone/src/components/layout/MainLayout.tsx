@@ -3,6 +3,7 @@ import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface PublicSettings {
   maintenance_mode?: string;
@@ -16,6 +17,7 @@ interface PublicSettings {
 
 export function MainLayout({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<PublicSettings>({});
+  const [location] = useLocation();
 
   useEffect(() => {
     if (!sessionStorage.getItem("visit_tracked")) {
@@ -27,6 +29,11 @@ export function MainLayout({ children }: { children: ReactNode }) {
       .then((d: PublicSettings) => setSettings(d))
       .catch(() => {});
   }, []);
+
+  // Scroll to top on page navigation
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [location]);
 
   // Dynamic Animated Tab Title
   useEffect(() => {
@@ -101,8 +108,10 @@ export function MainLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Navbar hiddenPages={hiddenPages} />
-      <main className={cn("flex-1", animationsEnabled && "animate-fade-in-up")}>
-        {children}
+      <main className="flex-1">
+        <div key={location} className={cn(animationsEnabled && "animate-fade-in-up")}>
+          {children}
+        </div>
       </main>
       <Footer hiddenPages={hiddenPages} copyright={settings.footer_copyright} />
     </div>

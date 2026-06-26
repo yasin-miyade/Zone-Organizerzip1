@@ -36,8 +36,8 @@ export function ToolCard({ slug, name, description, category, icon, route, usage
   return (
     <Link href={route} data-testid={`tool-card-${slug}`}>
       <div className={cn(
-        "group relative rounded-xl border border-transparent p-5 cursor-pointer transition-all duration-200",
-        "hover:shadow-md hover:border-border",
+        "group relative rounded-xl border border-transparent p-5 cursor-pointer transition-all duration-300 ease-out",
+        "hover:shadow-lg hover:border-border hover:-translate-y-1",
         colors.bg,
         className
       )}>
