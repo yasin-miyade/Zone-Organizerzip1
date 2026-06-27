@@ -57434,8 +57434,9 @@ ${allPages.map((p) => `  <url>
     <priority>${p.priority}</priority>
   </url>`).join("\n")}
 </urlset>`;
-    res.setHeader("Content-Type", "application/xml");
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Vary", "Accept-Encoding");
     res.send(xml);
   } catch {
     res.status(500).send("Error generating sitemap");
