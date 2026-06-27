@@ -56588,7 +56588,8 @@ var blogsTable = pgTable("blogs", {
   likes: integer("likes").notNull().default(0),
   bookmarks: integer("bookmarks").notNull().default(0),
   publishedAt: timestamp("published_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  socialLinks: jsonb("social_links").$type().default([]).notNull()
 });
 var insertBlogSchema = createInsertSchema(blogsTable).omit({ id: true, publishedAt: true, updatedAt: true });
 
@@ -56605,7 +56606,8 @@ var articlesTable = pgTable("articles", {
   readTime: integer("read_time").notNull().default(5),
   views: integer("views").notNull().default(0),
   publishedAt: timestamp("published_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  socialLinks: jsonb("social_links").$type().default([]).notNull()
 });
 var insertArticleSchema = createInsertSchema(articlesTable).omit({ id: true, publishedAt: true, updatedAt: true });
 
@@ -57035,7 +57037,7 @@ router4.get("/admin/blogs", requireAdmin, async (req, res) => {
   }
 });
 router4.post("/admin/blogs", requireAdmin, async (req, res) => {
-  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category, socialLinks } = req.body;
   if (!slug || !title || !content || !summary) {
     return res.status(400).json({ error: "Required fields missing" });
   }
@@ -57051,7 +57053,8 @@ router4.post("/admin/blogs", requireAdmin, async (req, res) => {
       authorName: authorName || "5toolbox Team",
       readTime: Number(readTime) || 5,
       tags: tags || [],
-      category: category || "General"
+      category: category || "General",
+      socialLinks: socialLinks || []
     }).returning();
     res.json(newBlog);
   } catch (error40) {
@@ -57060,7 +57063,7 @@ router4.post("/admin/blogs", requireAdmin, async (req, res) => {
 });
 router4.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category, socialLinks } = req.body;
   try {
     const [updated] = await db.update(blogsTable).set({
       slug,
@@ -57074,6 +57077,7 @@ router4.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
       readTime: Number(readTime) || 5,
       tags,
       category,
+      socialLinks: socialLinks || [],
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(blogsTable.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Blog post not found" });
@@ -57101,7 +57105,7 @@ router4.get("/admin/articles", requireAdmin, async (req, res) => {
   }
 });
 router4.post("/admin/articles", requireAdmin, async (req, res) => {
-  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime, socialLinks } = req.body;
   if (!slug || !title || !content || !summary) {
     return res.status(400).json({ error: "Required fields missing" });
   }
@@ -57114,7 +57118,8 @@ router4.post("/admin/articles", requireAdmin, async (req, res) => {
       metaTitle,
       metaDescription,
       authorName: authorName || "5toolbox Team",
-      readTime: Number(readTime) || 5
+      readTime: Number(readTime) || 5,
+      socialLinks: socialLinks || []
     }).returning();
     res.json(newArticle);
   } catch (error40) {
@@ -57123,7 +57128,7 @@ router4.post("/admin/articles", requireAdmin, async (req, res) => {
 });
 router4.put("/admin/articles/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime, socialLinks } = req.body;
   try {
     const [updated] = await db.update(articlesTable).set({
       slug,
@@ -57134,6 +57139,7 @@ router4.put("/admin/articles/:id", requireAdmin, async (req, res) => {
       metaDescription,
       authorName,
       readTime: Number(readTime) || 5,
+      socialLinks: socialLinks || [],
       updatedAt: /* @__PURE__ */ new Date()
     }).where(eq(articlesTable.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Article not found" });
@@ -57294,7 +57300,10 @@ router6.get("/public-settings", async (req, res) => {
     "footer_copyright",
     "title_animation",
     "website_animations",
-    "analytics_code"
+    "analytics_code",
+    "email_contact",
+    "email_privacy",
+    "email_legal"
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);

@@ -1,7 +1,21 @@
+import { useState, useEffect } from "react";
 import { Cookie } from "lucide-react";
 import { SEO } from "@/components/SEO";
 
 export function CookiePolicy() {
+  const [emailPrivacy, setEmailPrivacy] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then(res => res.json())
+      .then(data => {
+        setEmailPrivacy(data.email_privacy !== undefined ? data.email_privacy : "");
+      })
+      .catch(() => {
+        setEmailPrivacy("");
+      });
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <SEO
@@ -77,9 +91,19 @@ export function CookiePolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">6. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
-            If you have any questions about our use of cookies, please contact us at{" "}
-            <a href="mailto:privacy@5toolbox.app" className="text-primary hover:underline">privacy@5toolbox.app</a>{" "}
-            or use our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
+            If you have any questions about our use of cookies, please contact us
+            {emailPrivacy ? (
+              <>
+                {" "}at{" "}
+                <a href={`mailto:${emailPrivacy}`} className="text-primary hover:underline">{emailPrivacy}</a>{" "}
+                or use our
+              </>
+            ) : (
+              <>
+                {" "}via our
+              </>
+            )}{" "}
+            <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>
       </div>

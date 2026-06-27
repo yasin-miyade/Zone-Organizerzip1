@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SEO } from "@/components/SEO";
 import { Mail, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,21 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function ContactUs() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [emailContact, setEmailContact] = useState<string | null>(null);
 
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then(res => res.json())
+      .then(data => {
+        setEmailContact(data.email_contact !== undefined ? data.email_contact : "");
+      })
+      .catch(() => {
+        setEmailContact("");
+      });
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -54,15 +66,17 @@ export function ContactUs() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Info cards */}
         <div className="space-y-4">
-          <div className="p-5 rounded-2xl border bg-card">
-            <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-3">
-              <Mail className="h-5 w-5 text-primary" />
+          {emailContact && (
+            <div className="p-5 rounded-2xl border bg-card">
+              <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-3">
+                <Mail className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Email Us</h3>
+              <p className="text-sm text-muted-foreground">
+                <a href={`mailto:${emailContact}`} className="text-primary hover:underline">{emailContact}</a>
+              </p>
             </div>
-            <h3 className="font-semibold mb-1">Email Us</h3>
-            <p className="text-sm text-muted-foreground">{" "}
-              <a href="/contact" className="text-primary hover:underline">Contact Us</a>
-            </p>
-          </div>
+          )}
 
           <div className="p-5 rounded-2xl border bg-card">
             <div className="p-2.5 rounded-lg bg-primary/10 w-fit mb-3">

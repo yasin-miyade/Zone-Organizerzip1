@@ -23,7 +23,7 @@ router.get("/public-settings", async (req, res) => {
     "adsense_slot_leaderboard", "adsense_slot_rectangle", "adsense_slot_responsive",
     "site_title", "site_description", "maintenance_mode", "maintenance_message",
     "hidden_pages", "footer_copyright", "title_animation", "website_animations",
-    "analytics_code",
+    "analytics_code", "email_contact", "email_privacy", "email_legal",
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);

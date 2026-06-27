@@ -207,19 +207,57 @@ export declare const articlesTable: import("drizzle-orm/pg-core").PgTableWithCol
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        socialLinks: import("drizzle-orm/pg-core").PgColumn<{
+            name: "social_links";
+            tableName: "articles";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: {
+                platform: string;
+                url: string;
+            }[];
+            driverParam: unknown;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            $type: {
+                platform: string;
+                url: string;
+            }[];
+        }>;
     };
     dialect: "pg";
 }>;
 export declare const insertArticleSchema: z.ZodObject<{
     slug: z.ZodString;
-    metaTitle: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    metaDescription: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     title: z.ZodString;
     content: z.ZodString;
     summary: z.ZodString;
+    metaTitle: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    metaDescription: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     authorName: z.ZodOptional<z.ZodString>;
     readTime: z.ZodOptional<z.ZodInt>;
     views: z.ZodOptional<z.ZodInt>;
+    socialLinks: z.ZodOptional<z.ZodType<{
+        platform: string;
+        url: string;
+    }[], {
+        platform: string;
+        url: string;
+    }[], z.core.$ZodTypeInternals<{
+        platform: string;
+        url: string;
+    }[], {
+        platform: string;
+        url: string;
+    }[]>>>;
 }, {
     out: {};
     in: {};

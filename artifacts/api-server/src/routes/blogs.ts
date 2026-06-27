@@ -130,7 +130,7 @@ router.get("/admin/blogs", requireAdmin, async (req, res) => {
 
 // POST /admin/blogs - create blog post
 router.post("/admin/blogs", requireAdmin, async (req, res) => {
-  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category, socialLinks } = req.body;
   if (!slug || !title || !content || !summary) {
     return res.status(400).json({ error: "Required fields missing" });
   }
@@ -146,7 +146,8 @@ router.post("/admin/blogs", requireAdmin, async (req, res) => {
       authorName: authorName || "5toolbox Team",
       readTime: Number(readTime) || 5,
       tags: tags || [],
-      category: category || "General"
+      category: category || "General",
+      socialLinks: socialLinks || []
     }).returning();
     res.json(newBlog);
   } catch (error) {
@@ -157,7 +158,7 @@ router.post("/admin/blogs", requireAdmin, async (req, res) => {
 // PUT /admin/blogs/:id - update blog post
 router.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, coverImage, authorName, readTime, tags, category, socialLinks } = req.body;
   try {
     const [updated] = await db
       .update(blogsTable)
@@ -173,6 +174,7 @@ router.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
         readTime: Number(readTime) || 5,
         tags,
         category,
+        socialLinks: socialLinks || [],
         updatedAt: new Date()
       })
       .where(eq(blogsTable.id, id))
@@ -215,7 +217,7 @@ router.get("/admin/articles", requireAdmin, async (req, res) => {
 
 // POST /admin/articles - create article
 router.post("/admin/articles", requireAdmin, async (req, res) => {
-  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime, socialLinks } = req.body;
   if (!slug || !title || !content || !summary) {
     return res.status(400).json({ error: "Required fields missing" });
   }
@@ -228,7 +230,8 @@ router.post("/admin/articles", requireAdmin, async (req, res) => {
       metaTitle,
       metaDescription,
       authorName: authorName || "5toolbox Team",
-      readTime: Number(readTime) || 5
+      readTime: Number(readTime) || 5,
+      socialLinks: socialLinks || []
     }).returning();
     res.json(newArticle);
   } catch (error) {
@@ -239,7 +242,7 @@ router.post("/admin/articles", requireAdmin, async (req, res) => {
 // PUT /admin/articles/:id - update article
 router.put("/admin/articles/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
-  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime } = req.body;
+  const { slug, title, content, summary, metaTitle, metaDescription, authorName, readTime, socialLinks } = req.body;
   try {
     const [updated] = await db
       .update(articlesTable)
@@ -252,6 +255,7 @@ router.put("/admin/articles/:id", requireAdmin, async (req, res) => {
         metaDescription,
         authorName,
         readTime: Number(readTime) || 5,
+        socialLinks: socialLinks || [],
         updatedAt: new Date()
       })
       .where(eq(articlesTable.id, id))

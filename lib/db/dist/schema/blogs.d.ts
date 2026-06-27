@@ -335,25 +335,63 @@ export declare const blogsTable: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        socialLinks: import("drizzle-orm/pg-core").PgColumn<{
+            name: "social_links";
+            tableName: "blogs";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: {
+                platform: string;
+                url: string;
+            }[];
+            driverParam: unknown;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            $type: {
+                platform: string;
+                url: string;
+            }[];
+        }>;
     };
     dialect: "pg";
 }>;
 export declare const insertBlogSchema: z.ZodObject<{
     slug: z.ZodString;
-    category: z.ZodOptional<z.ZodString>;
-    metaTitle: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    metaDescription: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     title: z.ZodString;
     content: z.ZodString;
     summary: z.ZodString;
+    metaTitle: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    metaDescription: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     coverImage: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     authorName: z.ZodOptional<z.ZodString>;
     authorAvatar: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     readTime: z.ZodOptional<z.ZodInt>;
     tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    category: z.ZodOptional<z.ZodString>;
     views: z.ZodOptional<z.ZodInt>;
     likes: z.ZodOptional<z.ZodInt>;
     bookmarks: z.ZodOptional<z.ZodInt>;
+    socialLinks: z.ZodOptional<z.ZodType<{
+        platform: string;
+        url: string;
+    }[], {
+        platform: string;
+        url: string;
+    }[], z.core.$ZodTypeInternals<{
+        platform: string;
+        url: string;
+    }[], {
+        platform: string;
+        url: string;
+    }[]>>>;
 }, {
     out: {};
     in: {};

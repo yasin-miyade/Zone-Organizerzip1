@@ -1,7 +1,21 @@
+import { useState, useEffect } from "react";
 import { Shield } from "lucide-react";
 import { SEO } from "@/components/SEO";
 
 export function PrivacyPolicy() {
+  const [emailPrivacy, setEmailPrivacy] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then(res => res.json())
+      .then(data => {
+        setEmailPrivacy(data.email_privacy !== undefined ? data.email_privacy : "");
+      })
+      .catch(() => {
+        setEmailPrivacy("");
+      });
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <SEO
@@ -97,8 +111,19 @@ export function PrivacyPolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">9. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
-            If you have any questions about this Privacy Policy, please contact us at 
-            our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
+            If you have any questions about this Privacy Policy, please contact us
+            {emailPrivacy ? (
+              <>
+                {" "}at{" "}
+                <a href={`mailto:${emailPrivacy}`} className="text-primary hover:underline">{emailPrivacy}</a>{" "}
+                or use our
+              </>
+            ) : (
+              <>
+                {" "}via our
+              </>
+            )}{" "}
+            <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>
       </div>

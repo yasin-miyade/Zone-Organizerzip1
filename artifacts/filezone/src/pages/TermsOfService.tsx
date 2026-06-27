@@ -1,7 +1,21 @@
+import { useState, useEffect } from "react";
 import { FileText } from "lucide-react";
 import { SEO } from "@/components/SEO";
 
 export function TermsOfService() {
+  const [emailLegal, setEmailLegal] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public-settings")
+      .then(res => res.json())
+      .then(data => {
+        setEmailLegal(data.email_legal !== undefined ? data.email_legal : "");
+      })
+      .catch(() => {
+        setEmailLegal("");
+      });
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <SEO
@@ -93,11 +107,21 @@ export function TermsOfService() {
         </section>
 
         <section className="p-6 rounded-2xl border bg-card">
-          <h2 className="text-xl font-semibold mb-3">10. Contact</h2>
+          <h2 className="text-xl font-semibold mb-3">10. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
-            For questions about these Terms, contact us at{" "}
-            <a href="mailto:legal@5toolbox.app" className="text-primary hover:underline">legal@5toolbox.app</a>{" "}
-            or visit our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
+            For questions about these Terms, contact us
+            {emailLegal ? (
+              <>
+                {" "}at{" "}
+                <a href={`mailto:${emailLegal}`} className="text-primary hover:underline">{emailLegal}</a>{" "}
+                or visit our
+              </>
+            ) : (
+              <>
+                {" "}via our
+              </>
+            )}{" "}
+            <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>
       </div>

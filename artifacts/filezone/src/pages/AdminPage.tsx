@@ -67,6 +67,9 @@ interface SiteSettings {
   footer_copyright?: string;
   title_animation?: string;
   website_animations?: string;
+  email_contact?: string;
+  email_privacy?: string;
+  email_legal?: string;
 }
 
 interface Contact {
@@ -755,6 +758,33 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
           placeholder="e.g. &copy; 2026 5toolbox. All rights reserved."
         />
         <p className="text-xs text-muted-foreground">Leave blank to use default copyright text.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Contact Email (Email Us)</Label>
+        <Input
+          value={settings.email_contact ?? ""}
+          onChange={e => set("email_contact", e.target.value)}
+          placeholder="hello@5toolbox.app"
+        />
+        <p className="text-xs text-muted-foreground">Displayed on the Contact page. Leave blank to hide the Email Us card.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Privacy Email</Label>
+        <Input
+          value={settings.email_privacy ?? ""}
+          onChange={e => set("email_privacy", e.target.value)}
+          placeholder="privacy@5toolbox.app"
+        />
+        <p className="text-xs text-muted-foreground">Displayed on the Privacy Policy and Cookie Policy pages.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Legal Email</Label>
+        <Input
+          value={settings.email_legal ?? ""}
+          onChange={e => set("email_legal", e.target.value)}
+          placeholder="legal@5toolbox.app"
+        />
+        <p className="text-xs text-muted-foreground">Displayed on the Terms of Service page.</p>
       </div>
       <Separator />
       <div className="space-y-1.5">
@@ -2057,8 +2087,22 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
   const [form, setForm] = useState({
     slug: "", title: "", content: "", summary: "", category: "General", coverImage: "", authorName: "5toolbox Team", readTime: "5", tags: "", metaTitle: "", metaDescription: ""
   });
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([]);
+  const [newPlatform, setNewPlatform] = useState("facebook");
+  const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const addSocialLink = () => {
+    if (newUrl.trim()) {
+      setSocialLinks(prev => [...prev, { platform: newPlatform, url: newUrl.trim() }]);
+      setNewUrl("");
+    }
+  };
+
+  const removeSocialLink = (index: number) => {
+    setSocialLinks(prev => prev.filter((_, i) => i !== index));
+  };
 
   async function handleAdd() {
     if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
@@ -2070,7 +2114,8 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
         body: JSON.stringify({
           ...form,
           tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
-          readTime: parseInt(form.readTime) || 5
+          readTime: parseInt(form.readTime) || 5,
+          socialLinks
         })
       });
       if (res.ok) { toast({ title: "Blog post added" }); onAdd(); }
@@ -2108,6 +2153,35 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
             <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
           </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
+            <div className="space-y-2">
+              {socialLinks.map((link, idx) => (
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                  <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+                <option value="facebook">Facebook</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="twitter">X (Twitter)</option>
+                <option value="instagram">Instagram</option>
+                <option value="github">GitHub</option>
+                <option value="youtube">YouTube</option>
+                <option value="website">Website</option>
+              </select>
+              <Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://facebook.com/username" className="h-8 text-xs flex-1" />
+              <Button type="button" size="sm" className="h-8 text-xs px-3" onClick={addSocialLink}>
+                Add
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 p-5 border-t">
           <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Blog Post"}</Button>
@@ -2122,8 +2196,22 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
   const [form, setForm] = useState({
     slug: blog.slug, title: blog.title, content: blog.content, summary: blog.summary, category: blog.category, coverImage: blog.coverImage ?? "", authorName: blog.authorName, readTime: String(blog.readTime), tags: blog.tags.join(", "), metaTitle: blog.metaTitle ?? "", metaDescription: blog.metaDescription ?? ""
   });
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>(blog.socialLinks ?? []);
+  const [newPlatform, setNewPlatform] = useState("facebook");
+  const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const addSocialLink = () => {
+    if (newUrl.trim()) {
+      setSocialLinks(prev => [...prev, { platform: newPlatform, url: newUrl.trim() }]);
+      setNewUrl("");
+    }
+  };
+
+  const removeSocialLink = (index: number) => {
+    setSocialLinks(prev => prev.filter((_, i) => i !== index));
+  };
 
   async function handleSave() {
     if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
@@ -2135,7 +2223,8 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
         body: JSON.stringify({
           ...form,
           tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
-          readTime: parseInt(form.readTime) || 5
+          readTime: parseInt(form.readTime) || 5,
+          socialLinks
         })
       });
       if (res.ok) { toast({ title: "Blog post updated" }); onSave(); }
@@ -2173,6 +2262,35 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
             <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
           </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
+            <div className="space-y-2">
+              {socialLinks.map((link, idx) => (
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                  <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+                <option value="facebook">Facebook</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="twitter">X (Twitter)</option>
+                <option value="instagram">Instagram</option>
+                <option value="github">GitHub</option>
+                <option value="youtube">YouTube</option>
+                <option value="website">Website</option>
+              </select>
+              <Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://facebook.com/username" className="h-8 text-xs flex-1" />
+              <Button type="button" size="sm" className="h-8 text-xs px-3" onClick={addSocialLink}>
+                Add
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 p-5 border-t">
           <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
@@ -2188,8 +2306,22 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
   const [form, setForm] = useState({
     slug: "", title: "", content: "", summary: "", authorName: "5toolbox Team", readTime: "5", metaTitle: "", metaDescription: ""
   });
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([]);
+  const [newPlatform, setNewPlatform] = useState("facebook");
+  const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const addSocialLink = () => {
+    if (newUrl.trim()) {
+      setSocialLinks(prev => [...prev, { platform: newPlatform, url: newUrl.trim() }]);
+      setNewUrl("");
+    }
+  };
+
+  const removeSocialLink = (index: number) => {
+    setSocialLinks(prev => prev.filter((_, i) => i !== index));
+  };
 
   async function handleAdd() {
     if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
@@ -2200,7 +2332,8 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...form,
-          readTime: parseInt(form.readTime) || 5
+          readTime: parseInt(form.readTime) || 5,
+          socialLinks
         })
       });
       if (res.ok) { toast({ title: "Article added" }); onAdd(); }
@@ -2233,6 +2366,35 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
             <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
           </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
+            <div className="space-y-2">
+              {socialLinks.map((link, idx) => (
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                  <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+                <option value="facebook">Facebook</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="twitter">X (Twitter)</option>
+                <option value="instagram">Instagram</option>
+                <option value="github">GitHub</option>
+                <option value="youtube">YouTube</option>
+                <option value="website">Website</option>
+              </select>
+              <Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://facebook.com/username" className="h-8 text-xs flex-1" />
+              <Button type="button" size="sm" className="h-8 text-xs px-3" onClick={addSocialLink}>
+                Add
+              </Button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 p-5 border-t">
           <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Article"}</Button>
@@ -2247,8 +2409,22 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
   const [form, setForm] = useState({
     slug: article.slug, title: article.title, content: article.content, summary: article.summary, authorName: article.authorName, readTime: String(article.readTime), metaTitle: article.metaTitle ?? "", metaDescription: article.metaDescription ?? ""
   });
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>(article.socialLinks ?? []);
+  const [newPlatform, setNewPlatform] = useState("facebook");
+  const [newUrl, setNewUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const addSocialLink = () => {
+    if (newUrl.trim()) {
+      setSocialLinks(prev => [...prev, { platform: newPlatform, url: newUrl.trim() }]);
+      setNewUrl("");
+    }
+  };
+
+  const removeSocialLink = (index: number) => {
+    setSocialLinks(prev => prev.filter((_, i) => i !== index));
+  };
 
   async function handleSave() {
     if (!form.slug || !form.title || !form.content) { toast({ title: "Slug, title and content are required", variant: "destructive" }); return; }
@@ -2259,7 +2435,8 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...form,
-          readTime: parseInt(form.readTime) || 5
+          readTime: parseInt(form.readTime) || 5,
+          socialLinks
         })
       });
       if (res.ok) { toast({ title: "Article updated" }); onSave(); }
@@ -2291,6 +2468,35 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">SEO fields</h3>
             <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitle} onChange={e => setForm({ ...form, metaTitle: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Meta Description</Label><Textarea value={form.metaDescription} onChange={e => setForm({ ...form, metaDescription: e.target.value })} className="h-16" /></div>
+          </div>
+          <div className="border-t pt-4 mt-4 space-y-4">
+            <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
+            <div className="space-y-2">
+              {socialLinks.map((link, idx) => (
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                  <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
+                  <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 items-center">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+                <option value="facebook">Facebook</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="twitter">X (Twitter)</option>
+                <option value="instagram">Instagram</option>
+                <option value="github">GitHub</option>
+                <option value="youtube">YouTube</option>
+                <option value="website">Website</option>
+              </select>
+              <Input value={newUrl} onChange={e => setNewUrl(e.target.value)} placeholder="https://facebook.com/username" className="h-8 text-xs flex-1" />
+              <Button type="button" size="sm" className="h-8 text-xs px-3" onClick={addSocialLink}>
+                Add
+              </Button>
+            </div>
           </div>
         </div>
         <div className="flex gap-3 p-5 border-t">

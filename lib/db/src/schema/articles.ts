@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,6 +15,7 @@ export const articlesTable = pgTable("articles", {
   views: integer("views").notNull().default(0),
   publishedAt: timestamp("published_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  socialLinks: jsonb("social_links").$type<{ platform: string; url: string }[]>().default([]).notNull(),
 });
 
 export const insertArticleSchema = createInsertSchema(articlesTable).omit({ id: true, publishedAt: true, updatedAt: true });
