@@ -274,41 +274,14 @@ export function BlogDetail() {
           </h1>
 
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-b py-4 mt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
-                  <User className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{blog.authorName}</p>
-                  <p className="text-xs text-muted-foreground">Expert Technical Author</p>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+                <User className="h-5 w-5" />
               </div>
-              {blog.socialLinks && blog.socialLinks.length > 0 && (
-                <div className="flex items-center gap-3 border-t pt-3 mt-1 sm:border-t-0 sm:pt-0 sm:mt-0 sm:border-l sm:pl-4 sm:ml-2">
-                  {blog.socialLinks.map((link, idx) => {
-                    const iconClass = "h-4.5 w-4.5 text-muted-foreground hover:text-primary transition-colors";
-                    let icon = <LinkIcon className={iconClass} />;
-                    if (link.platform === "facebook") icon = <Facebook className={iconClass} />;
-                    if (link.platform === "linkedin") icon = <Linkedin className={iconClass} />;
-                    if (link.platform === "twitter") icon = <Twitter className={iconClass} />;
-                    if (link.platform === "github") icon = <Github className={iconClass} />;
-                    if (link.platform === "youtube") icon = <Youtube className={iconClass} />;
-                    if (link.platform === "instagram") icon = <Instagram className={iconClass} />;
-                    return (
-                      <a
-                        key={idx}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={`${link.platform}: ${link.url}`}
-                      >
-                        {icon}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
+              <div>
+                <p className="text-sm font-semibold text-foreground">{blog.authorName}</p>
+                <p className="text-xs text-muted-foreground">Expert Technical Author</p>
+              </div>
             </div>
 
             {/* Metrics */}
