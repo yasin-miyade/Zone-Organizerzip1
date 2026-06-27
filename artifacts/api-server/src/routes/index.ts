@@ -183,7 +183,9 @@ ${allPages.map((p) => `  <url>
   </url>`).join("\n")}
 </urlset>`;
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.setHeader("Vary", "Accept-Encoding");
     res.send(xml);
   } catch {
