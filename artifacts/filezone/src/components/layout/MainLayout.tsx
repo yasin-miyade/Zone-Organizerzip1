@@ -13,6 +13,46 @@ interface PublicSettings {
   title_animation?: string;
   website_animations?: string;
   footer_copyright?: string;
+  analytics_code?: string;
+}
+
+function injectHeaderCode(htmlCode: string) {
+  if (!htmlCode) return;
+
+  // Remove previously injected analytics scripts to avoid duplicates
+  const existingScripts = document.querySelectorAll("[data-analytics-script]");
+  existingScripts.forEach(el => el.remove());
+
+  // Use DOMParser to parse the HTML string
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${htmlCode}</div>`, "text/html");
+  const children = doc.body.firstChild?.childNodes;
+
+  if (!children) return;
+
+  children.forEach(node => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (el.tagName.toLowerCase() === "script") {
+        const script = document.createElement("script");
+        script.setAttribute("data-analytics-script", "true");
+        
+        // Copy all attributes
+        Array.from(el.attributes).forEach(attr => {
+          script.setAttribute(attr.name, attr.value);
+        });
+        
+        // Copy inner content
+        script.textContent = el.textContent;
+        document.head.appendChild(script);
+      } else {
+        // For other header tags (like <link>, <meta>), clone and append
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.setAttribute("data-analytics-script", "true");
+        document.head.appendChild(clone);
+      }
+    }
+  });
 }
 
 export function MainLayout({ children }: { children: ReactNode }) {
@@ -29,6 +69,13 @@ export function MainLayout({ children }: { children: ReactNode }) {
       .then((d: PublicSettings) => setSettings(d))
       .catch(() => {});
   }, []);
+
+  // Inject Google Analytics / Header Code
+  useEffect(() => {
+    if (settings.analytics_code) {
+      injectHeaderCode(settings.analytics_code);
+    }
+  }, [settings.analytics_code]);
 
   // Scroll to top on page navigation
   useEffect(() => {

@@ -56905,7 +56905,11 @@ router3.get("/admin/settings", requireAdmin, async (req, res) => {
   try {
     const settings = await db.select().from(siteSettingsTable);
     const map2 = {};
-    for (const s of settings) map2[s.key] = s.value;
+    for (const s of settings) {
+      if (s.key !== "admin_password") {
+        map2[s.key] = s.value;
+      }
+    }
     res.json(map2);
   } catch {
     res.status(500).json({ error: "Internal server error" });
@@ -57289,7 +57293,8 @@ router6.get("/public-settings", async (req, res) => {
     "hidden_pages",
     "footer_copyright",
     "title_animation",
-    "website_animations"
+    "website_animations",
+    "analytics_code"
   ];
   try {
     const rows = await db.select().from(siteSettingsTable);

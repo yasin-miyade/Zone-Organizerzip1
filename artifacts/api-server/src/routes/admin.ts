@@ -266,7 +266,11 @@ router.get("/admin/settings", requireAdmin, async (req, res) => {
   try {
     const settings = await db.select().from(siteSettingsTable);
     const map: Record<string, string> = {};
-    for (const s of settings) map[s.key] = s.value;
+    for (const s of settings) {
+      if (s.key !== "admin_password") {
+        map[s.key] = s.value;
+      }
+    }
     res.json(map);
   } catch {
     res.status(500).json({ error: "Internal server error" });

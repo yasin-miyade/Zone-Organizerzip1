@@ -647,14 +647,25 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
   async function handleSave() {
     setSaving(true);
     try {
+      const payload = { ...settings };
+      if (!payload.admin_password) {
+        delete payload.admin_password;
+      }
       const res = await fetch(`${API}/admin/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       toast({ title: "Settings saved" });
-      if (settings.admin_password) onPasswordChange(settings.admin_password);
+      if (settings.admin_password && settings.admin_password !== token) {
+        onPasswordChange(settings.admin_password);
+      }
+      setSettings(prev => {
+        const next = { ...prev };
+        delete next.admin_password;
+        return next;
+      });
     } catch {
       toast({ title: "Failed to save settings", variant: "destructive" });
     } finally { setSaving(false); }
