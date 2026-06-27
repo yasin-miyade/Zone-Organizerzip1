@@ -278,35 +278,30 @@ export function ArticleDetail() {
         {/* Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
           <div></div> {/* spacer */}
-          {/* Social Shares */}
+          {/* Social Links */}
           <div className="flex items-center gap-2">
-            <a
-              href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 border rounded-xl hover:bg-muted hover:text-foreground text-muted-foreground bg-background transition-colors cursor-pointer"
-              title="Share on X (Twitter)"
-            >
-              <Twitter className="h-4 w-4" />
-            </a>
-            <a
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 border rounded-xl hover:bg-muted hover:text-foreground text-muted-foreground bg-background transition-colors cursor-pointer"
-              title="Share on Facebook"
-            >
-              <Facebook className="h-4 w-4" />
-            </a>
-            <a
-              href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 border rounded-xl hover:bg-muted hover:text-foreground text-muted-foreground bg-background transition-colors cursor-pointer"
-              title="Share on LinkedIn"
-            >
-              <Linkedin className="h-4 w-4" />
-            </a>
+            {article.socialLinks && article.socialLinks.map((link, idx) => {
+              const iconClass = "h-4 w-4";
+              let icon = <LinkIcon className={iconClass} />;
+              if (link.platform === "facebook") icon = <Facebook className={iconClass} />;
+              if (link.platform === "linkedin") icon = <Linkedin className={iconClass} />;
+              if (link.platform === "twitter") icon = <Twitter className={iconClass} />;
+              if (link.platform === "github") icon = <Github className={iconClass} />;
+              if (link.platform === "youtube") icon = <Youtube className={iconClass} />;
+              if (link.platform === "instagram") icon = <Instagram className={iconClass} />;
+              return (
+                <a
+                  key={idx}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 border rounded-xl hover:bg-muted hover:text-foreground text-muted-foreground bg-background transition-colors cursor-pointer animate-in fade-in zoom-in duration-200"
+                  title={`${link.platform}: ${link.url}`}
+                >
+                  {icon}
+                </a>
+              );
+            })}
             <button
               onClick={handleCopyLink}
               className="flex items-center gap-1 px-3 py-2 border rounded-xl hover:bg-muted hover:text-foreground text-muted-foreground bg-background transition-colors cursor-pointer text-xs font-medium"

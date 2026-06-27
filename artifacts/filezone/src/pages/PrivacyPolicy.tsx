@@ -30,7 +30,7 @@ export function PrivacyPolicy() {
         <p className="text-muted-foreground text-sm">Last updated: June 2026 · 5toolbox</p>
       </div>
 
-      <div className="prose prose-sm max-w-none space-y-8">
+      <div className="space-y-6">
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
           <p className="text-muted-foreground leading-relaxed">
