@@ -60,7 +60,7 @@ export function ContactUs() {
             </div>
             <h3 className="font-semibold mb-1">Email Us</h3>
             <p className="text-sm text-muted-foreground">{" "}
-              <a href="mailto:hello@5toolbox.app" className="text-primary hover:underline">Contact Us</a>
+              <a href="/contact" className="text-primary hover:underline">Contact Us</a>
             </p>
           </div>
 
