@@ -97,9 +97,8 @@ export function PrivacyPolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">9. Contact Us</h2>
           <p className="text-muted-foreground leading-relaxed">
-            If you have any questions about this Privacy Policy, please contact us at{" "}
-            <a href="mailto:privacy@5toolbox.app" className="text-primary hover:underline">privacy@5toolbox.app</a>{" "}
-            or use our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
+            If you have any questions about this Privacy Policy, please contact us at 
+            our <a href="/contact" className="text-primary hover:underline">Contact Us</a> page.
           </p>
         </section>
       </div>
