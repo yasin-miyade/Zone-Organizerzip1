@@ -255,19 +255,8 @@ router.get("/sitemap.xml", async (req, res) => {
     const blogs = await db.select().from(blogsTable);
     const articles = await db.select().from(articlesTable);
 
-    const forwardedHost = req.headers["x-forwarded-host"];
-    let reqHost = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-    if (reqHost && reqHost.includes(",")) {
-      reqHost = reqHost.split(",")[0].trim();
-    }
-    if (!reqHost) {
-      reqHost = req.get("host");
-    }
-    const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-    const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc");
-
     const now = new Date().toISOString().split("T")[0];
-    
+
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
       { url: "/pdf", priority: "0.9", changefreq: "weekly" },
@@ -303,20 +292,21 @@ router.get("/sitemap.xml", async (req, res) => {
 
     const allPages = [...staticPages, ...toolPages, ...blogPages, ...articlePages];
 
+    // Always use production domain so GSC/Google crawler gets correct URLs
+    const sitemapHost = "https://5toolbox.eu.cc";
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map((p) => `  <url>
-    <loc>${host}${p.url}</loc>
+    <loc>${sitemapHost}${p.url}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`).join("\n")}
 </urlset>`;
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
+    res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
     res.setHeader("Vary", "Accept-Encoding");
     res.send(xml);
   } catch {
@@ -326,19 +316,9 @@ ${allPages.map((p) => `  <url>
 
 // GET /robots.txt
 router.get("/robots.txt", (req, res) => {
-  const forwardedHost = req.headers["x-forwarded-host"];
-  let reqHost = Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost;
-  if (reqHost && reqHost.includes(",")) {
-    reqHost = reqHost.split(",")[0].trim();
-  }
-  if (!reqHost) {
-    reqHost = req.get("host");
-  }
-  const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-  const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc");
-
   res.setHeader("Content-Type", "text/plain");
-  res.send(`User-agent: *\nAllow: /\n\nSitemap: ${host}/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
+  res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
+  res.send(`User-agent: *\nAllow: /\n\nSitemap: https://5toolbox.eu.cc/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });
 
 export default router;
