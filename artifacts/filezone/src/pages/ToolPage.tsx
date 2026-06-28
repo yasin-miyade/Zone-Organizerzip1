@@ -69,7 +69,7 @@ function getPendingFilesForTool(slug: string): File[] {
 
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       URL.revokeObjectURL(img.src);
       resolve(img);
@@ -907,7 +907,7 @@ function ResizeImage({ onDone }: { onDone: () => void }) {
   function onFilesChanged(newFiles: File[]) {
     setFiles(newFiles);
     if (newFiles[0]) {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         setOrigSize({ w: img.naturalWidth, h: img.naturalHeight });
         setWidth(String(img.naturalWidth));
@@ -1006,7 +1006,7 @@ async function convertToSvg(file: File): Promise<Blob> {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${img.naturalWidth}" height="${img.naturalHeight}" viewBox="0 0 ${img.naturalWidth} ${img.naturalHeight}">
@@ -2298,7 +2298,7 @@ function SvgToPng({ onDone }: { onDone: () => void }) {
       const text = await files[0].text();
       const svgBlob = new Blob([text], { type: "image/svg+xml" });
       const url = URL.createObjectURL(svgBlob);
-      const img = new Image();
+      const img = new window.Image();
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = reject;
