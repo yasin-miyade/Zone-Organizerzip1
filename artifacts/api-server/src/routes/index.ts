@@ -264,7 +264,7 @@ router.get("/sitemap.xml", async (req, res) => {
       reqHost = req.get("host");
     }
     const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-    const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.app");
+    const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc");
 
     const now = new Date().toISOString().split("T")[0];
     
@@ -335,7 +335,7 @@ router.get("/robots.txt", (req, res) => {
     reqHost = req.get("host");
   }
   const proto = (req.headers["x-forwarded-proto"] as string) || "https";
-  const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.app");
+  const host = reqHost ? `${proto}://${reqHost}` : (process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc");
 
   res.setHeader("Content-Type", "text/plain");
   res.send(`User-agent: *\nAllow: /\n\nSitemap: ${host}/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
