@@ -57522,7 +57522,7 @@ router6.get("/sitemap.xml", async (req, res) => {
       reqHost = req.get("host");
     }
     const proto = req.headers["x-forwarded-proto"] || "https";
-    const host = reqHost ? `${proto}://${reqHost}` : process.env.FRONTEND_URL ?? "https://5toolbox.app";
+    const host = reqHost ? `${proto}://${reqHost}` : process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc";
     const now = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
     const staticPages = [
       { url: "/", priority: "1.0", changefreq: "daily" },
@@ -57584,7 +57584,7 @@ router6.get("/robots.txt", (req, res) => {
     reqHost = req.get("host");
   }
   const proto = req.headers["x-forwarded-proto"] || "https";
-  const host = reqHost ? `${proto}://${reqHost}` : process.env.FRONTEND_URL ?? "https://5toolbox.app";
+  const host = reqHost ? `${proto}://${reqHost}` : process.env.FRONTEND_URL ?? "https://5toolbox.eu.cc";
   res.setHeader("Content-Type", "text/plain");
   res.send(`User-agent: *
 Allow: /
