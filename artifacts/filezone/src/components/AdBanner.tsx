@@ -46,6 +46,12 @@ const STYLES: Record<AdSlot, React.CSSProperties> = {
   responsive:  { display: "block" },
 };
 
+const MIN_HEIGHTS: Record<AdSlot, string> = {
+  leaderboard: "min-h-[90px]",
+  rectangle:   "min-h-[280px]",
+  responsive:  "min-h-[90px]",
+};
+
 export function AdBanner({ slot = "responsive", className = "" }: AdBannerProps) {
   const [cfg, setCfg] = useState<AdConfig | null>(_cache);
   const adRef = useRef<HTMLModElement>(null);
@@ -92,7 +98,7 @@ export function AdBanner({ slot = "responsive", className = "" }: AdBannerProps)
   if (!isEnabled || !client || !slotId) return null;
 
   return (
-    <div className={`flex justify-center overflow-hidden ${className}`}>
+    <div className={`flex justify-center overflow-hidden ${MIN_HEIGHTS[slot]} ${className}`}>
       <ins
         ref={adRef}
         className="adsbygoogle"

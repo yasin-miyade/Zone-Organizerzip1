@@ -229,13 +229,15 @@ export function Home() {
                   const href = `/${cat.slug}`;
                   return (
                     <Link key={cat.slug} href={href} data-testid={`category-card-${cat.slug}`}>
-                      <div className="group rounded-2xl p-6 border bg-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
-                        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} mb-4`}>
-                          <Icon className="h-6 w-6 text-white" />
+                      <div className="group rounded-2xl p-6 border bg-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-0.5 h-[218px] flex flex-col justify-between">
+                        <div>
+                          <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} mb-4`}>
+                            <Icon className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{cat.description}</p>
                         </div>
-                        <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-3">{cat.description}</p>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/20">
                           <span className="text-xs text-muted-foreground">{cat.toolCount} tools</span>
                           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                         </div>

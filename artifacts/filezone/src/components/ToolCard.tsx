@@ -36,21 +36,23 @@ export function ToolCard({ slug, name, description, category, icon, route, usage
   return (
     <Link href={route} data-testid={`tool-card-${slug}`}>
       <div className={cn(
-        "group relative rounded-xl border border-transparent p-5 cursor-pointer transition-all duration-300 ease-out",
+        "group relative rounded-xl border border-transparent p-5 cursor-pointer transition-all duration-300 ease-out h-[148px] flex flex-col justify-between",
         "hover:shadow-lg hover:border-border hover:-translate-y-1",
         colors.bg,
         className
       )}>
-        {isFeatured && (
-          <span className="absolute top-3 right-3 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-            Popular
-          </span>
-        )}
-        <div className={cn("inline-flex p-2.5 rounded-xl mb-3", colors.badge.split(" ")[0], "bg-opacity-60")}>
-          <Icon className={cn("h-5 w-5", colors.text)} />
+        <div>
+          {isFeatured && (
+            <span className="absolute top-3 right-3 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              Popular
+            </span>
+          )}
+          <div className={cn("inline-flex p-2.5 rounded-xl mb-3", colors.badge.split(" ")[0], "bg-opacity-60")}>
+            <Icon className={cn("h-5 w-5", colors.text)} />
+          </div>
+          <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">{name}</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
         </div>
-        <h3 className="font-semibold text-foreground text-sm mb-1 group-hover:text-primary transition-colors">{name}</h3>
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{description}</p>
         <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
           <ArrowRight className={cn("h-4 w-4", colors.text)} />
         </div>
