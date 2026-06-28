@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 interface PublicSettings {
   maintenance_mode?: string;
   maintenance_message?: string;
+  maintenance_paths?: string;
   hidden_pages?: string;
   site_title?: string;
   title_animation?: string;
@@ -135,7 +136,11 @@ export function MainLayout({ children }: { children: ReactNode }) {
   const hiddenPages = (settings.hidden_pages ?? "").split(",").map(s => s.trim()).filter(Boolean);
   const animationsEnabled = settings.website_animations !== "false";
 
-  if (settings.maintenance_mode === "true") {
+  const isGlobalMaint = settings.maintenance_mode === "true";
+  const maintPaths = (settings.maintenance_paths ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  const isPathMaint = maintPaths.some(p => location.toLowerCase().includes(p) || p === location.toLowerCase());
+
+  if (isGlobalMaint || isPathMaint) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center px-4">
         <div className="max-w-md text-center space-y-6">

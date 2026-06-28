@@ -63,6 +63,7 @@ interface SiteSettings {
   adsense_slot_responsive?: string;
   maintenance_mode?: string;
   maintenance_message?: string;
+  maintenance_paths?: string;
   hidden_pages?: string;
   footer_copyright?: string;
   title_animation?: string;
@@ -707,6 +708,17 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
           onChange={e => set("maintenance_message", e.target.value)}
           placeholder="We're performing scheduled maintenance. Back soon!"
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Maintenance Pages / Tools (comma-separated slugs/paths)</Label>
+        <Input
+          value={settings.maintenance_paths ?? ""}
+          onChange={e => set("maintenance_paths", e.target.value)}
+          placeholder="e.g. compress-pdf, /blog, /tools/split-pdf"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Leave empty to apply maintenance globally when toggled ON. Specify paths or slugs to put only specific pages/tools under maintenance.
+        </p>
       </div>
       <Separator />
       <div className="space-y-1.5">

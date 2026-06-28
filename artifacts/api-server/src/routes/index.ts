@@ -21,7 +21,7 @@ router.get("/public-settings", async (req, res) => {
   const PUBLIC_KEYS = [
     "adsense_enabled", "adsense_client",
     "adsense_slot_leaderboard", "adsense_slot_rectangle", "adsense_slot_responsive",
-    "site_title", "site_description", "maintenance_mode", "maintenance_message",
+    "site_title", "site_description", "maintenance_mode", "maintenance_message", "maintenance_paths",
     "hidden_pages", "footer_copyright", "title_animation", "website_animations",
     "analytics_code", "email_contact", "email_privacy", "email_legal",
   ];

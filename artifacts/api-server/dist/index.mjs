@@ -57296,6 +57296,7 @@ router6.get("/public-settings", async (req, res) => {
     "site_description",
     "maintenance_mode",
     "maintenance_message",
+    "maintenance_paths",
     "hidden_pages",
     "footer_copyright",
     "title_animation",
