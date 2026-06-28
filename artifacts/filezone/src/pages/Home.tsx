@@ -218,26 +218,32 @@ export function Home() {
             <h2 className="text-2xl font-bold mb-2 text-center">Browse by Category</h2>
             <p className="text-muted-foreground text-center mb-8 text-sm">Pick a category to explore all available tools</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {categories?.map(cat => {
-                const Icon = categoryIconMap[cat.icon] ?? FileText;
-                const gradient = categoryColorMap[cat.slug] ?? "from-gray-500 to-gray-600";
-                const href = `/${cat.slug}`;
-                return (
-                  <Link key={cat.slug} href={href} data-testid={`category-card-${cat.slug}`}>
-                    <div className="group rounded-2xl p-6 border bg-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
-                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} mb-4`}>
-                        <Icon className="h-6 w-6 text-white" />
+              {!categories ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[218px] rounded-2xl" />
+                ))
+              ) : (
+                categories.map(cat => {
+                  const Icon = categoryIconMap[cat.icon] ?? FileText;
+                  const gradient = categoryColorMap[cat.slug] ?? "from-gray-500 to-gray-600";
+                  const href = `/${cat.slug}`;
+                  return (
+                    <Link key={cat.slug} href={href} data-testid={`category-card-${cat.slug}`}>
+                      <div className="group rounded-2xl p-6 border bg-card hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-0.5">
+                        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} mb-4`}>
+                          <Icon className="h-6 w-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-3">{cat.description}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">{cat.toolCount} tools</span>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                        </div>
                       </div>
-                      <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-3">{cat.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{cat.toolCount} tools</span>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+                    </Link>
+                  );
+                })
+              )}
             </div>
           </section>
 
