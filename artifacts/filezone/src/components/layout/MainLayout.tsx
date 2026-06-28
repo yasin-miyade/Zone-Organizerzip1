@@ -136,11 +136,19 @@ export function MainLayout({ children }: { children: ReactNode }) {
   const hiddenPages = (settings.hidden_pages ?? "").split(",").map(s => s.trim()).filter(Boolean);
   const animationsEnabled = settings.website_animations !== "false";
 
-  const isGlobalMaint = settings.maintenance_mode === "true";
+  const isMaintEnabled = settings.maintenance_mode === "true";
   const maintPaths = (settings.maintenance_paths ?? "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-  const isPathMaint = maintPaths.some(p => location.toLowerCase().includes(p) || p === location.toLowerCase());
 
-  if (isGlobalMaint || isPathMaint) {
+  let isMaintActive = false;
+  if (isMaintEnabled) {
+    if (maintPaths.length === 0) {
+      isMaintActive = true;
+    } else {
+      isMaintActive = maintPaths.some(p => location.toLowerCase().includes(p) || p === location.toLowerCase());
+    }
+  }
+
+  if (isMaintActive) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center px-4">
         <div className="max-w-md text-center space-y-6">
