@@ -70,15 +70,18 @@ function getPendingFilesForTool(slug: string): File[] {
 function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
+    const url = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(img.src);
       resolve(img);
+      setTimeout(() => {
+        try { URL.revokeObjectURL(url); } catch {}
+      }, 5000);
     };
     img.onerror = (e) => {
-      URL.revokeObjectURL(img.src);
+      try { URL.revokeObjectURL(url); } catch {}
       reject(e);
     };
-    img.src = URL.createObjectURL(file);
+    img.src = url;
   });
 }
 
@@ -908,13 +911,19 @@ function ResizeImage({ onDone }: { onDone: () => void }) {
     setFiles(newFiles);
     if (newFiles[0]) {
       const img = new window.Image();
+      const url = URL.createObjectURL(newFiles[0]);
       img.onload = () => {
         setOrigSize({ w: img.naturalWidth, h: img.naturalHeight });
         setWidth(String(img.naturalWidth));
         setHeight(String(img.naturalHeight));
-        URL.revokeObjectURL(img.src);
+        setTimeout(() => {
+          try { URL.revokeObjectURL(url); } catch {}
+        }, 5000);
       };
-      img.src = URL.createObjectURL(newFiles[0]);
+      img.onerror = () => {
+        try { URL.revokeObjectURL(url); } catch {}
+      };
+      img.src = url;
     }
   }
 
