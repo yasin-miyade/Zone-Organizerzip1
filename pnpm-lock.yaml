@@ -139,6 +139,9 @@ importers:
 
   artifacts/filezone:
     dependencies:
+      '@pdfsmaller/pdf-encrypt':
+        specifier: ^1.0.2
+        version: 1.0.2(pdf-lib@1.17.1)
       browser-image-compression:
         specifier: ^2.0.2
         version: 2.0.2
@@ -767,6 +770,12 @@ packages:
 
   '@pdf-lib/upng@1.0.1':
     resolution: {integrity: sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ==}
+
+  '@pdfsmaller/pdf-encrypt@1.0.2':
+    resolution: {integrity: sha512-F+gEftljSsEV3Zh+6XY0Q7garrRJlVMgomqGJDC+L5RIFpHyMZ0pQX0RPoN3JXn25BGd13T/62b6W3+mrxOkTw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      pdf-lib: ^1.17.1
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -3343,6 +3352,10 @@ snapshots:
   '@pdf-lib/upng@1.0.1':
     dependencies:
       pako: 1.0.11
+
+  '@pdfsmaller/pdf-encrypt@1.0.2(pdf-lib@1.17.1)':
+    dependencies:
+      pdf-lib: 1.17.1
 
   '@pinojs/redact@0.4.0': {}
 

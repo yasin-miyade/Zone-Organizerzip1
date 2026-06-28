@@ -1325,7 +1325,14 @@ export function AdminPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => { loadTools(); loadStats(); }}>
+          <Button variant="ghost" size="sm" onClick={() => {
+            loadTools();
+            loadStats();
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+            window.dispatchEvent(new CustomEvent("refresh-articles"));
+            window.dispatchEvent(new CustomEvent("refresh-comments"));
+            window.dispatchEvent(new CustomEvent("refresh-ratings"));
+          }}>
             <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4 mr-1.5" /> Logout</Button>
@@ -1879,7 +1886,12 @@ function CommentsPanel({ token }: { token: string }) {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { loadComments(); }, []);
+  useEffect(() => {
+    loadComments();
+    const handleRefresh = () => loadComments();
+    window.addEventListener("refresh-comments", handleRefresh);
+    return () => window.removeEventListener("refresh-comments", handleRefresh);
+  }, []);
 
   async function deleteComment(id: number) {
     if (!confirm("Are you sure you want to delete this comment?")) return;
@@ -1960,7 +1972,12 @@ function RatingsPanel({ token, tools }: { token: string; tools: Tool[] }) {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { loadRatings(); }, []);
+  useEffect(() => {
+    loadRatings();
+    const handleRefresh = () => loadRatings();
+    window.addEventListener("refresh-ratings", handleRefresh);
+    return () => window.removeEventListener("refresh-ratings", handleRefresh);
+  }, []);
 
   async function deleteRating(id: number) {
     if (!confirm("Are you sure you want to delete this rating?")) return;

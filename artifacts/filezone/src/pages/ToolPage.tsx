@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useGetTool, getGetToolQueryKey, useTrackToolUsage, useListTools } from "@workspace/api-client-react";
 import { UploadZone } from "@/components/UploadZone";
 import { ToolCard } from "@/components/ToolCard";
@@ -16,10 +16,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check, Pencil, Shield, Star, StarHalf, HelpCircle, MessageSquare, Send, Calendar, Clock, ShieldAlert, Award
+  Download, CheckCircle2, ArrowLeft, Loader2, Copy, Check, Pencil, Shield, Star, StarHalf, HelpCircle, MessageSquare, Send, Calendar, Clock, ShieldAlert, Award, ChevronDown, RefreshCw, Link as LinkIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
 
 // ---- CALCULATORS ----
 import {
@@ -29,19 +37,129 @@ import {
   LoanCalculator, DiscountCalculator, AttendanceCalculator, DateDifference,
 } from "@/pages/CalculatorTools";
 
-// ---- PDF-LIB ----
-import { PDFDocument, degrees, rgb, StandardFonts, type PDFPage } from "pdf-lib";
-// ---- PDFJS ----
-import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-// ---- IMAGE COMPRESSION ----
-import imageCompression from "browser-image-compression";
-// ---- QR CODE ----
-import QRCode from "qrcode";
-// ---- JSZIP ----
-import JSZip from "jszip";
+// ---- HELPERS & LAZY LOADERS ----
+
+async function getPdfjs() {
+  const pdfjs = await import("pdfjs-dist");
+  // @ts-ignore
+  const { default: workerUrl } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  return pdfjs;
+}
+
+function getPendingFilesForTool(slug: string): File[] {
+  if (typeof window === "undefined") return [];
+  const pending = (window as any).pendingFileToProcess;
+  if (!pending) return [];
+
+  const file = pending.file as File;
+  const isPdfTool = ["merge-pdf", "split-pdf", "compress-pdf", "pdf-to-jpg", "jpg-to-pdf", "rotate-pdf", "watermark-pdf", "pdf-to-text", "protect-pdf", "remove-pdf-pages"].includes(slug);
+  const isImageTool = ["compress-image", "resize-image", "convert-image", "flip-image", "rotate-image", "watermark-image", "image-to-base64", "image-to-pdf", "crop-image"].includes(slug);
+
+  if (isPdfTool && file.type === "application/pdf") {
+    delete (window as any).pendingFileToProcess;
+    return [file];
+  }
+  if (isImageTool && file.type.startsWith("image/")) {
+    delete (window as any).pendingFileToProcess;
+    return [file];
+  }
+  return [];
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(img.src);
+      reject(e);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function canvasToBmp(canvas: HTMLCanvasElement): Blob {
+  const ctx = canvas.getContext("2d")!;
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { width, height } = imgData;
+  const data = imgData.data;
+
+  const rowSize = Math.floor((24 * width + 31) / 32) * 4;
+  const pixelArraySize = rowSize * height;
+  const fileSize = 54 + pixelArraySize;
+
+  const buffer = new ArrayBuffer(fileSize);
+  const view = new DataView(buffer);
+
+  // File Header
+  view.setUint16(0, 0x424D, true); // "BM"
+  view.setUint32(2, fileSize, true);
+  view.setUint16(6, 0, true);
+  view.setUint16(8, 0, true);
+  view.setUint32(10, 54, true);
+
+  // DIB Header
+  view.setUint32(14, 40, true);
+  view.setUint32(18, width, true);
+  view.setUint32(22, height, true);
+  view.setUint16(26, 1, true);
+  view.setUint16(28, 24, true);
+  view.setUint32(30, 0, true);
+  view.setUint32(34, pixelArraySize, true);
+  view.setUint32(38, 2835, true);
+  view.setUint32(42, 2835, true);
+  view.setUint32(46, 0, true);
+  view.setUint32(50, 0, true);
+
+  // Pixels (bottom-up, BGR)
+  let offset = 54;
+  for (let y = height - 1; y >= 0; y--) {
+    const rowOffset = y * width * 4;
+    let xOffset = 0;
+    for (let x = 0; x < width; x++) {
+      const p = rowOffset + x * 4;
+      view.setUint8(offset + xOffset, data[p + 2]);     // B
+      view.setUint8(offset + xOffset + 1, data[p + 1]); // G
+      view.setUint8(offset + xOffset + 2, data[p]);     // R
+      xOffset += 3;
+    }
+    for (let p = xOffset; p < rowSize; p++) {
+      view.setUint8(offset + p, 0);
+    }
+    offset += rowSize;
+  }
+  return new Blob([buffer], { type: "image/bmp" });
+}
+
+async function canvasToIco(canvas: HTMLCanvasElement): Promise<Blob> {
+  const pngBlob = await new Promise<Blob>((resolve) => canvas.toBlob(b => resolve(b!), "image/png"));
+  const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+
+  const buffer = new ArrayBuffer(6 + 16 + pngBytes.length);
+  const view = new DataView(buffer);
+
+  view.setUint16(0, 0, true);
+  view.setUint16(2, 1, true); // ICO type
+  view.setUint16(4, 1, true); // Image count
+
+  const w = canvas.width >= 256 ? 0 : canvas.width;
+  const h = canvas.height >= 256 ? 0 : canvas.height;
+  view.setUint8(6, w);
+  view.setUint8(7, h);
+  view.setUint8(8, 0);
+  view.setUint8(9, 0);
+  view.setUint16(10, 1, true);
+  view.setUint16(12, 32, true);
+  view.setUint32(14, pngBytes.length, true);
+  view.setUint32(18, 22, true);
+
+  new Uint8Array(buffer, 22).set(pngBytes);
+  return new Blob([buffer], { type: "image/x-icon" });
+}
 
 // ---- HELPERS ----
 function downloadBlob(blob: Blob, filename: string) {
@@ -78,7 +196,8 @@ function PdfPreviewThumb({ blob }: { blob: Blob }) {
     (async () => {
       try {
         const arrayBuffer = await blob.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdfjs = await getPdfjs();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
         const page = await pdf.getPage(1);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement("canvas");
@@ -119,39 +238,92 @@ function TextPreviewThumb({ blob }: { blob: Blob }) {
 }
 
 function ResultCard({ results }: { results: ResultFile[] }) {
+  const [, setLocation] = useLocation();
   if (!results.length) return null;
+
+  const handleProcessFurther = (r: ResultFile, targetSlug: string) => {
+    const nextFile = new File([r.blob], r.name, { type: r.blob.type });
+    (window as any).pendingFileToProcess = {
+      file: nextFile,
+      name: r.name
+    };
+    setLocation(`/tools/${targetSlug}`);
+  };
 
   return (
     <div className="mt-6 space-y-4">
-      {results.map((r, i) => (
-        <div key={i} className="rounded-xl border bg-card overflow-hidden shadow-sm">
-          {r.blob.type.startsWith("image/") && (
-            <div className="bg-muted/40 flex items-center justify-center p-3 border-b max-h-64 overflow-hidden">
-              <img
-                src={URL.createObjectURL(r.blob)}
-                alt={r.name}
-                className="max-h-60 max-w-full object-contain rounded"
-              />
+      {results.map((r, i) => {
+        const isPdf = r.blob.type === "application/pdf";
+        const isImage = r.blob.type.startsWith("image/");
+        return (
+          <div key={i} className="rounded-xl border bg-card overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {r.blob.type.startsWith("image/") && (
+              <div className="bg-muted/40 flex items-center justify-center p-3 border-b max-h-64 overflow-hidden">
+                <img
+                  src={URL.createObjectURL(r.blob)}
+                  alt={r.name}
+                  className="max-h-60 max-w-full object-contain rounded"
+                />
+              </div>
+            )}
+            {r.blob.type === "application/pdf" && <PdfPreviewThumb blob={r.blob} />}
+            {r.blob.type === "text/plain" && <TextPreviewThumb blob={r.blob} />}
+            <div className="flex items-center gap-3 p-4">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{r.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {r.size >= 1024 * 1024
+                    ? `${(r.size / (1024 * 1024)).toFixed(2)} MB`
+                    : `${(r.size / 1024).toFixed(1)} KB`}
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {(isPdf || isImage) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin-slow" /> Process Further <ChevronDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Chaining Operations</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {isPdf && (
+                        <>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "compress-pdf")}>Compress PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "protect-pdf")}>Protect PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "split-pdf")}>Split PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "rotate-pdf")}>Rotate PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "watermark-pdf")}>Watermark PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "pdf-to-jpg")}>PDF to JPG</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "pdf-to-text")}>PDF to Text</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "remove-pdf-pages")}>Remove PDF Pages</DropdownMenuItem>
+                        </>
+                      )}
+                      {isImage && (
+                        <>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "compress-image")}>Compress Image</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "resize-image")}>Resize Image</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "convert-image")}>Convert Format</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "crop-image")}>Crop Image</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "rotate-image")}>Rotate Image</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "flip-image")}>Flip Image</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "image-to-pdf")}>Image to PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "image-to-base64")}>Image to Base64</DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                <Button size="sm" onClick={() => downloadBlob(r.blob, r.name)}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                </Button>
+              </div>
             </div>
-          )}
-          {r.blob.type === "application/pdf" && <PdfPreviewThumb blob={r.blob} />}
-          {r.blob.type === "text/plain" && <TextPreviewThumb blob={r.blob} />}
-          <div className="flex items-center gap-3 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{r.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {r.size >= 1024 * 1024
-                  ? `${(r.size / (1024 * 1024)).toFixed(2)} MB`
-                  : `${(r.size / 1024).toFixed(1)} KB`}
-              </p>
-            </div>
-            <Button size="sm" onClick={() => downloadBlob(r.blob, r.name)} className="shrink-0">
-              <Download className="h-3.5 w-3.5 mr-1.5" /> Download
-            </Button>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -159,7 +331,8 @@ function ResultCard({ results }: { results: ResultFile[] }) {
 // ---- TOOL IMPLEMENTATIONS ----
 
 function MergePdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -169,6 +342,7 @@ function MergePdf({ onDone }: { onDone: () => void }) {
     if (files.length < 2) { toast({ title: "Add at least 2 PDF files" }); return; }
     setProcessing(true); setProgress(10);
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const merged = await PDFDocument.create();
       for (let i = 0; i < files.length; i++) {
         const bytes = await files[i].arrayBuffer();
@@ -204,7 +378,8 @@ function MergePdf({ onDone }: { onDone: () => void }) {
 }
 
 function SplitPdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [mode, setMode] = useState<"all" | "range">("all");
   const [from, setFrom] = useState("1");
   const [to, setTo] = useState("1");
@@ -216,6 +391,7 @@ function SplitPdf({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const bytes = await files[0].arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       const total = doc.getPageCount();
@@ -278,7 +454,8 @@ function SplitPdf({ onDone }: { onDone: () => void }) {
 }
 
 function CompressPdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
   const { toast } = useToast();
@@ -287,9 +464,36 @@ function CompressPdf({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
     setProcessing(true);
     try {
-      const bytes = await files[0].arrayBuffer();
-      const doc = await PDFDocument.load(bytes);
-      const pdfBytes = await doc.save({ useObjectStreams: true, addDefaultPage: false });
+      const arrayBuffer = await files[0].arrayBuffer();
+      const pdfjs = await getPdfjs();
+      const { PDFDocument } = await import("pdf-lib");
+
+      const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+      const pdfDoc = await PDFDocument.create();
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvasContext: context, viewport } as any).promise;
+        const imgDataUrl = canvas.toDataURL("image/jpeg", 0.6);
+        const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+
+        const embeddedImg = await pdfDoc.embedJpg(imgBytes);
+        const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
+        newPage.drawImage(embeddedImg, {
+          x: 0,
+          y: 0,
+          width: viewport.width,
+          height: viewport.height,
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_compressed.pdf`, blob, size: blob.size }]);
       onDone();
@@ -312,7 +516,8 @@ function CompressPdf({ onDone }: { onDone: () => void }) {
 }
 
 function PdfToJpg({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [scale, setScale] = useState(2);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -324,7 +529,9 @@ function PdfToJpg({ onDone }: { onDone: () => void }) {
     setProcessing(true); setProgress(0);
     try {
       const bytes = await files[0].arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const pdfjs = await getPdfjs();
+      const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+      const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       const name = baseName(files[0]);
 
@@ -371,7 +578,8 @@ function PdfToJpg({ onDone }: { onDone: () => void }) {
 }
 
 function JpgToPdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
   const { toast } = useToast();
@@ -380,6 +588,7 @@ function JpgToPdf({ onDone }: { onDone: () => void }) {
     if (!files.length) { toast({ title: "Upload at least one image" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const doc = await PDFDocument.create();
       for (const file of files) {
         const bytes = await file.arrayBuffer();
@@ -414,7 +623,8 @@ function JpgToPdf({ onDone }: { onDone: () => void }) {
 }
 
 function RotatePdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [angle, setAngle] = useState("90");
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -424,6 +634,7 @@ function RotatePdf({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument, degrees } = await import("pdf-lib");
       const bytes = await files[0].arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       const deg = parseInt(angle);
@@ -462,7 +673,8 @@ function RotatePdf({ onDone }: { onDone: () => void }) {
 }
 
 function WatermarkPdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [text, setText] = useState("CONFIDENTIAL");
   const [opacity, setOpacity] = useState(0.3);
   const [processing, setProcessing] = useState(false);
@@ -474,10 +686,11 @@ function WatermarkPdf({ onDone }: { onDone: () => void }) {
     if (!text.trim()) { toast({ title: "Enter watermark text" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument, rgb, StandardFonts, degrees } = await import("pdf-lib");
       const bytes = await files[0].arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       const font = await doc.embedFont(StandardFonts.HelveticaBold);
-      doc.getPages().forEach((page: PDFPage) => {
+      doc.getPages().forEach((page: any) => {
         const { width, height } = page.getSize();
         const fontSize = Math.min(width, height) * 0.1;
         const textWidth = font.widthOfTextAtSize(text, fontSize);
@@ -521,7 +734,8 @@ function WatermarkPdf({ onDone }: { onDone: () => void }) {
 }
 
 function PdfToText({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [processing, setProcessing] = useState(false);
   const [text, setOutputText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -532,7 +746,8 @@ function PdfToText({ onDone }: { onDone: () => void }) {
     setProcessing(true);
     try {
       const bytes = await files[0].arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const pdfjs = await getPdfjs();
+      const pdf = await pdfjs.getDocument({ data: bytes }).promise;
       const parts: string[] = [];
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
@@ -583,7 +798,8 @@ function PdfToText({ onDone }: { onDone: () => void }) {
 }
 
 function ProtectPdf({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [password, setPassword] = useState("");
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -595,13 +811,12 @@ function ProtectPdf({ onDone }: { onDone: () => void }) {
     setProcessing(true);
     try {
       const bytes = await files[0].arrayBuffer();
-      const doc = await PDFDocument.load(bytes);
-      const pdfBytes = await doc.save({
-        userPassword: password,
+      const { encryptPDF } = await import("@pdfsmaller/pdf-encrypt");
+      const encryptedBytes = await encryptPDF(new Uint8Array(bytes), password, {
         ownerPassword: password,
-        permissions: { modifying: false, copying: false, annotating: false, fillingForms: false },
-      } as any);
-      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+        algorithm: "AES-256"
+      });
+      const blob = new Blob([encryptedBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_protected.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -628,7 +843,8 @@ function ProtectPdf({ onDone }: { onDone: () => void }) {
 // ---- IMAGE TOOLS ----
 
 function CompressImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [quality, setQuality] = useState(80);
   const [maxSizeMb, setMaxSizeMb] = useState(1);
   const [processing, setProcessing] = useState(false);
@@ -639,6 +855,7 @@ function CompressImage({ onDone }: { onDone: () => void }) {
     if (!files.length) { toast({ title: "Upload at least one image" }); return; }
     setProcessing(true);
     try {
+      const { default: imageCompression } = await import("browser-image-compression");
       const res: ResultFile[] = [];
       for (const file of files) {
         const compressed = await imageCompression(file, {
@@ -676,7 +893,8 @@ function CompressImage({ onDone }: { onDone: () => void }) {
 }
 
 function ResizeImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [width, setWidth] = useState("800");
   const [height, setHeight] = useState("600");
   const [lock, setLock] = useState(true);
@@ -700,6 +918,12 @@ function ResizeImage({ onDone }: { onDone: () => void }) {
     }
   }
 
+  useEffect(() => {
+    if (files[0] && !origSize) {
+      onFilesChanged([files[0]]);
+    }
+  }, [files]);
+
   function onWidthChange(v: string) {
     setWidth(v);
     if (lock && origSize && !isNaN(parseInt(v))) {
@@ -720,10 +944,10 @@ function ResizeImage({ onDone }: { onDone: () => void }) {
     if (!w || !h) { toast({ title: "Enter valid dimensions" }); return; }
     setProcessing(true);
     try {
-      const bmp = await createImageBitmap(files[0]);
+      const img = await loadImage(files[0]);
       const canvas = document.createElement("canvas");
       canvas.width = w; canvas.height = h;
-      canvas.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
       const mime = `image/${format}`;
       const dataUrl = canvas.toDataURL(mime, 0.92);
       const blob = dataURLtoBlob(dataUrl);
@@ -799,7 +1023,8 @@ async function convertToSvg(file: File): Promise<Blob> {
 }
 
 function ConvertImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [format, setFormat] = useState("png");
   const [quality, setQuality] = useState(90);
   const [processing, setProcessing] = useState(false);
@@ -818,12 +1043,20 @@ function ConvertImage({ onDone }: { onDone: () => void }) {
         if (format === "svg") {
           blob = await convertToSvg(file);
         } else {
-          const bmp = await createImageBitmap(file);
+          const img = await loadImage(file);
           const canvas = document.createElement("canvas");
-          canvas.width = bmp.width; canvas.height = bmp.height;
-          canvas.getContext("2d")!.drawImage(bmp, 0, 0);
-          const dataUrl = canvas.toDataURL(fmtInfo.mime, quality / 100);
-          blob = dataURLtoBlob(dataUrl);
+          canvas.width = img.width; canvas.height = img.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0);
+          
+          if (format === "bmp") {
+            blob = canvasToBmp(canvas);
+          } else if (format === "ico") {
+            blob = await canvasToIco(canvas);
+          } else {
+            const dataUrl = canvas.toDataURL(fmtInfo.mime, quality / 100);
+            blob = dataURLtoBlob(dataUrl);
+          }
         }
         res.push({ name: `${baseName(file)}.${format}`, blob, size: blob.size });
       }
@@ -869,7 +1102,8 @@ function ConvertImage({ onDone }: { onDone: () => void }) {
 }
 
 function FlipImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [dir, setDir] = useState("horizontal");
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -879,13 +1113,13 @@ function FlipImage({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload an image first" }); return; }
     setProcessing(true);
     try {
-      const bmp = await createImageBitmap(files[0]);
+      const img = await loadImage(files[0]);
       const canvas = document.createElement("canvas");
-      canvas.width = bmp.width; canvas.height = bmp.height;
+      canvas.width = img.width; canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
-      if (dir === "horizontal") { ctx.translate(bmp.width, 0); ctx.scale(-1, 1); }
-      else { ctx.translate(0, bmp.height); ctx.scale(1, -1); }
-      ctx.drawImage(bmp, 0, 0);
+      if (dir === "horizontal") { ctx.translate(img.width, 0); ctx.scale(-1, 1); }
+      else { ctx.translate(0, img.height); ctx.scale(1, -1); }
+      ctx.drawImage(img, 0, 0);
       const blob = dataURLtoBlob(canvas.toDataURL("image/png"));
       setResults([{ name: `${baseName(files[0])}_flipped.png`, blob, size: blob.size }]);
       onDone();
@@ -917,7 +1151,8 @@ function FlipImage({ onDone }: { onDone: () => void }) {
 }
 
 function RotateImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [angle, setAngle] = useState(90);
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -927,18 +1162,18 @@ function RotateImage({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload an image first" }); return; }
     setProcessing(true);
     try {
-      const bmp = await createImageBitmap(files[0]);
+      const img = await loadImage(files[0]);
       const rad = (angle * Math.PI) / 180;
       const cos = Math.abs(Math.cos(rad));
       const sin = Math.abs(Math.sin(rad));
-      const nw = Math.round(bmp.width * cos + bmp.height * sin);
-      const nh = Math.round(bmp.width * sin + bmp.height * cos);
+      const nw = Math.round(img.width * cos + img.height * sin);
+      const nh = Math.round(img.width * sin + img.height * cos);
       const canvas = document.createElement("canvas");
       canvas.width = nw; canvas.height = nh;
       const ctx = canvas.getContext("2d")!;
       ctx.translate(nw / 2, nh / 2);
       ctx.rotate(rad);
-      ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
       const blob = dataURLtoBlob(canvas.toDataURL("image/png"));
       setResults([{ name: `${baseName(files[0])}_rotated.png`, blob, size: blob.size }]);
       onDone();
@@ -969,7 +1204,8 @@ function RotateImage({ onDone }: { onDone: () => void }) {
 }
 
 function WatermarkImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [text, setText] = useState("5toolbox");
   const [opacity, setOpacity] = useState(50);
   const [size, setSize] = useState(5);
@@ -981,18 +1217,18 @@ function WatermarkImage({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload an image first" }); return; }
     setProcessing(true);
     try {
-      const bmp = await createImageBitmap(files[0]);
+      const img = await loadImage(files[0]);
       const canvas = document.createElement("canvas");
-      canvas.width = bmp.width; canvas.height = bmp.height;
+      canvas.width = img.width; canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(bmp, 0, 0);
-      const fontSize = Math.round(Math.min(bmp.width, bmp.height) * (size / 100));
+      ctx.drawImage(img, 0, 0);
+      const fontSize = Math.round(Math.min(img.width, img.height) * (size / 100));
       ctx.font = `bold ${fontSize}px Arial`;
       ctx.fillStyle = `rgba(255,255,255,${opacity / 100})`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.save();
-      ctx.translate(bmp.width / 2, bmp.height / 2);
+      ctx.translate(img.width / 2, img.height / 2);
       ctx.rotate(-Math.PI / 6);
       ctx.fillText(text, 0, 0);
       ctx.restore();
@@ -1025,7 +1261,8 @@ function WatermarkImage({ onDone }: { onDone: () => void }) {
 }
 
 function ImageToBase64({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [b64, setB64] = useState("");
   const [copied, setCopied] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -1076,7 +1313,8 @@ function ImageToPdf({ onDone }: { onDone: () => void }) {
 }
 
 function CropImage({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [x, setX] = useState("0");
   const [y, setY] = useState("0");
   const [w, setW] = useState("500");
@@ -1089,11 +1327,11 @@ function CropImage({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload an image first" }); return; }
     setProcessing(true);
     try {
-      const bmp = await createImageBitmap(files[0]);
+      const img = await loadImage(files[0]);
       const cx = parseInt(x), cy = parseInt(y), cw = parseInt(w), ch = parseInt(h);
       const canvas = document.createElement("canvas");
       canvas.width = cw; canvas.height = ch;
-      canvas.getContext("2d")!.drawImage(bmp, cx, cy, cw, ch, 0, 0, cw, ch);
+      canvas.getContext("2d")!.drawImage(img, cx, cy, cw, ch, 0, 0, cw, ch);
       const blob = dataURLtoBlob(canvas.toDataURL("image/png"));
       setResults([{ name: `${baseName(files[0])}_cropped.png`, blob, size: blob.size }]);
       onDone();
@@ -1170,6 +1408,7 @@ function QrGenerator({ onDone }: { onDone: () => void }) {
     if (!input.trim()) { toast({ title: "Enter text or URL" }); return; }
     setProcessing(true);
     try {
+      const { default: QRCode } = await import("qrcode");
       const url = await QRCode.toDataURL(input, { width: size, margin: 2, color: { dark: "#000", light: "#fff" } });
       setQrUrl(url);
       onDone();
@@ -1726,6 +1965,7 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
       setHandle(h);
       setShareUrl(url);
       setSavedContent(content);
+      const { default: QRCode } = await import("qrcode");
       const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 2 });
       setQrDataUrl(dataUrl);
       onDone();
@@ -1741,7 +1981,7 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
       const res = await fetch(`/api/clipboard/${handle}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, expiresInHours }),
       });
       if (!res.ok) throw new Error();
       setSavedContent(content);
@@ -1825,6 +2065,17 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
           />
           <p className="text-xs text-muted-foreground mt-1.5">{content.length} characters</p>
         </div>
+        <div className="space-y-1.5">
+          <Label>Update link expiration to</Label>
+          <Select value={String(expiresInHours)} onValueChange={v => setExpiresInHours(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {EXPIRY_OPTIONS.map(o => (
+                <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex gap-2">
           <Button className="flex-1" onClick={updateClipboard} disabled={loading || !content.trim()}>
             {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Check className="h-4 w-4 mr-2" />Save Changes</>}
@@ -1867,7 +2118,7 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
         )}
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={startEdit}>
-            <Pencil className="h-4 w-4 mr-2" /> Edit Content
+            <Pencil className="h-4 w-4 mr-2" /> Edit Content & Expiry
           </Button>
           <Button variant="outline" className="flex-1" onClick={reset}>New Clipboard</Button>
         </div>
@@ -1912,7 +2163,8 @@ function OnlineClipboard({ onDone }: { onDone: () => void }) {
 
 // ---- REMOVE PDF PAGES ----
 function RemovePdfPages({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [pagesToRemove, setPagesToRemove] = useState("");
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
@@ -1921,11 +2173,18 @@ function RemovePdfPages({ onDone }: { onDone: () => void }) {
 
   async function loadInfo(f: File) {
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const bytes = await f.arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       setPageCount(doc.getPageCount());
     } catch { /* ignore */ }
   }
+
+  useEffect(() => {
+    if (files[0]) {
+      loadInfo(files[0]);
+    }
+  }, [files]);
 
   async function handle() {
     if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
@@ -1935,6 +2194,7 @@ function RemovePdfPages({ onDone }: { onDone: () => void }) {
     if (!removeSet.size) { toast({ title: "Enter page numbers to remove" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const bytes = await files[0].arrayBuffer();
       const src = await PDFDocument.load(bytes);
       const total = src.getPageCount();
@@ -1975,7 +2235,8 @@ function RemovePdfPages({ onDone }: { onDone: () => void }) {
 
 // ---- ADD PAGE NUMBERS ----
 function AddPageNumbers({ onDone }: { onDone: () => void }) {
-  const [files, setFiles] = useState<File[]>([]);
+  const { slug } = useParams<{ slug: string }>();
+  const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
   const { toast } = useToast();
@@ -1984,6 +2245,7 @@ function AddPageNumbers({ onDone }: { onDone: () => void }) {
     if (!files[0]) { toast({ title: "Upload a PDF first" }); return; }
     setProcessing(true);
     try {
+      const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
       const bytes = await files[0].arrayBuffer();
       const doc = await PDFDocument.load(bytes);
       const font = await doc.embedFont(StandardFonts.Helvetica);
