@@ -344,6 +344,19 @@ const tools = [
     inputFormats: [],
     outputFormats: [],
   },
+  {
+    slug: "file-sharing",
+    name: "P2P File Transfer",
+    description: "Share files of any type and size directly between devices. Fast, secure, and peer-to-peer without server uploads.",
+    category: "text",
+    icon: "Share2",
+    route: "/tools/file-sharing",
+    isFeatured: true,
+    isHidden: false,
+    sortOrder: 27,
+    inputFormats: [],
+    outputFormats: [],
+  },
 
   // Calculators
   {

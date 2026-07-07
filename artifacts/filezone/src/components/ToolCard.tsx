@@ -1,12 +1,12 @@
 import { Link } from "wouter";
-import { ArrowRight, FileText, Image, RefreshCw, AlignLeft, FilePlus, Scissors, Archive, FileImage, FileOutput, RotateCw, Stamp, FileType, Lock, Minimize2, Expand, Crop, Images, FlipHorizontal, Code2, Hash, QrCode, Binary, Braces } from "lucide-react";
+import { ArrowRight, FileText, Image, RefreshCw, AlignLeft, FilePlus, Scissors, Archive, FileImage, FileOutput, RotateCw, Stamp, FileType, Lock, Minimize2, Expand, Crop, Images, FlipHorizontal, Code2, Hash, QrCode, Binary, Braces, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText, Image, RefreshCw, AlignLeft, FilePlus, Scissors, Archive,
   FileImage, FileOutput, RotateCw, Stamp, FileType, Lock, Minimize2,
-  Expand, Crop, Images, FlipHorizontal, Code2, Hash, QrCode, Binary, Braces,
+  Expand, Crop, Images, FlipHorizontal, Code2, Hash, QrCode, Binary, Braces, Share2,
 };
 
 const categoryColors: Record<string, { bg: string; text: string; badge: string }> = {

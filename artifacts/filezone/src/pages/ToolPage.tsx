@@ -45,6 +45,7 @@ const QrGenerator = lazy(() => import("./tools/TextTools").then(m => ({ default:
 const Base64Tool = lazy(() => import("./tools/TextTools").then(m => ({ default: m.Base64Tool })));
 const JsonFormatter = lazy(() => import("./tools/TextTools").then(m => ({ default: m.JsonFormatter })));
 const OnlineClipboard = lazy(() => import("./tools/TextTools").then(m => ({ default: m.OnlineClipboard })));
+const FileSharing = lazy(() => import("./tools/FileSharing").then(m => ({ default: m.FileSharing })));
 
 // Calculators
 const AgeCalculator = lazy(() => import("./CalculatorTools").then(m => ({ default: m.AgeCalculator })));
@@ -99,6 +100,7 @@ const TOOL_COMPONENTS: Record<string, React.ComponentType<{ onDone: () => void }
   "base64": Base64Tool,
   "json-formatter": JsonFormatter,
   "online-clipboard": OnlineClipboard,
+  "file-sharing": FileSharing,
   // Calculators
   "age-calculator": AgeCalculator,
   "bmi-calculator": BmiCalculator,
@@ -134,6 +136,7 @@ const NO_DONE_TOOLS = new Set([
   "csv-to-json", "json-to-csv", "markdown-to-html", "html-to-text",
   "url-encoder", "color-converter", "number-base",
   "online-clipboard",
+  "file-sharing",
 ]);
 
 const categoryBadgeColors: Record<string, string> = {

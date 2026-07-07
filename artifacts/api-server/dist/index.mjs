@@ -57575,6 +57575,87 @@ Sitemap: https://5toolbox.eu.cc/sitemap.xml
 Disallow: /admin
 Disallow: /api/admin/`);
 });
+var activeTransfers = /* @__PURE__ */ new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, session] of activeTransfers.entries()) {
+    if (now - session.lastActiveAt > 5 * 60 * 1e3 || now - session.createdAt > 15 * 60 * 1e3) {
+      activeTransfers.delete(code);
+    }
+  }
+}, 6e4);
+router6.post("/transfer/create", (req, res) => {
+  let code = "";
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = Math.floor(1e5 + Math.random() * 9e5).toString();
+    if (!activeTransfers.has(candidate)) {
+      code = candidate;
+      break;
+    }
+  }
+  if (!code) return res.status(500).json({ error: "Failed to generate connection code" });
+  activeTransfers.set(code, {
+    code,
+    status: "waiting",
+    senderSignals: [],
+    receiverSignals: [],
+    createdAt: Date.now(),
+    lastActiveAt: Date.now()
+  });
+  res.json({ code });
+});
+router6.get("/transfer/poll-receiver/:code", (req, res) => {
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+  session.lastActiveAt = Date.now();
+  res.json({ status: session.status });
+});
+router6.post("/transfer/join/:code", (req, res) => {
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.status(404).json({ error: "Invalid connection code or session expired" });
+  if (session.status !== "waiting") {
+    return res.status(400).json({ error: "This code is already in use or active" });
+  }
+  session.status = "connecting";
+  session.lastActiveAt = Date.now();
+  res.json({ success: true });
+});
+router6.post("/transfer/signal/:code/:role", (req, res) => {
+  const { code, role } = req.params;
+  const session = activeTransfers.get(code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+  session.lastActiveAt = Date.now();
+  const signalMsg = req.body;
+  if (role === "sender") {
+    session.receiverSignals.push({ ...signalMsg, timestamp: Date.now() });
+  } else if (role === "receiver") {
+    session.senderSignals.push({ ...signalMsg, timestamp: Date.now() });
+  } else {
+    return res.status(400).json({ error: "Invalid signaling role" });
+  }
+  res.json({ success: true });
+});
+router6.get("/transfer/signal/:code/:role", (req, res) => {
+  const { code, role } = req.params;
+  const session = activeTransfers.get(code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+  session.lastActiveAt = Date.now();
+  let signals = [];
+  if (role === "sender") {
+    signals = session.senderSignals;
+    session.senderSignals = [];
+  } else if (role === "receiver") {
+    signals = session.receiverSignals;
+    session.receiverSignals = [];
+  } else {
+    return res.status(400).json({ error: "Invalid signaling role" });
+  }
+  res.json({ signals });
+});
+router6.post("/transfer/close/:code", (req, res) => {
+  const deleted = activeTransfers.delete(req.params.code);
+  res.json({ success: deleted });
+});
 var routes_default = router6;
 
 // src/lib/logger.ts

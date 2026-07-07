@@ -322,4 +322,129 @@ router.get("/robots.txt", (req, res) => {
   res.send(`User-agent: *\nAllow: /\n\nSitemap: https://5toolbox.eu.cc/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });
 
+// ---- P2P TRANSFER REST SIGNALING ROUTER ----
+
+interface SignalingMessage {
+  type: string;
+  data: any;
+  timestamp: number;
+}
+
+interface TransferSession {
+  code: string;
+  status: "waiting" | "connecting" | "active" | "closed";
+  senderSignals: SignalingMessage[];
+  receiverSignals: SignalingMessage[];
+  createdAt: number;
+  lastActiveAt: number;
+}
+
+const activeTransfers = new Map<string, TransferSession>();
+
+// Clear stale signaling sessions (> 10 mins inactive or > 15 mins total age)
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, session] of activeTransfers.entries()) {
+    if (now - session.lastActiveAt > 5 * 60 * 1000 || now - session.createdAt > 15 * 60 * 1000) {
+      activeTransfers.delete(code);
+    }
+  }
+}, 60000);
+
+// Initialize a transfer session (Sender)
+router.post("/transfer/create", (req, res) => {
+  let code = "";
+  // Generate a unique 6-digit numeric code
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = Math.floor(100000 + Math.random() * 900000).toString();
+    if (!activeTransfers.has(candidate)) {
+      code = candidate;
+      break;
+    }
+  }
+  if (!code) return res.status(500).json({ error: "Failed to generate connection code" });
+
+  activeTransfers.set(code, {
+    code,
+    status: "waiting",
+    senderSignals: [],
+    receiverSignals: [],
+    createdAt: Date.now(),
+    lastActiveAt: Date.now()
+  });
+
+  res.json({ code });
+});
+
+// Check if a receiver joined (Sender polling)
+router.get("/transfer/poll-receiver/:code", (req, res) => {
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+
+  session.lastActiveAt = Date.now();
+  res.json({ status: session.status });
+});
+
+// Join connection session (Receiver)
+router.post("/transfer/join/:code", (req, res) => {
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.status(404).json({ error: "Invalid connection code or session expired" });
+
+  if (session.status !== "waiting") {
+    return res.status(400).json({ error: "This code is already in use or active" });
+  }
+
+  session.status = "connecting";
+  session.lastActiveAt = Date.now();
+  res.json({ success: true });
+});
+
+// Send SDP signal data (Sender or Receiver)
+router.post("/transfer/signal/:code/:role", (req, res) => {
+  const { code, role } = req.params;
+  const session = activeTransfers.get(code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+
+  session.lastActiveAt = Date.now();
+  const signalMsg = req.body as SignalingMessage;
+
+  if (role === "sender") {
+    session.receiverSignals.push({ ...signalMsg, timestamp: Date.now() });
+  } else if (role === "receiver") {
+    session.senderSignals.push({ ...signalMsg, timestamp: Date.now() });
+  } else {
+    return res.status(400).json({ error: "Invalid signaling role" });
+  }
+
+  res.json({ success: true });
+});
+
+// Poll pending SDP signal data (Sender or Receiver)
+router.get("/transfer/signal/:code/:role", (req, res) => {
+  const { code, role } = req.params;
+  const session = activeTransfers.get(code);
+  if (!session) return res.status(404).json({ error: "Session expired or not found" });
+
+  session.lastActiveAt = Date.now();
+  let signals: SignalingMessage[] = [];
+
+  if (role === "sender") {
+    signals = session.senderSignals;
+    session.senderSignals = []; // Consume/clear queue
+  } else if (role === "receiver") {
+    signals = session.receiverSignals;
+    session.receiverSignals = []; // Consume/clear queue
+  } else {
+    return res.status(400).json({ error: "Invalid signaling role" });
+  }
+
+  res.json({ signals });
+});
+
+// Close signaling session
+router.post("/transfer/close/:code", (req, res) => {
+  const deleted = activeTransfers.delete(req.params.code);
+  res.json({ success: deleted });
+});
+
 export default router;
