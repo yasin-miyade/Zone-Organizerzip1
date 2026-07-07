@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Copy, Check, Share2, ArrowRight, Laptop, Smartphone, FileUp, FolderUp } from "lucide-react";
+import { Loader2, Download, Copy, Check, Share2, ArrowRight, Laptop, Smartphone, FileUp, FolderUp, RefreshCw, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { baseName } from "./ToolHelpers";
 
@@ -17,7 +17,18 @@ const ICE_SERVERS = {
   ]
 };
 
-const CHUNK_SIZE = 16384; // 16 KB safest buffer size
+const CHUNK_SIZE = 16384; // 16 KB standard buffer size
+
+interface PeerState {
+  pc: RTCPeerConnection;
+  dc?: RTCDataChannel;
+  status: "connecting" | "transferring" | "completed" | "error";
+  progress: number;
+  fileName: string;
+  fileSize: number;
+  speed: number;
+  eta: number | null;
+}
 
 export function FileSharing({ onDone }: { onDone: () => void }) {
   const [tab, setTab] = useState<"send" | "receive">("send");
@@ -25,29 +36,50 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const [code, setCode] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [copied, setCopied] = useState(false);
-  const [status, setStatus] = useState<"idle" | "preparing" | "waiting" | "connecting" | "transferring" | "completed" | "error">("idle");
+  
+  // Status states
+  const [status, setStatus] = useState<"idle" | "preparing" | "waiting" | "active" | "connecting" | "transferring" | "completed" | "error">("idle");
   const [statusText, setStatusText] = useState("");
   
-  // Progress states
+  // Recipient / Receiver states
+  const [inputCode, setInputCode] = useState("");
+  const [receivedFile, setReceivedFile] = useState<{ name: string; blob: Blob; size: number } | null>(null);
+  
+  // Single Receiver transfer progress
   const [progress, setProgress] = useState(0);
   const [transferSpeed, setTransferSpeed] = useState(0); // MB/s
   const [eta, setEta] = useState<number | null>(null); // seconds
   const [activeFileName, setActiveFileName] = useState("");
   const [activeFileSize, setActiveFileSize] = useState(0);
 
-  // Recipient / Receiver states
-  const [inputCode, setInputCode] = useState("");
-  const [receivedFile, setReceivedFile] = useState<{ name: string; blob: Blob; size: number } | null>(null);
+  // Sender multi-peer rendering state
+  const [activePeers, setActivePeers] = useState<Record<string, {
+    id: string;
+    status: "connecting" | "transferring" | "completed" | "error";
+    progress: number;
+    fileName: string;
+    fileSize: number;
+    speed: number;
+    eta: number | null;
+  }>>({});
 
   const { toast } = useToast();
 
-  // Refs for WebRTC
+  // Refs for WebRTC & Signaling
+  const receiverIdRef = useRef<string>("recv_" + Math.random().toString(36).substring(2, 10));
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const signalIntervalRef = useRef<any>(null);
   const pollIntervalRef = useRef<any>(null);
-  const iceCandidatesQueueRef = useRef<any[]>([]);
   
+  // Sender multi-peer mapping
+  const peersRef = useRef<Map<string, PeerState>>(new Map());
+  const peerCandidatesQueueRef = useRef<Map<string, any[]>>(new Map());
+  const finalFileRef = useRef<File | null>(null);
+
+  // Single receiver candidate queue
+  const iceCandidatesQueueRef = useRef<any[]>([]);
+
   // Auto-connect on code parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,6 +118,22 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     iceCandidatesQueueRef.current = [];
   };
 
+  const updatePeersState = () => {
+    const nextState: any = {};
+    for (const [id, peer] of peersRef.current.entries()) {
+      nextState[id] = {
+        id,
+        status: peer.status,
+        progress: peer.progress,
+        fileName: peer.fileName,
+        fileSize: peer.fileSize,
+        speed: peer.speed,
+        eta: peer.eta
+      };
+    }
+    setActivePeers(nextState);
+  };
+
   const copyLink = () => {
     const url = `${window.location.origin}/tools/file-sharing?code=${code}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -112,12 +160,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       if (files.length === 1) {
         finalFile = files[0];
       } else {
-        // Zip multiple files/folders
         setStatusText("Zipping folder...");
         const { default: JSZip } = await import("jszip");
         const zip = new JSZip();
         for (const file of files) {
-          // Keep directory structure if available
           const path = (file as any).webkitRelativePath || file.name;
           zip.file(path, file);
         }
@@ -125,6 +171,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         finalFile = new File([zipBlob], `${baseName(files[0])}_shared.zip`, { type: "application/zip" });
       }
 
+      finalFileRef.current = finalFile;
       setActiveFileName(finalFile.name);
       setActiveFileSize(finalFile.size);
 
@@ -141,48 +188,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       setQrUrl(dataUrl);
 
       setStatus("waiting");
-      setStatusText("Waiting for recipient to connect...");
+      setStatusText("Waiting for recipients to connect...");
 
-      // Initialize RTC Peer Connection
-      const pc = new RTCPeerConnection(ICE_SERVERS);
-      peerConnectionRef.current = pc;
-
-      // Handle ICE Candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          sendSignal(newCode, "sender", { type: "candidate", data: event.candidate.toJSON() });
-        }
-      };
-
-      // Create RTC Data Channel
-      const dc = pc.createDataChannel("file-transfer", { ordered: true });
-      dataChannelRef.current = dc;
-
-      dc.onopen = () => {
-        clearSignaling();
-        setStatus("transferring");
-        setStatusText("Transferring files...");
-        sendFileData(dc, finalFile);
-      };
-
-      dc.onclose = () => {
-        if (status !== "completed") {
-          setStatus("idle");
-          toast({ title: "Receiver disconnected", variant: "destructive" });
-        }
-      };
-
-      dc.onerror = () => {
-        setStatus("error");
-        setStatusText("Connection error occurred.");
-      };
-
-      // Create Offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await sendSignal(newCode, "sender", { type: "offer", data: offer });
-
-      // Start Polling for Receiver joining & signaling messages
+      // Start Polling for incoming Peer SDP Offers & candidate data
       startSignalingLoop(newCode, "sender");
 
     } catch (e) {
@@ -193,12 +201,12 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     }
   };
 
-  const sendFileData = (channel: RTCDataChannel, file: File) => {
+  const sendFileToPeer = (receiverId: string, channel: RTCDataChannel, file: File) => {
     let offset = 0;
     const startTime = Date.now();
     const reader = new FileReader();
 
-    // Send metadata first
+    // Send metadata header
     channel.send(JSON.stringify({
       type: "metadata",
       name: file.name,
@@ -207,6 +215,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     }));
 
     const readSlice = () => {
+      const peer = peersRef.current.get(receiverId);
+      if (!peer || peer.status === "error") return; // Abort if peer errored/closed
+
       const slice = file.slice(offset, offset + CHUNK_SIZE);
       reader.readAsArrayBuffer(slice);
     };
@@ -219,50 +230,71 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         channel.send(buffer);
         offset += buffer.byteLength;
 
-        // Calculate progress stats
         const currentProgress = Math.min(100, Math.round((offset / file.size) * 100));
-        setProgress(currentProgress);
-
         const elapsedSeconds = (Date.now() - startTime) / 1000;
+        let speed = 0;
+        let etaVal: number | null = null;
         if (elapsedSeconds > 0) {
-          const speed = (offset / (1024 * 1024)) / elapsedSeconds; // MB/s
-          setTransferSpeed(Math.round(speed * 10) / 10);
-          
+          speed = Math.round(((offset / (1024 * 1024)) / elapsedSeconds) * 10) / 10;
           const remainingBytes = file.size - offset;
-          const remainingSecs = speed > 0 ? (remainingBytes / (speed * 1024 * 1024)) : 0;
-          setEta(Math.ceil(remainingSecs));
+          etaVal = speed > 0 ? Math.ceil(remainingBytes / (speed * 1024 * 1024)) : 0;
+        }
+
+        const peer = peersRef.current.get(receiverId);
+        if (peer) {
+          peer.progress = currentProgress;
+          peer.speed = speed;
+          peer.eta = etaVal;
+          updatePeersState();
         }
 
         if (offset < file.size) {
-          // If buffered amount is high, wait until it drains
           if (channel.bufferedAmount > 16 * 1024 * 1024) {
             channel.onbufferedamountlow = () => {
               channel.onbufferedamountlow = null;
               readSlice();
             };
           } else {
-            // Otherwise read next slice instantly
             setTimeout(readSlice, 0);
           }
         } else {
-          // End of file
+          // EOF packet
           channel.send(JSON.stringify({ type: "EOF" }));
-          setStatus("completed");
-          setStatusText("Transfer completed successfully!");
+          const p = peersRef.current.get(receiverId);
+          if (p) {
+            p.status = "completed";
+            updatePeersState();
+          }
           onDone();
-          fetch(`/api/transfer/close/${code}`, { method: "POST" });
         }
       } catch (err) {
         console.error("Data channel send error:", err);
-        setStatus("error");
-        setStatusText("Transfer aborted due to send limits.");
+        const peer = peersRef.current.get(receiverId);
+        if (peer) {
+          peer.status = "error";
+          updatePeersState();
+        }
       }
     };
 
-    // Begin reading first chunk
     readSlice();
   };
 
+  const handleCancelSend = async () => {
+    try {
+      await fetch(`/api/transfer/close/${code}`, { method: "POST" });
+    } catch {}
+
+    // Close all active peers
+    for (const peer of peersRef.current.values()) {
+      peer.pc.close();
+      if (peer.dc) peer.dc.close();
+    }
+    peersRef.current.clear();
+    peerCandidatesQueueRef.current.clear();
+    setActivePeers({});
+    resetAll();
+  };
 
   // --- RECEIVER FLOW ---
   const handleReceiveClick = () => {
@@ -278,23 +310,34 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     setStatusText("Connecting to sender...");
     cleanupConnection();
 
+    // Reset unique receiver ID for retry or new connection
+    receiverIdRef.current = "recv_" + Math.random().toString(36).substring(2, 10);
+
     try {
-      // Join connection session on backend
-      const joinRes = await fetch(`/api/transfer/join/${joinCode}`, { method: "POST" });
+      const joinRes = await fetch(`/api/transfer/join/${joinCode}?receiverId=${receiverIdRef.current}`, { method: "POST" });
       if (!joinRes.ok) {
         const err = await joinRes.json();
         throw new Error(err.error || "Failed to join session.");
       }
 
-      // Initialize RTC Peer Connection
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
 
-      // Handle ICE Candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           sendSignal(joinCode, "receiver", { type: "candidate", data: event.candidate.toJSON() });
         }
+      };
+
+      // Create Data Channel
+      const dc = pc.createDataChannel("file-transfer", { ordered: true });
+      dataChannelRef.current = dc;
+
+      dc.onopen = () => {
+        clearSignaling();
+        setStatus("transferring");
+        setStatusText("Receiving files...");
+        startTime = Date.now();
       };
 
       let fileMeta: { name: string; size: number; mimeType: string } | null = null;
@@ -302,83 +345,80 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       let receivedBytes = 0;
       let startTime = 0;
 
-      // Listen for incoming Data Channel
-      pc.ondatachannel = (event) => {
-        const dc = event.channel;
-        dataChannelRef.current = dc;
+      dc.onmessage = (msgEvent) => {
+        const data = msgEvent.data;
 
-        dc.onopen = () => {
-          clearSignaling();
-          setStatus("transferring");
-          setStatusText("Receiving files...");
-          startTime = Date.now();
-        };
+        if (typeof data === "string") {
+          const msg = JSON.parse(data);
+          if (msg.type === "metadata") {
+            fileMeta = msg;
+            setActiveFileName(msg.name);
+            setActiveFileSize(msg.size);
+            receivedChunks = [];
+            receivedBytes = 0;
+            setProgress(0);
+            startTime = Date.now();
+          } else if (msg.type === "EOF" && fileMeta) {
+            const fileBlob = new Blob(receivedChunks, { type: fileMeta.mimeType });
+            setReceivedFile({ name: fileMeta.name, blob: fileBlob, size: fileMeta.size });
+            setStatus("completed");
+            setStatusText("File received successfully!");
+            onDone();
+            cleanupConnection();
+          }
+        } else {
+          receivedChunks.push(data);
+          receivedBytes += data.byteLength;
 
-        dc.onmessage = (msgEvent) => {
-          const data = msgEvent.data;
+          if (fileMeta) {
+            const currentProgress = Math.min(100, Math.round((receivedBytes / fileMeta.size) * 100));
+            setProgress(currentProgress);
 
-          if (typeof data === "string") {
-            const msg = JSON.parse(data);
-            if (msg.type === "metadata") {
-              fileMeta = msg;
-              setActiveFileName(msg.name);
-              setActiveFileSize(msg.size);
-              receivedChunks = [];
-              receivedBytes = 0;
-              setProgress(0);
-              startTime = Date.now();
-            } else if (msg.type === "EOF" && fileMeta) {
-              const fileBlob = new Blob(receivedChunks, { type: fileMeta.mimeType });
-              setReceivedFile({ name: fileMeta.name, blob: fileBlob, size: fileMeta.size });
-              setStatus("completed");
-              setStatusText("File received successfully!");
-              onDone();
-              cleanupConnection();
-              fetch(`/api/transfer/close/${joinCode}`, { method: "POST" });
-            }
-          } else {
-            // Handle binary buffer chunk
-            receivedChunks.push(data);
-            receivedBytes += data.byteLength;
+            const elapsedSeconds = (Date.now() - startTime) / 1000;
+            if (elapsedSeconds > 0) {
+              const speed = (receivedBytes / (1024 * 1024)) / elapsedSeconds;
+              setTransferSpeed(Math.round(speed * 10) / 10);
 
-            if (fileMeta) {
-              const currentProgress = Math.min(100, Math.round((receivedBytes / fileMeta.size) * 100));
-              setProgress(currentProgress);
-
-              const elapsedSeconds = (Date.now() - startTime) / 1000;
-              if (elapsedSeconds > 0) {
-                const speed = (receivedBytes / (1024 * 1024)) / elapsedSeconds;
-                setTransferSpeed(Math.round(speed * 10) / 10);
-
-                const remainingBytes = fileMeta.size - receivedBytes;
-                const remainingSecs = speed > 0 ? (remainingBytes / (speed * 1024 * 1024)) : 0;
-                setEta(Math.ceil(remainingSecs));
-              }
+              const remainingBytes = fileMeta.size - receivedBytes;
+              const remainingSecs = speed > 0 ? (remainingBytes / (speed * 1024 * 1024)) : 0;
+              setEta(Math.ceil(remainingSecs));
             }
           }
-        };
-
-        dc.onclose = () => {
-          if (status !== "completed") {
-            setStatus("idle");
-            toast({ title: "Sender disconnected", variant: "destructive" });
-          }
-        };
+        }
       };
 
-      // Start Polling for SDP Offer & ICE candidates
+      dc.onclose = () => {
+        if (status !== "completed") {
+          setStatus("error");
+          setStatusText("Sender disconnected or cancelled.");
+        }
+      };
+
+      // Create WebRTC Offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await sendSignal(joinCode, "receiver", { type: "offer", data: offer });
+
       startSignalingLoop(joinCode, "receiver");
 
     } catch (e: any) {
-      setStatus("idle");
-      toast({ title: e.message || "Failed to join session", variant: "destructive" });
+      setStatus("error");
+      setStatusText(e.message || "Failed to connect.");
     }
   };
 
-  // --- SIGNALING CORE ---
-  const sendSignal = async (sessionCode: string, role: "sender" | "receiver", data: any) => {
+  const handleCancelReceive = async () => {
     try {
-      await fetch(`/api/transfer/signal/${sessionCode}/${role}`, {
+      await fetch(`/api/transfer/close/${inputCode}?receiverId=${receiverIdRef.current}`, { method: "POST" });
+    } catch {}
+    resetAll();
+  };
+
+  // --- SIGNALING CORE ---
+  const sendSignal = async (sessionCode: string, role: "sender" | "receiver", data: any, targetReceiverId?: string) => {
+    try {
+      const rId = targetReceiverId || receiverIdRef.current;
+      await fetch(`/api/transfer/signal/${sessionCode}/${role}?receiverId=${rId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
@@ -396,31 +436,116 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       polling = true;
 
       try {
-        const res = await fetch(`/api/transfer/signal/${sessionCode}/${role}`);
+        const url = role === "sender" 
+          ? `/api/transfer/signal/${sessionCode}/sender` 
+          : `/api/transfer/signal/${sessionCode}/receiver?receiverId=${receiverIdRef.current}`;
+        
+        const res = await fetch(url);
         if (res.ok) {
           const { signals } = await res.json();
-          const pc = peerConnectionRef.current;
-          if (pc) {
-            for (const signal of signals) {
-              if (signal.type === "offer") {
-                await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                await sendSignal(sessionCode, "receiver", { type: "answer", data: answer });
+          for (const signal of signals) {
+            if (role === "sender") {
+              const rId = signal.receiverId;
+              if (!rId) continue;
+
+              // Handle connection closing signal from a receiver
+              if (signal.type === "close") {
+                const peer = peersRef.current.get(rId);
+                if (peer) {
+                  peer.pc.close();
+                  if (peer.dc) peer.dc.close();
+                  peersRef.current.delete(rId);
+                  updatePeersState();
+                }
+                continue;
+              }
+
+              // Retrieve or lazy-initialize PeerConnection for this receiver ID
+              let peer = peersRef.current.get(rId);
+              if (!peer) {
+                const pc = new RTCPeerConnection(ICE_SERVERS);
                 
-                // Process any queued candidates now that remote description is set
-                for (const cand of iceCandidatesQueueRef.current) {
+                pc.onicecandidate = (event) => {
+                  if (event.candidate) {
+                    sendSignal(sessionCode, "sender", { type: "candidate", data: event.candidate.toJSON() }, rId);
+                  }
+                };
+
+                pc.ondatachannel = (event) => {
+                  const dc = event.channel;
+                  const activePeer = peersRef.current.get(rId);
+                  if (activePeer) activePeer.dc = dc;
+
+                  dc.onopen = () => {
+                    const p = peersRef.current.get(rId);
+                    if (p) {
+                      p.status = "transferring";
+                      updatePeersState();
+                      sendFileToPeer(rId, dc, finalFileRef.current!);
+                    }
+                  };
+
+                  dc.onclose = () => {
+                    const p = peersRef.current.get(rId);
+                    if (p && p.status !== "completed") {
+                      p.status = "error";
+                      updatePeersState();
+                    }
+                  };
+                };
+
+                peer = {
+                  pc,
+                  status: "connecting",
+                  progress: 0,
+                  fileName: finalFileRef.current!.name,
+                  fileSize: finalFileRef.current!.size,
+                  speed: 0,
+                  eta: null
+                };
+                peersRef.current.set(rId, peer);
+                updatePeersState();
+              }
+
+              if (signal.type === "offer") {
+                await peer.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+                const answer = await peer.pc.createAnswer();
+                await peer.pc.setLocalDescription(answer);
+                await sendSignal(sessionCode, "sender", { type: "answer", data: answer }, rId);
+
+                // Flush receiver candidates
+                const queue = peerCandidatesQueueRef.current.get(rId) || [];
+                for (const cand of queue) {
                   try {
-                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                    await peer.pc.addIceCandidate(new RTCIceCandidate(cand));
                   } catch (e) {
-                    console.error("Error adding queued candidate:", e);
+                    console.error("Error adding queued candidate", e);
                   }
                 }
-                iceCandidatesQueueRef.current = [];
-              } else if (signal.type === "answer") {
+                peerCandidatesQueueRef.current.set(rId, []);
+              } else if (signal.type === "candidate") {
+                if (peer.pc.remoteDescription && peer.pc.remoteDescription.type) {
+                  try {
+                    await peer.pc.addIceCandidate(new RTCIceCandidate(signal.data));
+                  } catch (e) {
+                    console.error("Error adding candidate", e);
+                  }
+                } else {
+                  const queue = peerCandidatesQueueRef.current.get(rId) || [];
+                  queue.push(signal.data);
+                  peerCandidatesQueueRef.current.set(rId, queue);
+                }
+              }
+
+            } else {
+              // Receiver side signal processing
+              const pc = peerConnectionRef.current;
+              if (!pc) continue;
+
+              if (signal.type === "answer") {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
                 
-                // Process any queued candidates now that remote description is set
+                // Flush candidates
                 for (const cand of iceCandidatesQueueRef.current) {
                   try {
                     await pc.addIceCandidate(new RTCIceCandidate(cand));
@@ -437,12 +562,16 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                     console.error("Error adding candidate:", e);
                   }
                 } else {
-                  // Remote description not yet set, queue it
                   iceCandidatesQueueRef.current.push(signal.data);
                 }
               }
             }
           }
+        } else if (res.status === 404 && role === "receiver") {
+          // Session expired on backend (Sender cancelled)
+          setStatus("error");
+          setStatusText("Sender cancelled the session.");
+          cleanupConnection();
         }
       } catch (err) {
         console.error("Signaling receive error", err);
@@ -451,22 +580,19 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       }
     }, 400);
 
-    // If sender, also monitor receiver connection status
+    // Sender polls joining list
     if (role === "sender") {
       pollIntervalRef.current = setInterval(async () => {
         try {
           const res = await fetch(`/api/transfer/poll-receiver/${sessionCode}`);
           if (res.ok) {
-            const { status: s } = await res.json();
-            if (s === "connecting" && status === "waiting") {
-              setStatus("connecting");
-              setStatusText("Connecting to receiver...");
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
+            const { receivers } = await res.json();
+            if (receivers.length > 0 && status === "waiting") {
+              setStatus("active");
             }
           }
         } catch {}
-      }, 500);
+      }, 800);
     }
   };
 
@@ -507,6 +633,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
   };
+
+  const peerList = Object.values(activePeers);
 
   return (
     <div className="space-y-6">
@@ -550,9 +678,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             </>
           )}
 
-          {(status === "preparing" || status === "waiting" || status === "connecting") && (
+          {(status === "preparing" || status === "waiting" || status === "active") && (
             <div className="flex flex-col items-center justify-center p-8 border rounded-2xl bg-muted/20 text-center space-y-5 animate-in fade-in duration-300">
-              {status === "waiting" && qrUrl ? (
+              {code && qrUrl ? (
                 <>
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Share this 6-Digit Code</p>
@@ -572,10 +700,49 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse mt-4">
-                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                    <span>{statusText}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                    {peerList.length === 0 ? (
+                      <>
+                        <Loader2 className="h-4.5 w-4.5 animate-spin text-primary" />
+                        <span>{statusText}</span>
+                      </>
+                    ) : (
+                      <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                        Connected to {peerList.length} device{peerList.length > 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
+
+                  {peerList.length > 0 && (
+                    <div className="w-full max-w-md border-t pt-4 mt-2 space-y-3 text-left">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Connected Devices</p>
+                      {peerList.map((peer, i) => (
+                        <div key={peer.id} className="p-4 border rounded-xl bg-card shadow-xs space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold font-mono text-muted-foreground">Recipient #{i + 1} ({peer.id.slice(5, 9)})</span>
+                            <Badge variant="outline" className={`text-[10px] font-bold ${
+                              peer.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              peer.status === "transferring" ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
+                              peer.status === "error" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-muted text-muted-foreground"
+                            }`}>
+                              {peer.status.toUpperCase()}
+                            </Badge>
+                          </div>
+                          
+                          {peer.status === "transferring" && (
+                            <div className="space-y-1.5">
+                              <Progress value={peer.progress} className="h-2" />
+                              <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
+                                <span>{peer.progress}% Sent</span>
+                                <span>{peer.speed} MB/s | ETA: {formatEta(peer.eta)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="py-12 space-y-4">
@@ -583,58 +750,16 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                   <p className="text-sm font-semibold text-muted-foreground">{statusText}</p>
                 </div>
               )}
-              <Button variant="ghost" size="sm" onClick={resetAll} className="mt-4 text-xs">Cancel Session</Button>
-            </div>
-          )}
-
-          {status === "transferring" && (
-            <div className="p-6 border rounded-2xl bg-card shadow-sm space-y-5 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between border-b pb-4">
-                <div>
-                  <h4 className="font-semibold text-sm truncate max-w-xs">{activeFileName}</h4>
-                  <p className="text-xs text-muted-foreground">{formatSize(activeFileSize)}</p>
-                </div>
-                <Badge variant="outline" className="text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-200">
-                  Sending
-                </Badge>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-medium">
-                  <span>Transfer progress</span>
-                  <span>{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-2.5" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-center border-t pt-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Transfer Speed</p>
-                  <p className="text-xl font-bold text-primary mt-1">{transferSpeed} MB/s</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">ETA Remaining</p>
-                  <p className="text-xl font-bold text-primary mt-1">{formatEta(eta)}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {status === "completed" && (
-            <div className="flex flex-col items-center justify-center p-8 border rounded-2xl bg-muted/20 text-center space-y-4 animate-in zoom-in-95 duration-300">
-              <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-900/30">
-                <Check className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg">Transfer Complete!</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">Your file was transferred successfully directly to the other device.</p>
-              <Button onClick={resetAll} className="mt-4">Share Another File</Button>
+              <Button variant="destructive" size="sm" onClick={handleCancelSend} className="mt-4 text-xs">
+                <XCircle className="h-4 w-4 mr-1.5" /> Cancel Session
+              </Button>
             </div>
           )}
 
           {status === "error" && (
             <div className="flex flex-col items-center justify-center p-8 border rounded-2xl bg-rose-50/10 border-rose-500/20 text-center space-y-4">
               <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">Connection Failed</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Unable to establish direct peer connection. Make sure both devices are online."}</p>
+              <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Unable to establish connection."}</p>
               <Button onClick={resetAll} variant="outline" className="mt-4">Try Again</Button>
             </div>
           )}
@@ -667,7 +792,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             <div className="flex flex-col items-center justify-center p-12 border rounded-2xl bg-muted/20 text-center space-y-4 animate-in fade-in duration-300">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-sm font-semibold text-muted-foreground">{statusText}</p>
-              <Button variant="ghost" size="sm" onClick={resetAll} className="mt-4 text-xs">Cancel Connection</Button>
+              <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="mt-4 text-xs">Cancel Connection</Button>
             </div>
           )}
 
@@ -701,6 +826,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                   <p className="text-xl font-bold text-primary mt-1">{formatEta(eta)}</p>
                 </div>
               </div>
+              <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="w-full text-xs text-destructive hover:bg-destructive/10">
+                Cancel
+              </Button>
             </div>
           )}
 
@@ -724,7 +852,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
           {status === "error" && (
             <div className="flex flex-col items-center justify-center p-8 border rounded-2xl bg-rose-50/10 border-rose-500/20 text-center space-y-4">
               <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">Connection Failed</h3>
-              <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Failed to receive file. Check code correctness and network connection."}</p>
+              <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Failed to receive file."}</p>
               <Button onClick={resetAll} variant="outline" className="mt-4">Try Again</Button>
             </div>
           )}
