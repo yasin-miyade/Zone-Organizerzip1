@@ -9,11 +9,23 @@ import { Loader2, Download, Copy, Check, Share2, ArrowRight, Laptop, Smartphone,
 import { Badge } from "@/components/ui/badge";
 import { baseName } from "./ToolHelpers";
 
+// Integrated Public STUN + Metered TURN servers for long-distance NAT traversal
 const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" }
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:openrelay.metered.ca:80" },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80?transport=udp",
+        "turn:openrelay.metered.ca:80?transport=tcp",
+        "turn:openrelay.metered.ca:443?transport=udp",
+        "turn:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
   ]
 };
 
@@ -52,6 +64,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const [activeFileName, setActiveFileName] = useState("");
   const [activeFileSize, setActiveFileSize] = useState(0);
 
+  // Connection permission request list for Sender UI
+  const [pendingPermissions, setPendingPermissions] = useState<string[]>([]);
+
   // Sender active peers state
   const [activePeers, setActivePeers] = useState<Record<string, {
     id: string;
@@ -74,6 +89,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   // Sender multi-peer mapping
   const peersRef = useRef<Map<string, PeerState>>(new Map());
   const finalFileRef = useRef<File | null>(null);
+  const inputCodeRef = useRef<string>("");
 
   // Auto-connect on code parameter
   useEffect(() => {
@@ -281,8 +297,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       if (peer.dc) peer.dc.close();
     }
     peersRef.current.clear();
+    setPendingPermissions([]);
     setActivePeers({});
     resetAll();
+  };
+
+  const handlePermissionResponse = async (rId: string, allowed: boolean) => {
+    setPendingPermissions(prev => prev.filter(id => id !== rId));
+    if (allowed) {
+      await sendSignal(code, "sender", { type: "permission_granted" }, rId);
+    } else {
+      await sendSignal(code, "sender", { type: "permission_denied" }, rId);
+    }
   };
 
   // --- RECEIVER FLOW ---
@@ -296,10 +322,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
   const handleReceive = async (joinCode: string) => {
     setStatus("connecting");
-    setStatusText("Connecting to sender...");
+    setStatusText("Waiting for sender approval...");
     cleanupConnection();
 
-    // Reset unique receiver ID for retry or new connection
+    inputCodeRef.current = joinCode;
     receiverIdRef.current = "recv_" + Math.random().toString(36).substring(2, 10);
 
     try {
@@ -309,6 +335,22 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         throw new Error(err.error || "Failed to join session.");
       }
 
+      // Start signaling poll loop to catch permission response
+      startSignalingLoop(joinCode, "receiver");
+
+      // Send the permission request signal to the sender
+      await sendSignal(joinCode, "receiver", { type: "request_permission" });
+
+    } catch (e: any) {
+      setStatus("error");
+      setStatusText(e.message || "Failed to connect.");
+    }
+  };
+
+  const initializeReceiverWebRTC = async () => {
+    try {
+      setStatusText("Approval received. Creating P2P link...");
+      const joinCode = inputCodeRef.current;
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
 
@@ -410,11 +452,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         candidates 
       });
 
-      startSignalingLoop(joinCode, "receiver");
-
     } catch (e: any) {
       setStatus("error");
-      setStatusText(e.message || "Failed to connect.");
+      setStatusText(e.message || "Failed to initialize connection.");
     }
   };
 
@@ -459,8 +499,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               const rId = signal.receiverId;
               if (!rId) continue;
 
+              // Handle permission request from a receiver
+              if (signal.type === "request_permission") {
+                setPendingPermissions(prev => {
+                  if (prev.includes(rId)) return prev;
+                  return [...prev, rId];
+                });
+                continue;
+              }
+
               // Handle connection closing signal from a receiver
               if (signal.type === "close") {
+                setPendingPermissions(prev => prev.filter(id => id !== rId));
                 const peer = peersRef.current.get(rId);
                 if (peer) {
                   peer.pc.close();
@@ -559,9 +609,14 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             } else {
               // Receiver side signal processing
               const pc = peerConnectionRef.current;
-              if (!pc) continue;
 
-              if (signal.type === "answer") {
+              if (signal.type === "permission_granted") {
+                initializeReceiverWebRTC();
+              } else if (signal.type === "permission_denied") {
+                setStatus("error");
+                setStatusText("Connection request denied by sender.");
+                cleanupConnection();
+              } else if (signal.type === "answer" && pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
                 
                 // Apply sender candidates
@@ -615,6 +670,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     setEta(null);
     setInputCode("");
     setReceivedFile(null);
+    setPendingPermissions([]);
   };
 
   const formatSize = (bytes: number) => {
@@ -696,6 +752,29 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
+
+                  {/* Permission Requests Panel */}
+                  {pendingPermissions.length > 0 && (
+                    <div className="w-full max-w-md border-t pt-4 mt-2 space-y-2.5">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider text-left">Pending Approvals</p>
+                      {pendingPermissions.map(reqId => (
+                        <div key={reqId} className="p-4 border border-primary/20 rounded-xl bg-primary/5 flex items-center justify-between gap-3 text-left animate-in fade-in duration-300">
+                          <div>
+                            <p className="text-xs font-bold text-foreground">Device Connection Request</p>
+                            <p className="text-[10px] font-mono text-muted-foreground">ID: {reqId.toUpperCase()}</p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <Button size="sm" className="h-8 text-xs px-3" onClick={() => handlePermissionResponse(reqId, true)}>
+                              Allow
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:bg-destructive/10" onClick={() => handlePermissionResponse(reqId, false)}>
+                              Deny
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                     {peerList.length === 0 ? (
