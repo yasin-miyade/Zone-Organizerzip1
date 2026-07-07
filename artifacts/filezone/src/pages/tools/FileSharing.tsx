@@ -186,15 +186,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const { Peer } = await import("peerjs");
       const fixedId = makeSenderFixedId(newCode);
 
-      const peer = new Peer(fixedId, {
-        debug: 0,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ]
-        }
-      });
+      // Use PeerJS default ICE config — it includes TURN relay for NAT traversal
+      const peer = new Peer(fixedId, { debug: 0 });
       senderPeerRef.current = peer;
 
       await new Promise<void>((resolve, reject) => {
@@ -227,12 +220,12 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
           id: rid
         };
         receiversRef.current.set(rid, receiver);
-        setStatus("active");
-        syncReceivers();
+        syncReceivers(); // show the peer as "connecting" but don't set active yet
 
         conn.on("open", () => {
           const r = receiversRef.current.get(rid);
           if (r) { r.status = "transferring"; syncReceivers(); }
+          setStatus("active"); // only set active once channel truly opens
           sendFileToPeer(rid, conn, finalFileRef.current!);
         });
 
@@ -380,15 +373,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     try {
       const { Peer } = await import("peerjs");
       const myId = makeReceiverPeerId();
-      const peer = new Peer(myId, {
-        debug: 0,
-        config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-          ]
-        }
-      });
+      // Use PeerJS default ICE config — it includes TURN relay for NAT traversal
+      const peer = new Peer(myId, { debug: 0 });
       receiverPeerRef.current = peer;
 
       // Wait for our own peer to open
