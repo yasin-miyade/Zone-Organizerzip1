@@ -46,6 +46,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const signalIntervalRef = useRef<any>(null);
   const pollIntervalRef = useRef<any>(null);
+  const iceCandidatesQueueRef = useRef<any[]>([]);
   
   // Auto-connect on code parameter
   useEffect(() => {
@@ -72,6 +73,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+    iceCandidatesQueueRef.current = [];
   };
 
   const copyLink = () => {
@@ -138,7 +140,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       // Handle ICE Candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          sendSignal(newCode, "sender", { type: "candidate", data: event.candidate });
+          sendSignal(newCode, "sender", { type: "candidate", data: event.candidate.toJSON() });
         }
       };
 
@@ -280,7 +282,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       // Handle ICE Candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          sendSignal(joinCode, "receiver", { type: "candidate", data: event.candidate });
+          sendSignal(joinCode, "receiver", { type: "candidate", data: event.candidate.toJSON() });
         }
       };
 
@@ -385,22 +387,47 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         const res = await fetch(`/api/transfer/signal/${sessionCode}/${role}`);
         if (res.ok) {
           const { signals } = await res.json();
-          for (const signal of signals) {
-            const pc = peerConnectionRef.current;
-            if (!pc) continue;
-
-            if (signal.type === "offer") {
-              await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-              await sendSignal(sessionCode, "receiver", { type: "answer", data: answer });
-            } else if (signal.type === "answer") {
-              await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-            } else if (signal.type === "candidate") {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.data));
-              } catch (e) {
-                console.error("Error adding ice candidate:", e);
+          const pc = peerConnectionRef.current;
+          if (pc) {
+            for (const signal of signals) {
+              if (signal.type === "offer") {
+                await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                await sendSignal(sessionCode, "receiver", { type: "answer", data: answer });
+                
+                // Process any queued candidates now that remote description is set
+                for (const cand of iceCandidatesQueueRef.current) {
+                  try {
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                  } catch (e) {
+                    console.error("Error adding queued candidate:", e);
+                  }
+                }
+                iceCandidatesQueueRef.current = [];
+              } else if (signal.type === "answer") {
+                await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
+                
+                // Process any queued candidates now that remote description is set
+                for (const cand of iceCandidatesQueueRef.current) {
+                  try {
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
+                  } catch (e) {
+                    console.error("Error adding queued candidate:", e);
+                  }
+                }
+                iceCandidatesQueueRef.current = [];
+              } else if (signal.type === "candidate") {
+                if (pc.remoteDescription && pc.remoteDescription.type) {
+                  try {
+                    await pc.addIceCandidate(new RTCIceCandidate(signal.data));
+                  } catch (e) {
+                    console.error("Error adding candidate:", e);
+                  }
+                } else {
+                  // Remote description not yet set, queue it
+                  iceCandidatesQueueRef.current.push(signal.data);
+                }
               }
             }
           }

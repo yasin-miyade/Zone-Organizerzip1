@@ -2,6 +2,7 @@ import { Shield, Zap, Globe, Lock, FileText, Image, RefreshCw, Calculator, Align
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import { useListToolCategories, useGetToolStats } from "@workspace/api-client-react";
 
 const features = [
   { icon: Shield, title: "Privacy First", desc: "Your files never leave your browser. All processing happens locally on your device — nothing is ever uploaded to our servers. We have no access to your files." },
@@ -10,22 +11,29 @@ const features = [
   { icon: Lock, title: "Always Free", desc: "All 50+ tools are completely free to use with no sign-up, no limits, no watermarks, and no hidden paywalls. Our tools are supported by non-intrusive ads." },
 ];
 
-const toolCategories = [
-  { icon: FileText, label: "PDF Tools", count: 11, href: "/pdf", color: "bg-red-50 text-red-600" },
-  { icon: Image, label: "Image Tools", count: 10, href: "/image", color: "bg-blue-50 text-blue-600" },
-  { icon: RefreshCw, label: "Converters", count: 7, href: "/convert", color: "bg-violet-50 text-violet-600" },
-  { icon: Calculator, label: "Calculators", count: 15, href: "/calculator", color: "bg-amber-50 text-amber-600" },
-  { icon: AlignLeft, label: "Text Tools", count: 5, href: "/text", color: "bg-emerald-50 text-emerald-600" },
-];
-
-const stats = [
-  { value: "50+", label: "Free Tools" },
-  { value: "100%", label: "Browser-Based" },
-  { value: "0", label: "Uploads Required" },
-  { value: "Free", label: "Always" },
-];
-
 export function About() {
+  const { data: categories } = useListToolCategories();
+  const { data: statsData } = useGetToolStats();
+
+  const totalTools = statsData?.totalTools ?? 49;
+  
+  const categoryMap = categories ? new Map(categories.map(c => [c.slug, c.toolCount])) : null;
+
+  const toolCategories = [
+    { icon: FileText, label: "PDF Tools", slug: "pdf", defaultCount: 11, href: "/pdf", color: "bg-red-50 text-red-600" },
+    { icon: Image, label: "Image Tools", slug: "image", defaultCount: 10, href: "/image", color: "bg-blue-50 text-blue-600" },
+    { icon: RefreshCw, label: "Converters", slug: "convert", defaultCount: 7, href: "/convert", color: "bg-violet-50 text-violet-600" },
+    { icon: Calculator, label: "Calculators", slug: "calculator", defaultCount: 15, href: "/calculator", color: "bg-amber-50 text-amber-600" },
+    { icon: AlignLeft, label: "Text Tools", slug: "text", defaultCount: 6, href: "/text", color: "bg-emerald-50 text-emerald-600" },
+  ];
+
+  const stats = [
+    { value: `${totalTools}+`, label: "Free Tools" },
+    { value: "100%", label: "Browser-Based" },
+    { value: "0", label: "Uploads Required" },
+    { value: "Free", label: "Always" },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <SEO
@@ -83,20 +91,23 @@ export function About() {
 
       {/* Tool categories */}
       <div className="mb-16">
-        <h2 className="text-2xl font-bold mb-2 text-center">50+ Free Tools Across 5 Categories</h2>
+        <h2 className="text-2xl font-bold mb-2 text-center">{totalTools}+ Free Tools Across 5 Categories</h2>
         <p className="text-muted-foreground text-center mb-8">Every tool is free, no sign-up required</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {toolCategories.map(({ icon: Icon, label, count, href, color }) => (
-            <Link key={href} href={href}>
-              <div className="group p-5 rounded-2xl border bg-card hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer text-center">
-                <div className={`inline-flex p-3 rounded-xl ${color} bg-opacity-60 mb-3`}>
-                  <Icon className="h-6 w-6" />
+          {toolCategories.map(({ icon: Icon, label, slug, defaultCount, href, color }) => {
+            const count = categoryMap ? (categoryMap.get(slug) ?? defaultCount) : defaultCount;
+            return (
+              <Link key={href} href={href}>
+                <div className="group p-5 rounded-2xl border bg-card hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer text-center">
+                  <div className={`inline-flex p-3 rounded-xl ${color} bg-opacity-60 mb-3`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <p className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{label}</p>
+                  <p className="text-xs text-muted-foreground">{count} tools</p>
                 </div>
-                <p className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{label}</p>
-                <p className="text-xs text-muted-foreground">{count} tools</p>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

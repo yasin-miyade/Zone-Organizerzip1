@@ -118,7 +118,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
           }
         }, 300);
       } else if (animation === "bounce") {
-        const messages = [baseTitle, "🚀 100% Free Tools", "🔒 Secure & Local", "✨ 50+ Web Utilities"];
+        const messages = [baseTitle, "🚀 100% Free Tools", "🔒 Secure & Local", "✨ Free Web Utilities"];
         let idx = 0;
         intervalId = setInterval(() => {
           document.title = messages[idx];
