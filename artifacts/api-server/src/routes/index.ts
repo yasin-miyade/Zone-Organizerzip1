@@ -268,6 +268,7 @@ router.get("/sitemap.xml", async (req, res) => {
       { url: "/about", priority: "0.6", changefreq: "monthly" },
       { url: "/privacy", priority: "0.4", changefreq: "yearly" },
       { url: "/terms", priority: "0.4", changefreq: "yearly" },
+      { url: "/cookie-policy", priority: "0.4", changefreq: "yearly" },
       { url: "/contact", priority: "0.5", changefreq: "monthly" },
       { url: "/faq", priority: "0.6", changefreq: "monthly" },
     ];
