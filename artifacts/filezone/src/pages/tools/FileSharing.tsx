@@ -83,6 +83,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const finalFileRef = useRef<File | null>(null);
   const receiversRef = useRef<Map<string, ReceiverPeer>>(new Map());
   const expiryTimerRef = useRef<any>(null);
+  // Tracks whether the receiver data channel has successfully opened.
+  // Using a ref avoids stale closure bugs in setTimeout/event handlers.
+  const dcOpenedRef = useRef(false);
 
   // Expiry countdown
   useEffect(() => {
@@ -289,8 +292,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       }
 
       if (offset >= file.size) {
-        // Send EOF
-        conn.send({ type: "EOF" });
+        // Send EOF as JSON string
+        conn.send(JSON.stringify({ type: "EOF" }));
         const r = receiversRef.current.get(rid);
         if (r) { r.status = "completed"; r.progress = 100; syncReceivers(); }
         onDone();
@@ -335,13 +338,13 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       reader.readAsArrayBuffer(slice);
     };
 
-    // Send metadata header first
-    conn.send({
+    // Send metadata header as JSON string (raw serialization sends strings as-is)
+    conn.send(JSON.stringify({
       type: "metadata",
       name: file.name,
       size: file.size,
       mimeType: file.type || "application/octet-stream"
-    });
+    }));
 
     sendNextChunk();
   };
@@ -400,9 +403,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
       // Connect to the sender's fixed ID
       const senderFixedId = makeSenderFixedId(joinCode);
+      dcOpenedRef.current = false; // reset for new connection attempt
       const conn = peer.connect(senderFixedId, {
         reliable: true,
-        serialization: "binary"
+        serialization: "raw"  // raw: strings stay as strings, ArrayBuffers as ArrayBuffers
       });
 
       let fileMeta: { name: string; size: number; mimeType: string } | null = null;
@@ -411,15 +415,17 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       let startTime = 0;
       const allFiles: { name: string; blob: Blob; size: number }[] = [];
 
+      // Use a ref check (NOT stale React state) to determine if we connected
       const connectionTimeout = setTimeout(() => {
-        if (status !== "transferring" && status !== "completed") {
+        if (!dcOpenedRef.current) {
           setStatus("error");
           setStatusText("Could not reach sender. Make sure the code is correct and the sender's browser is open.");
-          conn.close();
+          try { conn.close(); } catch {}
         }
-      }, 15000);
+      }, 20000);
 
       conn.on("open", () => {
+        dcOpenedRef.current = true; // mark as successfully opened
         clearTimeout(connectionTimeout);
         setStatus("transferring");
         setStatusText("Receiving file…");
@@ -428,31 +434,39 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       });
 
       conn.on("data", (data: any) => {
-        if (data && typeof data === "object" && !(data instanceof ArrayBuffer)) {
-          if (data.type === "metadata") {
-            fileMeta = data;
-            setActiveFileName(data.name);
-            setActiveFileSize(data.size);
-            receivedChunks = [];
-            receivedBytes = 0;
-            setProgress(0);
-            startTime = Date.now();
-          } else if (data.type === "EOF" && fileMeta) {
-            const blob = new Blob(receivedChunks, { type: fileMeta.mimeType });
-            const fileEntry = { name: fileMeta.name, blob, size: fileMeta.size };
-            allFiles.push(fileEntry);
-            setReceivedFiles([...allFiles]);
-            setStatus("completed");
-            setStatusText("File received!");
-            onDone();
-            conn.close();
-          } else if (data.type === "cancel") {
-            setStatus("error");
-            setStatusText("Sender cancelled the transfer.");
-          }
-        } else if (data instanceof ArrayBuffer) {
-          receivedChunks.push(data);
-          receivedBytes += data.byteLength;
+        // raw serialization: strings = control messages (JSON), ArrayBuffers = file chunks
+        if (typeof data === "string") {
+          try {
+            const msg = JSON.parse(data);
+            if (msg.type === "metadata") {
+              fileMeta = msg;
+              setActiveFileName(msg.name);
+              setActiveFileSize(msg.size);
+              receivedChunks = [];
+              receivedBytes = 0;
+              setProgress(0);
+              startTime = Date.now();
+            } else if (msg.type === "EOF" && fileMeta) {
+              const blob = new Blob(receivedChunks, { type: fileMeta.mimeType });
+              const fileEntry = { name: fileMeta.name, blob, size: fileMeta.size };
+              allFiles.push(fileEntry);
+              setReceivedFiles([...allFiles]);
+              setStatus("completed");
+              setStatusText("File received!");
+              onDone();
+              conn.close();
+            } else if (msg.type === "cancel") {
+              setStatus("error");
+              setStatusText("Sender cancelled the transfer.");
+            }
+          } catch (e) { console.error("Invalid control message", e); }
+        } else {
+          // Binary chunk data
+          const ab: ArrayBuffer = data instanceof ArrayBuffer ? data
+            : ArrayBuffer.isView(data) ? (data as any).buffer
+            : data;
+          receivedChunks.push(ab);
+          receivedBytes += ab.byteLength;
 
           if (fileMeta) {
             const pct = Math.min(100, Math.round((receivedBytes / fileMeta.size) * 100));
@@ -471,9 +485,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
       conn.on("close", () => {
         clearTimeout(connectionTimeout);
-        if (status !== "completed") {
+        // Use ref (not stale React state) to check if transfer completed
+        if (!dcOpenedRef.current) {
           setStatus("error");
-          setStatusText("Connection closed by sender.");
+          setStatusText("Connection closed before transfer started. Check the code and try again.");
         }
       });
 
