@@ -9,23 +9,12 @@ import { Loader2, Download, Copy, Check, Share2, ArrowRight, Laptop, Smartphone,
 import { Badge } from "@/components/ui/badge";
 import { baseName } from "./ToolHelpers";
 
-// Integrated Public STUN + Metered TURN servers for long-distance NAT traversal
+// High-reliability public STUN servers for instant connection handshakes
 const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:openrelay.metered.ca:80" },
-    {
-      urls: [
-        "turn:openrelay.metered.ca:80?transport=udp",
-        "turn:openrelay.metered.ca:80?transport=tcp",
-        "turn:openrelay.metered.ca:443?transport=udp",
-        "turn:openrelay.metered.ca:443?transport=tcp"
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject"
-    }
+    { urls: "stun:stun2.l.google.com:19302" }
   ]
 };
 
@@ -64,8 +53,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const [activeFileName, setActiveFileName] = useState("");
   const [activeFileSize, setActiveFileSize] = useState(0);
 
-  // Connection permission request list for Sender UI
-  const [pendingPermissions, setPendingPermissions] = useState<string[]>([]);
+  // Expiration countdown timer (seconds)
+  const [expiryTime, setExpiryTime] = useState<number | null>(null);
 
   // Sender active peers state
   const [activePeers, setActivePeers] = useState<Record<string, {
@@ -90,6 +79,23 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const peersRef = useRef<Map<string, PeerState>>(new Map());
   const finalFileRef = useRef<File | null>(null);
   const inputCodeRef = useRef<string>("");
+
+  // Expiration timer logic
+  useEffect(() => {
+    if (expiryTime === null) return;
+    if (expiryTime <= 0) {
+      if (tab === "send") handleCancelSend();
+      else handleCancelReceive();
+      toast({ title: "Session expired", description: "The connection code has expired.", variant: "destructive" });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setExpiryTime(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [expiryTime]);
 
   // Auto-connect on code parameter
   useEffect(() => {
@@ -194,7 +200,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       setQrUrl(dataUrl);
 
       setStatus("waiting");
-      setStatusText("Waiting for recipients to connect...");
+      setStatusText("Waiting for recipients...");
+      setExpiryTime(600); // 10 minute expiration timer
 
       // Start Polling for incoming Peer SDP Offers & candidate data
       startSignalingLoop(newCode, "sender");
@@ -223,6 +230,12 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     const readSlice = () => {
       const peer = peersRef.current.get(receiverId);
       if (!peer || peer.status === "error") return; // Abort if peer errored/closed
+
+      // Backpressure throttle check to prevent looping in the background or getting stuck
+      if (channel.bufferedAmount > 1024 * 1024) { 
+        setTimeout(readSlice, 50);
+        return;
+      }
 
       const slice = file.slice(offset, offset + CHUNK_SIZE);
       reader.readAsArrayBuffer(slice);
@@ -255,14 +268,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         }
 
         if (offset < file.size) {
-          if (channel.bufferedAmount > 16 * 1024 * 1024) {
-            channel.onbufferedamountlow = () => {
-              channel.onbufferedamountlow = null;
-              readSlice();
-            };
-          } else {
-            setTimeout(readSlice, 0);
-          }
+          readSlice();
         } else {
           // EOF packet
           channel.send(JSON.stringify({ type: "EOF" }));
@@ -297,18 +303,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       if (peer.dc) peer.dc.close();
     }
     peersRef.current.clear();
-    setPendingPermissions([]);
+    setExpiryTime(null);
     setActivePeers({});
     resetAll();
-  };
-
-  const handlePermissionResponse = async (rId: string, allowed: boolean) => {
-    setPendingPermissions(prev => prev.filter(id => id !== rId));
-    if (allowed) {
-      await sendSignal(code, "sender", { type: "permission_granted" }, rId);
-    } else {
-      await sendSignal(code, "sender", { type: "permission_denied" }, rId);
-    }
   };
 
   // --- RECEIVER FLOW ---
@@ -322,7 +319,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
   const handleReceive = async (joinCode: string) => {
     setStatus("connecting");
-    setStatusText("Waiting for sender approval...");
+    setStatusText("Connecting to sender...");
     cleanupConnection();
 
     inputCodeRef.current = joinCode;
@@ -335,22 +332,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         throw new Error(err.error || "Failed to join session.");
       }
 
-      // Start signaling poll loop to catch permission response
-      startSignalingLoop(joinCode, "receiver");
+      setExpiryTime(600); // 10 minute receiver expiry
 
-      // Send the permission request signal to the sender
-      await sendSignal(joinCode, "receiver", { type: "request_permission" });
-
-    } catch (e: any) {
-      setStatus("error");
-      setStatusText(e.message || "Failed to connect.");
-    }
-  };
-
-  const initializeReceiverWebRTC = async () => {
-    try {
-      setStatusText("Approval received. Creating P2P link...");
-      const joinCode = inputCodeRef.current;
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
 
@@ -367,6 +350,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
       dc.onopen = () => {
         clearSignaling();
+        setExpiryTime(null); // Clear timer once transferring
         setStatus("transferring");
         setStatusText("Receiving files...");
         startTime = Date.now();
@@ -445,16 +429,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         checkState();
       });
 
-      // Send Offer + candidates in exactly 1 request
+      // Send Offer + candidates in exactly 1 request (No permission required!)
       await sendSignal(joinCode, "receiver", { 
         type: "offer", 
         data: pc.localDescription, 
         candidates 
       });
 
+      startSignalingLoop(joinCode, "receiver");
+
     } catch (e: any) {
       setStatus("error");
-      setStatusText(e.message || "Failed to initialize connection.");
+      setStatusText(e.message || "Failed to connect.");
     }
   };
 
@@ -462,6 +448,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     try {
       await fetch(`/api/transfer/close/${inputCode}?receiverId=${receiverIdRef.current}`, { method: "POST" });
     } catch {}
+    setExpiryTime(null);
     resetAll();
   };
 
@@ -499,18 +486,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               const rId = signal.receiverId;
               if (!rId) continue;
 
-              // Handle permission request from a receiver
-              if (signal.type === "request_permission") {
-                setPendingPermissions(prev => {
-                  if (prev.includes(rId)) return prev;
-                  return [...prev, rId];
-                });
-                continue;
-              }
-
               // Handle connection closing signal from a receiver
               if (signal.type === "close") {
-                setPendingPermissions(prev => prev.filter(id => id !== rId));
                 const peer = peersRef.current.get(rId);
                 if (peer) {
                   peer.pc.close();
@@ -610,13 +587,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               // Receiver side signal processing
               const pc = peerConnectionRef.current;
 
-              if (signal.type === "permission_granted") {
-                initializeReceiverWebRTC();
-              } else if (signal.type === "permission_denied") {
-                setStatus("error");
-                setStatusText("Connection request denied by sender.");
-                cleanupConnection();
-              } else if (signal.type === "answer" && pc) {
+              if (signal.type === "answer" && pc) {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
                 
                 // Apply sender candidates
@@ -670,7 +641,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     setEta(null);
     setInputCode("");
     setReceivedFile(null);
-    setPendingPermissions([]);
   };
 
   const formatSize = (bytes: number) => {
@@ -685,6 +655,13 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}m ${secs}s`;
+  };
+
+  const formatExpiry = (seconds: number | null) => {
+    if (seconds === null) return "";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `Expires in ${m}:${s.toString().padStart(2, "0")}`;
   };
 
   const peerList = Object.values(activePeers);
@@ -740,6 +717,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                     <h2 className="text-4xl font-extrabold tracking-widest text-primary font-mono select-all">
                       {code.slice(0, 3)} {code.slice(3)}
                     </h2>
+                    {expiryTime !== null && (
+                      <p className="text-xs text-rose-500 font-medium animate-pulse">
+                        {formatExpiry(expiryTime)}
+                      </p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-white border rounded-2xl shadow-sm">
@@ -752,29 +734,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-
-                  {/* Permission Requests Panel */}
-                  {pendingPermissions.length > 0 && (
-                    <div className="w-full max-w-md border-t pt-4 mt-2 space-y-2.5">
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider text-left">Pending Approvals</p>
-                      {pendingPermissions.map(reqId => (
-                        <div key={reqId} className="p-4 border border-primary/20 rounded-xl bg-primary/5 flex items-center justify-between gap-3 text-left animate-in fade-in duration-300">
-                          <div>
-                            <p className="text-xs font-bold text-foreground">Device Connection Request</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">ID: {reqId.toUpperCase()}</p>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Button size="sm" className="h-8 text-xs px-3" onClick={() => handlePermissionResponse(reqId, true)}>
-                              Allow
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:bg-destructive/10" onClick={() => handlePermissionResponse(reqId, false)}>
-                              Deny
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                     {peerList.length === 0 ? (
@@ -868,6 +827,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             <div className="flex flex-col items-center justify-center p-12 border rounded-2xl bg-muted/20 text-center space-y-4 animate-in fade-in duration-300">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-sm font-semibold text-muted-foreground">{statusText}</p>
+              {expiryTime !== null && (
+                <p className="text-xs text-rose-500 font-medium animate-pulse mt-1">
+                  {formatExpiry(expiryTime)}
+                </p>
+              )}
               <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="mt-4 text-xs">Cancel Connection</Button>
             </div>
           )}
