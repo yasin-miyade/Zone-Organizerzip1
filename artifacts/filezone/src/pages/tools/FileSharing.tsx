@@ -52,7 +52,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const [activeFileName, setActiveFileName] = useState("");
   const [activeFileSize, setActiveFileSize] = useState(0);
 
-  // Sender multi-peer rendering state
+  // Sender active peers state
   const [activePeers, setActivePeers] = useState<Record<string, {
     id: string;
     status: "connecting" | "transferring" | "completed" | "error";
@@ -70,15 +70,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const signalIntervalRef = useRef<any>(null);
-  const pollIntervalRef = useRef<any>(null);
   
   // Sender multi-peer mapping
   const peersRef = useRef<Map<string, PeerState>>(new Map());
-  const peerCandidatesQueueRef = useRef<Map<string, any[]>>(new Map());
   const finalFileRef = useRef<File | null>(null);
-
-  // Single receiver candidate queue
-  const iceCandidatesQueueRef = useRef<any[]>([]);
 
   // Auto-connect on code parameter
   useEffect(() => {
@@ -99,10 +94,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       clearInterval(signalIntervalRef.current);
       signalIntervalRef.current = null;
     }
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
   };
 
   const cleanupConnection = () => {
@@ -115,7 +106,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
-    iceCandidatesQueueRef.current = [];
   };
 
   const updatePeersState = () => {
@@ -291,7 +281,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       if (peer.dc) peer.dc.close();
     }
     peersRef.current.clear();
-    peerCandidatesQueueRef.current.clear();
     setActivePeers({});
     resetAll();
   };
@@ -323,9 +312,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peerConnectionRef.current = pc;
 
+      const candidates: any[] = [];
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          sendSignal(joinCode, "receiver", { type: "candidate", data: event.candidate.toJSON() });
+          candidates.push(event.candidate.toJSON());
         }
       };
 
@@ -397,7 +387,28 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       // Create WebRTC Offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      await sendSignal(joinCode, "receiver", { type: "offer", data: offer });
+
+      // Wait for ICE gathering to complete/timeout
+      await new Promise<void>((resolve) => {
+        let resolved = false;
+        const checkState = () => {
+          if (pc.iceGatheringState === "complete") {
+            if (!resolved) { resolve(); resolved = true; }
+          }
+        };
+        pc.onicegatheringstatechange = checkState;
+        setTimeout(() => {
+          if (!resolved) { resolve(); resolved = true; }
+        }, 300);
+        checkState();
+      });
+
+      // Send Offer + candidates in exactly 1 request
+      await sendSignal(joinCode, "receiver", { 
+        type: "offer", 
+        data: pc.localDescription, 
+        candidates 
+      });
 
       startSignalingLoop(joinCode, "receiver");
 
@@ -431,7 +442,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const startSignalingLoop = (sessionCode: string, role: "sender" | "receiver") => {
     let polling = false;
 
-    signalIntervalRef.current = setInterval(async () => {
+    const pollFunc = async () => {
       if (polling) return;
       polling = true;
 
@@ -460,14 +471,13 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                 continue;
               }
 
-              // Retrieve or lazy-initialize PeerConnection for this receiver ID
-              let peer = peersRef.current.get(rId);
-              if (!peer) {
+              if (signal.type === "offer") {
                 const pc = new RTCPeerConnection(ICE_SERVERS);
                 
+                const senderCandidates: any[] = [];
                 pc.onicecandidate = (event) => {
                   if (event.candidate) {
-                    sendSignal(sessionCode, "sender", { type: "candidate", data: event.candidate.toJSON() }, rId);
+                    senderCandidates.push(event.candidate.toJSON());
                   }
                 };
 
@@ -494,9 +504,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                   };
                 };
 
-                peer = {
+                const peer = {
                   pc,
-                  status: "connecting",
+                  status: "connecting" as const,
                   progress: 0,
                   fileName: finalFileRef.current!.name,
                   fileSize: finalFileRef.current!.size,
@@ -504,37 +514,46 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                   eta: null
                 };
                 peersRef.current.set(rId, peer);
+                setStatus("active");
                 updatePeersState();
-              }
 
-              if (signal.type === "offer") {
-                await peer.pc.setRemoteDescription(new RTCSessionDescription(signal.data));
-                const answer = await peer.pc.createAnswer();
-                await peer.pc.setLocalDescription(answer);
-                await sendSignal(sessionCode, "sender", { type: "answer", data: answer }, rId);
+                // Apply remote offer
+                await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
 
-                // Flush receiver candidates
-                const queue = peerCandidatesQueueRef.current.get(rId) || [];
-                for (const cand of queue) {
+                // Apply receiver candidates
+                for (const cand of signal.candidates || []) {
                   try {
-                    await peer.pc.addIceCandidate(new RTCIceCandidate(cand));
+                    await pc.addIceCandidate(new RTCIceCandidate(cand));
                   } catch (e) {
-                    console.error("Error adding queued candidate", e);
+                    console.error("Error adding remote candidate:", e);
                   }
                 }
-                peerCandidatesQueueRef.current.set(rId, []);
-              } else if (signal.type === "candidate") {
-                if (peer.pc.remoteDescription && peer.pc.remoteDescription.type) {
-                  try {
-                    await peer.pc.addIceCandidate(new RTCIceCandidate(signal.data));
-                  } catch (e) {
-                    console.error("Error adding candidate", e);
-                  }
-                } else {
-                  const queue = peerCandidatesQueueRef.current.get(rId) || [];
-                  queue.push(signal.data);
-                  peerCandidatesQueueRef.current.set(rId, queue);
-                }
+
+                // Create Answer
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                // Wait for sender's ICE gathering
+                await new Promise<void>((resolve) => {
+                  let resolved = false;
+                  const checkState = () => {
+                    if (pc.iceGatheringState === "complete") {
+                      if (!resolved) { resolve(); resolved = true; }
+                    }
+                  };
+                  pc.onicegatheringstatechange = checkState;
+                  setTimeout(() => {
+                    if (!resolved) { resolve(); resolved = true; }
+                  }, 300);
+                  checkState();
+                });
+
+                // Send Answer + candidates back in 1 request
+                await sendSignal(sessionCode, "sender", { 
+                  type: "answer", 
+                  data: pc.localDescription, 
+                  candidates: senderCandidates 
+                }, rId);
               }
 
             } else {
@@ -545,24 +564,13 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               if (signal.type === "answer") {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal.data));
                 
-                // Flush candidates
-                for (const cand of iceCandidatesQueueRef.current) {
+                // Apply sender candidates
+                for (const cand of signal.candidates || []) {
                   try {
                     await pc.addIceCandidate(new RTCIceCandidate(cand));
                   } catch (e) {
-                    console.error("Error adding queued candidate:", e);
-                  }
-                }
-                iceCandidatesQueueRef.current = [];
-              } else if (signal.type === "candidate") {
-                if (pc.remoteDescription && pc.remoteDescription.type) {
-                  try {
-                    await pc.addIceCandidate(new RTCIceCandidate(signal.data));
-                  } catch (e) {
                     console.error("Error adding candidate:", e);
                   }
-                } else {
-                  iceCandidatesQueueRef.current.push(signal.data);
                 }
               }
             }
@@ -578,22 +586,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       } finally {
         polling = false;
       }
-    }, 400);
+    };
 
-    // Sender polls joining list
-    if (role === "sender") {
-      pollIntervalRef.current = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/transfer/poll-receiver/${sessionCode}`);
-          if (res.ok) {
-            const { receivers } = await res.json();
-            if (receivers.length > 0 && status === "waiting") {
-              setStatus("active");
-            }
-          }
-        } catch {}
-      }, 800);
-    }
+    // Poll immediately, then every 600ms
+    pollFunc();
+    signalIntervalRef.current = setInterval(pollFunc, 600);
   };
 
   const downloadReceivedFile = () => {
