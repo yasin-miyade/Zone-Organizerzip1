@@ -62,9 +62,19 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     };
   }, []);
 
+  const clearSignaling = () => {
+    if (signalIntervalRef.current) {
+      clearInterval(signalIntervalRef.current);
+      signalIntervalRef.current = null;
+    }
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
   const cleanupConnection = () => {
-    if (signalIntervalRef.current) clearInterval(signalIntervalRef.current);
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    clearSignaling();
     if (dataChannelRef.current) {
       dataChannelRef.current.close();
       dataChannelRef.current = null;
@@ -149,6 +159,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       dataChannelRef.current = dc;
 
       dc.onopen = () => {
+        clearSignaling();
         setStatus("transferring");
         setStatusText("Transferring files...");
         sendFileData(dc, finalFile);
@@ -297,6 +308,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         dataChannelRef.current = dc;
 
         dc.onopen = () => {
+          clearSignaling();
           setStatus("transferring");
           setStatusText("Receiving files...");
           startTime = Date.now();
@@ -437,7 +449,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       } finally {
         polling = false;
       }
-    }, 1500);
+    }, 400);
 
     // If sender, also monitor receiver connection status
     if (role === "sender") {
@@ -450,10 +462,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               setStatus("connecting");
               setStatusText("Connecting to receiver...");
               clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
             }
           }
         } catch {}
-      }, 2000);
+      }, 500);
     }
   };
 
