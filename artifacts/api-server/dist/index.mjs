@@ -57597,8 +57597,9 @@ router6.post("/transfer/create", (req, res) => {
   activeTransfers.set(code, {
     code,
     status: "waiting",
-    senderSignals: [],
-    receiverSignals: [],
+    receivers: /* @__PURE__ */ new Set(),
+    senderQueue: [],
+    receiverQueues: /* @__PURE__ */ new Map(),
     createdAt: Date.now(),
     lastActiveAt: Date.now()
   });
@@ -57608,15 +57609,18 @@ router6.get("/transfer/poll-receiver/:code", (req, res) => {
   const session = activeTransfers.get(req.params.code);
   if (!session) return res.status(404).json({ error: "Session expired or not found" });
   session.lastActiveAt = Date.now();
-  res.json({ status: session.status });
+  res.json({ status: session.status, receivers: Array.from(session.receivers) });
 });
 router6.post("/transfer/join/:code", (req, res) => {
   const session = activeTransfers.get(req.params.code);
   if (!session) return res.status(404).json({ error: "Invalid connection code or session expired" });
-  if (session.status !== "waiting") {
-    return res.status(400).json({ error: "This code is already in use or active" });
+  const { receiverId } = req.query;
+  if (!receiverId) return res.status(400).json({ error: "Missing receiverId" });
+  session.receivers.add(receiverId);
+  if (!session.receiverQueues.has(receiverId)) {
+    session.receiverQueues.set(receiverId, []);
   }
-  session.status = "connecting";
+  session.status = "active";
   session.lastActiveAt = Date.now();
   res.json({ success: true });
 });
@@ -57626,10 +57630,16 @@ router6.post("/transfer/signal/:code/:role", (req, res) => {
   if (!session) return res.status(404).json({ error: "Session expired or not found" });
   session.lastActiveAt = Date.now();
   const signalMsg = req.body;
+  const { receiverId } = req.query;
   if (role === "sender") {
-    session.receiverSignals.push({ ...signalMsg, timestamp: Date.now() });
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for sender signal" });
+    const queue = session.receiverQueues.get(receiverId);
+    if (queue) {
+      queue.push({ ...signalMsg, timestamp: Date.now() });
+    }
   } else if (role === "receiver") {
-    session.senderSignals.push({ ...signalMsg, timestamp: Date.now() });
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for receiver signal" });
+    session.senderQueue.push({ ...signalMsg, receiverId, timestamp: Date.now() });
   } else {
     return res.status(400).json({ error: "Invalid signaling role" });
   }
@@ -57641,20 +57651,32 @@ router6.get("/transfer/signal/:code/:role", (req, res) => {
   if (!session) return res.status(404).json({ error: "Session expired or not found" });
   session.lastActiveAt = Date.now();
   let signals = [];
+  const { receiverId } = req.query;
   if (role === "sender") {
-    signals = session.senderSignals;
-    session.senderSignals = [];
+    signals = session.senderQueue;
+    session.senderQueue = [];
   } else if (role === "receiver") {
-    signals = session.receiverSignals;
-    session.receiverSignals = [];
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for receiver polling" });
+    signals = session.receiverQueues.get(receiverId) || [];
+    session.receiverQueues.set(receiverId, []);
   } else {
     return res.status(400).json({ error: "Invalid signaling role" });
   }
   res.json({ signals });
 });
 router6.post("/transfer/close/:code", (req, res) => {
-  const deleted = activeTransfers.delete(req.params.code);
-  res.json({ success: deleted });
+  const { receiverId } = req.query;
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.json({ success: false });
+  if (receiverId) {
+    session.receivers.delete(receiverId);
+    session.receiverQueues.delete(receiverId);
+    session.senderQueue.push({ type: "close", data: null, receiverId, timestamp: Date.now() });
+    res.json({ success: true });
+  } else {
+    const deleted = activeTransfers.delete(req.params.code);
+    res.json({ success: deleted });
+  }
 });
 var routes_default = router6;
 

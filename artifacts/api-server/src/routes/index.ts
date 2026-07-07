@@ -327,14 +327,16 @@ router.get("/robots.txt", (req, res) => {
 interface SignalingMessage {
   type: string;
   data: any;
+  receiverId?: string; // Target or source receiver
   timestamp: number;
 }
 
 interface TransferSession {
   code: string;
-  status: "waiting" | "connecting" | "active" | "closed";
-  senderSignals: SignalingMessage[];
-  receiverSignals: SignalingMessage[];
+  status: "waiting" | "active" | "closed";
+  receivers: Set<string>;
+  senderQueue: SignalingMessage[];
+  receiverQueues: Map<string, SignalingMessage[]>;
   createdAt: number;
   lastActiveAt: number;
 }
@@ -367,8 +369,9 @@ router.post("/transfer/create", (req, res) => {
   activeTransfers.set(code, {
     code,
     status: "waiting",
-    senderSignals: [],
-    receiverSignals: [],
+    receivers: new Set(),
+    senderQueue: [],
+    receiverQueues: new Map(),
     createdAt: Date.now(),
     lastActiveAt: Date.now()
   });
@@ -376,13 +379,13 @@ router.post("/transfer/create", (req, res) => {
   res.json({ code });
 });
 
-// Check if a receiver joined (Sender polling)
+// Check if any receiver joined (Sender polling)
 router.get("/transfer/poll-receiver/:code", (req, res) => {
   const session = activeTransfers.get(req.params.code);
   if (!session) return res.status(404).json({ error: "Session expired or not found" });
 
   session.lastActiveAt = Date.now();
-  res.json({ status: session.status });
+  res.json({ status: session.status, receivers: Array.from(session.receivers) });
 });
 
 // Join connection session (Receiver)
@@ -390,11 +393,15 @@ router.post("/transfer/join/:code", (req, res) => {
   const session = activeTransfers.get(req.params.code);
   if (!session) return res.status(404).json({ error: "Invalid connection code or session expired" });
 
-  if (session.status !== "waiting") {
-    return res.status(400).json({ error: "This code is already in use or active" });
+  const { receiverId } = req.query as { receiverId?: string };
+  if (!receiverId) return res.status(400).json({ error: "Missing receiverId" });
+
+  session.receivers.add(receiverId);
+  if (!session.receiverQueues.has(receiverId)) {
+    session.receiverQueues.set(receiverId, []);
   }
 
-  session.status = "connecting";
+  session.status = "active"; // Keep active to allow multiple connections
   session.lastActiveAt = Date.now();
   res.json({ success: true });
 });
@@ -407,11 +414,17 @@ router.post("/transfer/signal/:code/:role", (req, res) => {
 
   session.lastActiveAt = Date.now();
   const signalMsg = req.body as SignalingMessage;
+  const { receiverId } = req.query as { receiverId?: string };
 
   if (role === "sender") {
-    session.receiverSignals.push({ ...signalMsg, timestamp: Date.now() });
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for sender signal" });
+    const queue = session.receiverQueues.get(receiverId);
+    if (queue) {
+      queue.push({ ...signalMsg, timestamp: Date.now() });
+    }
   } else if (role === "receiver") {
-    session.senderSignals.push({ ...signalMsg, timestamp: Date.now() });
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for receiver signal" });
+    session.senderQueue.push({ ...signalMsg, receiverId, timestamp: Date.now() });
   } else {
     return res.status(400).json({ error: "Invalid signaling role" });
   }
@@ -427,13 +440,15 @@ router.get("/transfer/signal/:code/:role", (req, res) => {
 
   session.lastActiveAt = Date.now();
   let signals: SignalingMessage[] = [];
+  const { receiverId } = req.query as { receiverId?: string };
 
   if (role === "sender") {
-    signals = session.senderSignals;
-    session.senderSignals = []; // Consume/clear queue
+    signals = session.senderQueue;
+    session.senderQueue = []; // Consume/clear queue
   } else if (role === "receiver") {
-    signals = session.receiverSignals;
-    session.receiverSignals = []; // Consume/clear queue
+    if (!receiverId) return res.status(400).json({ error: "Missing receiverId for receiver polling" });
+    signals = session.receiverQueues.get(receiverId) || [];
+    session.receiverQueues.set(receiverId, []); // Consume/clear queue
   } else {
     return res.status(400).json({ error: "Invalid signaling role" });
   }
@@ -443,8 +458,22 @@ router.get("/transfer/signal/:code/:role", (req, res) => {
 
 // Close signaling session
 router.post("/transfer/close/:code", (req, res) => {
-  const deleted = activeTransfers.delete(req.params.code);
-  res.json({ success: deleted });
+  const { receiverId } = req.query as { receiverId?: string };
+  const session = activeTransfers.get(req.params.code);
+  if (!session) return res.json({ success: false });
+
+  if (receiverId) {
+    // If receiver cancelled, clean up only this receiver
+    session.receivers.delete(receiverId);
+    session.receiverQueues.delete(receiverId);
+    // Push close signal for this receiver to sender queue
+    session.senderQueue.push({ type: "close", data: null, receiverId, timestamp: Date.now() });
+    res.json({ success: true });
+  } else {
+    // If sender cancelled, delete the entire session
+    const deleted = activeTransfers.delete(req.params.code);
+    res.json({ success: deleted });
+  }
 });
 
 export default router;
