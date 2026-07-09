@@ -171,21 +171,30 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       setStatus("waiting"); setStatusText("Waiting for receivers…");
       setExpiryTime(EXPIRY_SECONDS);
 
-      // 4. Start polling for receiver connection
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/transfer/${data.code}/status`);
-          if (!statusRes.ok) return;
-          const statusData = await statusRes.json();
-          
-          if (statusData.receiverConnected) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            setStatus("active");
-            uploadFileStream(data.code, finalFileRef.current!);
+      // 4. Wait for receiver connection using HTTP Long-Polling
+      const waitReceiver = async (shareCode: string) => {
+        const controller = new AbortController();
+        senderAbortControllerRef.current = controller;
+        while (true) {
+          if (controller.signal.aborted) return;
+          try {
+            const waitRes = await fetch(`/api/transfer/${shareCode}/wait`, { signal: controller.signal });
+            if (!waitRes.ok) {
+              throw new Error("Session expired or connection closed.");
+            }
+            const waitData = await waitRes.json();
+            if (waitData.receiverConnected) {
+              setStatus("active");
+              uploadFileStream(shareCode, finalFileRef.current!);
+              return;
+            }
+          } catch (err: any) {
+            if (err.name === "AbortError") return;
+            await new Promise((r) => setTimeout(r, 2000));
           }
-        } catch {}
-      }, 1000);
+        }
+      };
+      waitReceiver(data.code);
 
     } catch (e: any) {
       console.error(e);
@@ -198,9 +207,9 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   /** Upload file in chunks over HTTP stream */
   const uploadFileStream = async (shareCode: string, file: File) => {
     let offset = 0;
-    const CHUNK_SIZE = 1024 * 1024; // 1 MB chunks
+    const CHUNK_SIZE = 256 * 1024; // 256 KB chunks — extremely reliable on mobile cellular uploads
     const startTime = Date.now();
-    setStatus("transferring");
+    setStatus("active");
 
     const controller = new AbortController();
     senderAbortControllerRef.current = controller;
@@ -315,11 +324,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
       // 2. Trigger native download (Vercel routes this to Render backend)
       const downloadUrl = `/api/transfer/${joinCode}/download`;
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = downloadUrl;
-      document.body.appendChild(iframe);
-      (window as any).downloadIframe = iframe;
+      window.location.href = downloadUrl;
 
       setStatus("transferring");
       setStatusText("Receiving…");
@@ -366,7 +371,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
           setStatus("completed");
           onDone();
         }
-      }, 1000);
+      }, 3000);
 
     } catch (e: any) {
       console.error(e);

@@ -9,6 +9,7 @@ interface TransferSession {
   receiverConnected: boolean;
   uploadedBytes: number;
   createdAt: number;
+  waitResponse?: any;
 }
 
 const router = Router();
@@ -21,6 +22,9 @@ setInterval(() => {
     if (now - session.createdAt > 15 * 60 * 1000) {
       if (session.receiverResponse) {
         try { session.receiverResponse.end(); } catch {}
+      }
+      if (session.waitResponse) {
+        try { session.waitResponse.status(408).end(); } catch {}
       }
       sessions.delete(code);
     }
@@ -63,13 +67,48 @@ router.post("/transfer/create", (req, res) => {
 router.get("/transfer/:code/status", (req, res) => {
   const { code } = req.params;
   const session = sessions.get(code);
+
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   if (!session) return res.status(404).json({ error: "Session not found or expired" });
 
   res.json({
+    name: session.name,
+    totalBytes: session.size,
     receiverConnected: session.receiverConnected,
-    uploadedBytes: session.uploadedBytes,
-    totalBytes: session.size
+    uploadedBytes: session.uploadedBytes
   });
+});
+
+// GET /transfer/:code/wait — Long polling endpoint for sender to wait for receiver connection
+router.get("/transfer/:code/wait", (req, res) => {
+  const { code } = req.params;
+  const session = sessions.get(code);
+  if (!session) return res.status(404).json({ error: "Session not found or expired" });
+
+  if (session.receiverConnected) {
+    return res.json({ receiverConnected: true });
+  }
+
+  // Save wait response object
+  session.waitResponse = res;
+
+  // Handle connection close
+  req.on("close", () => {
+    if (session.waitResponse === res) {
+      session.waitResponse = null;
+    }
+  });
+
+  // Timeout after 30 seconds
+  setTimeout(() => {
+    if (session.waitResponse === res) {
+      res.json({ receiverConnected: false });
+      session.waitResponse = null;
+    }
+  }, 30000);
 });
 
 // GET /transfer/:code/download — Receiver connects to download file stream
@@ -80,6 +119,14 @@ router.get("/transfer/:code/download", (req, res) => {
 
   session.receiverConnected = true;
   session.receiverResponse = res;
+
+  // Notify any pending sender wait response
+  if (session.waitResponse) {
+    try {
+      session.waitResponse.json({ receiverConnected: true });
+      session.waitResponse = null;
+    } catch {}
+  }
 
   // Set file download headers
   res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(session.name)}"`);
