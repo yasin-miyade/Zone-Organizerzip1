@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://5toolbox.eu.cc/sitemap.xml
-
-Disallow: /admin
-Disallow: /api/admin/

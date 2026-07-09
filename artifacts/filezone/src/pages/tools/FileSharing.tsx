@@ -55,6 +55,44 @@ const PEER_CONFIG = {
   }
 };
 
+function getPeerOptions() {
+  const isProd = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  
+  let host = "localhost";
+  let port = 8080;
+  let path = "/peerjs";
+  let secure = false;
+
+  if (isProd) {
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    if (apiUrl) {
+      try {
+        const urlObj = new URL(apiUrl);
+        host = urlObj.hostname;
+        secure = urlObj.protocol === "https:";
+        port = secure ? 443 : 80;
+      } catch {
+        host = "zone-organizerzip1.onrender.com";
+        port = 443;
+        secure = true;
+      }
+    } else {
+      host = "zone-organizerzip1.onrender.com";
+      port = 443;
+      secure = true;
+    }
+  }
+
+  return {
+    host,
+    port,
+    path,
+    secure,
+    debug: 1,
+    ...PEER_CONFIG
+  };
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function makeSenderFixedId(code: string) { return `fzs${code}`; }
 function makeReceiverPeerId() { return `fzr${Math.random().toString(36).slice(2, 10)}`; }
@@ -202,8 +240,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const { Peer } = await import("peerjs");
       const fixedId = makeSenderFixedId(newCode);
 
-      // Use comprehensive ICE config with TCP/443 TURN for mobile network compatibility
-      const peer = new Peer(fixedId, { debug: 0, ...PEER_CONFIG });
+      // Use our custom, self-hosted PeerJS signaling server for stable matchmaking
+      const peer = new Peer(fixedId, getPeerOptions());
       senderPeerRef.current = peer;
 
       await new Promise<void>((resolve, reject) => {
@@ -371,8 +409,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const { Peer } = await import("peerjs");
       const myId = makeReceiverPeerId();
 
-      // Use comprehensive ICE config with TCP/443 TURN for mobile network compatibility
-      const peer = new Peer(myId, { debug: 0, ...PEER_CONFIG });
+      // Use our custom, self-hosted PeerJS signaling server for stable matchmaking
+      const peer = new Peer(myId, getPeerOptions());
       receiverPeerRef.current = peer;
 
       // Wait for our own peer to register with the broker
