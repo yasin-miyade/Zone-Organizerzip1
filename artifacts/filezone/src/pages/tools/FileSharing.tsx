@@ -715,7 +715,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Failed to receive file."}</p>
               <div className="flex gap-2 mt-4">
                 {retryCode && (
-                  <Button onClick={() => { setStatus("idle"); startReceiving(retryCode); }} className="gap-2">
+                  <Button onClick={() => startReceiving(retryCode)} className="gap-2">
                     <RefreshCw className="h-4 w-4" /> Retry (code: {retryCode})
                   </Button>
                 )}
