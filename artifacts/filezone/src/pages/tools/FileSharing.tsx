@@ -27,18 +27,33 @@ const EXPIRY_SECONDS = 600;     // 10-minute session window
 
 // ICE servers: STUN + multiple TURN fallbacks including TCP/443 for mobile carriers
 // (many cellular networks block UDP 3478 — TCP 443 always works like HTTPS)
-const ICE_SERVERS = [
+const ICE_SERVERS: RTCIceServer[] = [
+  // Multiple Google STUN for fast candidate gathering
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
-  // PeerJS TURN (UDP 3478)
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  // PeerJS official TURN (UDP 3478)
   { urls: "turn:0.peerjs.com:3478", username: "peerjs", credential: "peerjsp" },
-  // Open Relay TURN — TCP port 80 and 443 (works through mobile firewalls)
-  { urls: "turn:openrelay.metered.ca:80",              username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:80?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:443?transport=tcp",username: "openrelayproject", credential: "openrelayproject" },
+  // Open Relay Project TURN — all transport variants for maximum compatibility
+  // UDP port 80  (usually open)
+  { urls: "turn:openrelay.metered.ca:80",               username: "openrelayproject", credential: "openrelayproject" },
+  // TCP port 80  (bypass UDP blocks)
+  { urls: "turn:openrelay.metered.ca:80?transport=tcp",  username: "openrelayproject", credential: "openrelayproject" },
+  // UDP port 443 (many networks allow 443 UDP)
+  { urls: "turn:openrelay.metered.ca:443",               username: "openrelayproject", credential: "openrelayproject" },
+  // TCP port 443 (always open — looks like HTTPS, crosses any firewall)
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
 ];
 
-const PEER_CONFIG = { config: { iceServers: ICE_SERVERS, iceTransportPolicy: "all" as RTCIceTransportPolicy } };
+const PEER_CONFIG = {
+  config: {
+    iceServers: ICE_SERVERS,
+    iceTransportPolicy: "all" as RTCIceTransportPolicy,
+    bundlePolicy: "max-bundle" as RTCBundlePolicy,   // fewer ICE components = faster
+    sdpSemantics: "unified-plan",                    // required for iOS Safari
+  }
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function makeSenderFixedId(code: string) { return `fzs${code}`; }
@@ -240,6 +255,15 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         });
       });
 
+      // 5. Keep broker session alive — laptops throttle background tabs which can drop the WS
+      peer.on("disconnected", () => {
+        if (!peer.destroyed && senderPeerRef.current === peer) {
+          setTimeout(() => {
+            try { peer.reconnect(); } catch {}
+          }, 1500);
+        }
+      });
+
       // 5. Generate QR code
       const { default: QRCode } = await import("qrcode");
       const shareUrl = `${window.location.origin}/tools/file-sharing?code=${newCode}`;
@@ -331,8 +355,10 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     startReceiving(trimmed);
   };
 
-  const startReceiving = async (joinCode: string) => {
-    setStatus("connecting"); setStatusText("Connecting to sender…");
+  const startReceiving = async (joinCode: string, attempt = 1) => {
+    const MAX_ATTEMPTS = 3;
+    setStatus("connecting");
+    setStatusText(attempt > 1 ? `Connecting… (attempt ${attempt}/${MAX_ATTEMPTS})` : "Connecting to sender…");
     setReceivedFiles([]);
     dcOpenedRef.current = false;
 
@@ -372,25 +398,34 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       let startTime = 0;
       const allFiles: { name: string; blob: Blob; size: number }[] = [];
 
-      // Timeout guard — uses ref so it's never stale
+      // Timeout guard — if ICE hasn't connected after 20s, auto-retry before giving up
       const connTimeout = setTimeout(() => {
         if (!dcOpenedRef.current) {
-          setStatus("error");
-          setRetryCode(joinCode);
-          setStatusText("Timed out. Make sure the sender's tab is open with the same code.");
           try { conn.close(); } catch {}
+          if (attempt < MAX_ATTEMPTS) {
+            // Auto-retry with exponential back-off
+            setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
+          } else {
+            setStatus("error");
+            setRetryCode(joinCode);
+            setStatusText(`Connection timed out after ${MAX_ATTEMPTS} attempts. Check the code and make sure the sender's tab is open.`);
+          }
         }
-      }, 30000);
+      }, 20000);
 
-      // ← Critical: handle peer-unavailable (fires immediately when sender ID not found)
-      // Without this the app silently waits 30s then times out
+      // peer-unavailable fires instantly when the sender's peer ID doesn't exist
       peer.on("error", (err: any) => {
         if (err.type === "peer-unavailable") {
           clearTimeout(connTimeout);
           if (!dcOpenedRef.current) {
-            setStatus("error");
-            setRetryCode(joinCode);
-            setStatusText("Sender not found. Make sure the sender's browser is open with the correct code, then tap Retry.");
+            if (attempt < MAX_ATTEMPTS) {
+              // Sender peer might not be registered yet — retry after a short delay
+              setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
+            } else {
+              setStatus("error");
+              setRetryCode(joinCode);
+              setStatusText("Sender not found. Make sure sender's browser is open with the correct code.");
+            }
           }
         }
       });
@@ -446,16 +481,25 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       conn.on("close", () => {
         clearTimeout(connTimeout);
         if (!dcOpenedRef.current) {
-          setStatus("error");
-          setRetryCode(joinCode);
-          setStatusText("Connection closed before transfer started. Check the code and tap Retry.");
+          if (attempt < MAX_ATTEMPTS) {
+            setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
+          } else {
+            setStatus("error");
+            setRetryCode(joinCode);
+            setStatusText("Connection closed before transfer started. Tap Retry to try again.");
+          }
         }
       });
 
       conn.on("error", (err: any) => {
         clearTimeout(connTimeout);
-        setStatus("error");
-        setStatusText("Connection error: " + (err?.message || "Unknown. Try again."));
+        if (attempt < MAX_ATTEMPTS) {
+          setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
+        } else {
+          setStatus("error");
+          setRetryCode(joinCode);
+          setStatusText("Connection error: " + (err?.message || "Unknown. Tap Retry."));
+        }
       });
 
     } catch (e: any) {
