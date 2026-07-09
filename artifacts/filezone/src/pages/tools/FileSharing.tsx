@@ -25,6 +25,21 @@ import { baseName } from "./ToolHelpers";
 const CHUNK_SIZE = 16 * 1024;   // 16 KB – keeps JSON messages small on mobile
 const EXPIRY_SECONDS = 600;     // 10-minute session window
 
+// ICE servers: STUN + multiple TURN fallbacks including TCP/443 for mobile carriers
+// (many cellular networks block UDP 3478 — TCP 443 always works like HTTPS)
+const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  // PeerJS TURN (UDP 3478)
+  { urls: "turn:0.peerjs.com:3478", username: "peerjs", credential: "peerjsp" },
+  // Open Relay TURN — TCP port 80 and 443 (works through mobile firewalls)
+  { urls: "turn:openrelay.metered.ca:80",              username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:80?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp",username: "openrelayproject", credential: "openrelayproject" },
+];
+
+const PEER_CONFIG = { config: { iceServers: ICE_SERVERS, iceTransportPolicy: "all" as RTCIceTransportPolicy } };
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function makeSenderFixedId(code: string) { return `fzs${code}`; }
 function makeReceiverPeerId() { return `fzr${Math.random().toString(36).slice(2, 10)}`; }
@@ -68,6 +83,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     "idle" | "preparing" | "waiting" | "active" | "connecting" | "transferring" | "completed" | "error"
   >("idle");
   const [statusText, setStatusText] = useState("");
+  const [retryCode, setRetryCode] = useState<string | null>(null); // allow retry with same code
   const [inputCode, setInputCode] = useState("");
   const [receivedFiles, setReceivedFiles] = useState<{ name: string; blob: Blob; size: number }[]>([]);
   const [progress, setProgress] = useState(0);
@@ -171,8 +187,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const { Peer } = await import("peerjs");
       const fixedId = makeSenderFixedId(newCode);
 
-      // PeerJS default config includes TURN relay — do NOT override with custom iceServers
-      const peer = new Peer(fixedId, { debug: 0 });
+      // Use comprehensive ICE config with TCP/443 TURN for mobile network compatibility
+      const peer = new Peer(fixedId, { debug: 0, ...PEER_CONFIG });
       senderPeerRef.current = peer;
 
       await new Promise<void>((resolve, reject) => {
@@ -329,8 +345,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const { Peer } = await import("peerjs");
       const myId = makeReceiverPeerId();
 
-      // PeerJS default config includes TURN — do NOT override
-      const peer = new Peer(myId, { debug: 0 });
+      // Use comprehensive ICE config with TCP/443 TURN for mobile network compatibility
+      const peer = new Peer(myId, { debug: 0, ...PEER_CONFIG });
       receiverPeerRef.current = peer;
 
       // Wait for our own peer to register with the broker
@@ -360,10 +376,24 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const connTimeout = setTimeout(() => {
         if (!dcOpenedRef.current) {
           setStatus("error");
-          setStatusText("Could not reach sender. Make sure the sender's tab is open with the same code and try again.");
+          setRetryCode(joinCode);
+          setStatusText("Timed out. Make sure the sender's tab is open with the same code.");
           try { conn.close(); } catch {}
         }
-      }, 25000);
+      }, 30000);
+
+      // ← Critical: handle peer-unavailable (fires immediately when sender ID not found)
+      // Without this the app silently waits 30s then times out
+      peer.on("error", (err: any) => {
+        if (err.type === "peer-unavailable") {
+          clearTimeout(connTimeout);
+          if (!dcOpenedRef.current) {
+            setStatus("error");
+            setRetryCode(joinCode);
+            setStatusText("Sender not found. Make sure the sender's browser is open with the correct code, then tap Retry.");
+          }
+        }
+      });
 
       conn.on("open", () => {
         dcOpenedRef.current = true;   // ← prevents false timeout/close errors
@@ -417,7 +447,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         clearTimeout(connTimeout);
         if (!dcOpenedRef.current) {
           setStatus("error");
-          setStatusText("Connection closed. Make sure the sender's browser is still open.");
+          setRetryCode(joinCode);
+          setStatusText("Connection closed before transfer started. Check the code and tap Retry.");
         }
       });
 
@@ -682,9 +713,16 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             <div className="flex flex-col items-center p-8 border rounded-2xl bg-rose-50/10 border-rose-500/20 text-center space-y-4">
               <h3 className="font-bold text-lg text-rose-600 dark:text-rose-400">Connection Failed</h3>
               <p className="text-sm text-muted-foreground max-w-xs">{statusText || "Failed to receive file."}</p>
-              <Button onClick={resetAll} variant="outline" className="mt-4">
-                <RefreshCw className="h-4 w-4 mr-2" /> Try Again
-              </Button>
+              <div className="flex gap-2 mt-4">
+                {retryCode && (
+                  <Button onClick={() => { setStatus("idle"); startReceiving(retryCode); }} className="gap-2">
+                    <RefreshCw className="h-4 w-4" /> Retry (code: {retryCode})
+                  </Button>
+                )}
+                <Button onClick={() => { setRetryCode(null); resetAll(); }} variant="outline">
+                  Start Over
+                </Button>
+              </div>
             </div>
           )}
         </div>
