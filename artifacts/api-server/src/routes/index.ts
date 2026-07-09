@@ -5,6 +5,7 @@ import toolsRouter from "./tools";
 import adminRouter from "./admin";
 import blogsRouter from "./blogs";
 import commentsRouter from "./comments";
+import transferRouter from "./transfer";
 import { db } from "@workspace/db";
 import { toolsTable, siteSettingsTable, contactsTable, clipboardsTable, blogsTable, articlesTable } from "@workspace/db";
 
@@ -15,6 +16,7 @@ router.use(toolsRouter);
 router.use(adminRouter);
 router.use(blogsRouter);
 router.use(commentsRouter);
+router.use(transferRouter);
 
 // GET /public-settings
 router.get("/public-settings", async (req, res) => {

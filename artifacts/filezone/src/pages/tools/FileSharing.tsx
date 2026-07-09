@@ -12,118 +12,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { baseName } from "./ToolHelpers";
 
-// ─── Protocol ────────────────────────────────────────────────────────────────
-// All messages are plain JSON objects (serialization:"json") so they work on
-// every browser including iOS Safari which delivers binary as Blob not ArrayBuffer.
-//
-// Message types sent over the DataConnection:
-//   { type:"metadata", name, size, mimeType }
-//   { type:"chunk",    seq, data }   ← base64-encoded binary chunk
-//   { type:"EOF" }
-//   { type:"cancel" }
 
-const CHUNK_SIZE = 16 * 1024;   // 16 KB – keeps JSON messages small on mobile
-const EXPIRY_SECONDS = 600;     // 10-minute session window
-
-// ICE servers: STUN + multiple TURN fallbacks including TCP/443 for mobile carriers
-// (many cellular networks block UDP 3478 — TCP 443 always works like HTTPS)
-const ICE_SERVERS: RTCIceServer[] = [
-  // Multiple Google STUN for fast candidate gathering
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:stun3.l.google.com:19302" },
-  // PeerJS official TURN (UDP 3478)
-  { urls: "turn:0.peerjs.com:3478", username: "peerjs", credential: "peerjsp" },
-  // Open Relay Project TURN — all transport variants for maximum compatibility
-  // UDP port 80  (usually open)
-  { urls: "turn:openrelay.metered.ca:80",               username: "openrelayproject", credential: "openrelayproject" },
-  // TCP port 80  (bypass UDP blocks)
-  { urls: "turn:openrelay.metered.ca:80?transport=tcp",  username: "openrelayproject", credential: "openrelayproject" },
-  // UDP port 443 (many networks allow 443 UDP)
-  { urls: "turn:openrelay.metered.ca:443",               username: "openrelayproject", credential: "openrelayproject" },
-  // TCP port 443 (always open — looks like HTTPS, crosses any firewall)
-  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
-];
-
-const PEER_CONFIG = {
-  config: {
-    iceServers: ICE_SERVERS,
-    iceTransportPolicy: "all" as RTCIceTransportPolicy,
-    bundlePolicy: "max-bundle" as RTCBundlePolicy,   // fewer ICE components = faster
-    sdpSemantics: "unified-plan",                    // required for iOS Safari
-  }
-};
-
-function getPeerOptions() {
-  const isProd = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
-  
-  let host = "localhost";
-  let port = 8080;
-  let path = "/peerjs";
-  let secure = false;
-
-  if (isProd) {
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    if (apiUrl) {
-      try {
-        const urlObj = new URL(apiUrl);
-        host = urlObj.hostname;
-        secure = urlObj.protocol === "https:";
-        port = secure ? 443 : 80;
-      } catch {
-        host = "zone-organizerzip1.onrender.com";
-        port = 443;
-        secure = true;
-      }
-    } else {
-      host = "zone-organizerzip1.onrender.com";
-      port = 443;
-      secure = true;
-    }
-  }
-
-  return {
-    host,
-    port,
-    path,
-    secure,
-    debug: 1,
-    ...PEER_CONFIG
-  };
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function makeSenderFixedId(code: string) { return `fzs${code}`; }
-function makeReceiverPeerId() { return `fzr${Math.random().toString(36).slice(2, 10)}`; }
-
-/** ArrayBuffer → base64 string, safe for large buffers */
-function bufToB64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let str = "";
-  for (let i = 0; i < bytes.length; i += 8192) {
-    str += String.fromCharCode(...bytes.subarray(i, i + 8192));
-  }
-  return btoa(str);
-}
-
-/** base64 string → ArrayBuffer */
-function b64ToBuf(b64: string): ArrayBuffer {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ReceiverPeer {
-  conn: any;
+  id: string;
   status: "connecting" | "transferring" | "completed" | "error";
   progress: number;
   speed: number;
   eta: number | null;
-  id: string;
 }
+
+const EXPIRY_SECONDS = 600;     // 10-minute session window
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function FileSharing({ onDone }: { onDone: () => void }) {
@@ -150,13 +50,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   const { toast } = useToast();
 
   // Refs — using refs avoids stale-closure bugs inside async event handlers
-  const senderPeerRef   = useRef<any>(null);
-  const receiverPeerRef = useRef<any>(null);
-  const finalFileRef    = useRef<File | null>(null);
-  const receiversRef    = useRef<Map<string, ReceiverPeer>>(new Map());
-  const expiryTimerRef  = useRef<any>(null);
-  /** True once the receiver's DataConnection fires "open" — prevents false errors */
-  const dcOpenedRef     = useRef(false);
+  const finalFileRef = useRef<File | null>(null);
+  const expiryTimerRef = useRef<any>(null);
+  const senderAbortControllerRef = useRef<AbortController | null>(null);
+  const receiverAbortControllerRef = useRef<AbortController | null>(null);
+  const pollingIntervalRef = useRef<any>(null);
 
   // ── Expiry countdown ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -171,7 +69,11 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   }, [expiryTime]);
 
   // ── Cleanup on unmount ──────────────────────────────────────────────────────
-  useEffect(() => { return () => { destroyPeers(); }; }, []);
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   // ── Auto-connect from URL param ─────────────────────────────────────────────
   useEffect(() => {
@@ -185,15 +87,27 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   }, []);
 
   // ── Utility ─────────────────────────────────────────────────────────────────
-  const destroyPeers = () => {
+  const cleanup = () => {
     clearTimeout(expiryTimerRef.current);
-    if (senderPeerRef.current) { try { senderPeerRef.current.destroy(); } catch {} senderPeerRef.current = null; }
-    if (receiverPeerRef.current) { try { receiverPeerRef.current.destroy(); } catch {} receiverPeerRef.current = null; }
-    for (const r of receiversRef.current.values()) { try { r.conn.close(); } catch {} }
-    receiversRef.current.clear();
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (senderAbortControllerRef.current) {
+      senderAbortControllerRef.current.abort();
+      senderAbortControllerRef.current = null;
+    }
+    if (receiverAbortControllerRef.current) {
+      receiverAbortControllerRef.current.abort();
+      receiverAbortControllerRef.current = null;
+    }
+    // Clean up temporary iframe if any
+    const iframe = (window as any).downloadIframe;
+    if (iframe) {
+      try { document.body.removeChild(iframe); } catch {}
+      delete (window as any).downloadIframe;
+    }
   };
-
-  const syncReceivers = () => setReceiverPeers(Array.from(receiversRef.current.values()));
 
   const copyLink = () => {
     const url = `${window.location.origin}/tools/file-sharing?code=${code}`;
@@ -207,12 +121,13 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
   // SENDER FLOW
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const handleSend = async (retryCode?: string) => {
+  const handleSend = async () => {
     if (!files.length) {
       toast({ title: "Please select files to share", variant: "destructive" }); return;
     }
     setStatus("preparing"); setStatusText("Preparing files…");
-    destroyPeers(); receiversRef.current.clear(); setReceiverPeers([]);
+    cleanup();
+    setReceiverPeers([]);
 
     try {
       // 1. Build final file (zip if multiple)
@@ -231,91 +146,48 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       setActiveFileName(finalFile.name);
       setActiveFileSize(finalFile.size);
 
-      // 2. Generate a random 6-digit code (or reuse if retrying)
-      const newCode = retryCode || String(Math.floor(Math.random() * 900000) + 100000);
-      setCode(newCode);
-
-      // 3. Create PeerJS peer with fixed, code-based ID
-      setStatusText("Starting broker…");
-      const { Peer } = await import("peerjs");
-      const fixedId = makeSenderFixedId(newCode);
-
-      // Use our custom, self-hosted PeerJS signaling server for stable matchmaking
-      const peer = new Peer(fixedId, getPeerOptions());
-      senderPeerRef.current = peer;
-
-      await new Promise<void>((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error("Broker timeout. Try again.")), 12000);
-        peer.on("open", () => { clearTimeout(t); resolve(); });
-        peer.on("error", (err: any) => {
-          clearTimeout(t);
-          if (err.type === "unavailable-id") {
-            // Code already in use — generate a fresh one and retry once
-            const freshCode = String(Math.floor(Math.random() * 900000) + 100000);
-            setCode(freshCode);
-            reject({ isConflict: true, code: freshCode });
-          } else {
-            reject(new Error("Broker error: " + (err.message || err.type)));
-          }
-        });
+      // 2. Call backend to create transfer session
+      setStatusText("Creating session…");
+      const res = await fetch("/api/transfer/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: finalFile.name,
+          size: finalFile.size,
+          mimeType: finalFile.type || "application/octet-stream"
+        })
       });
 
-      // 4. Listen for incoming receiver connections
-      peer.on("connection", (conn: any) => {
-        const rid = conn.peer;
-        const receiver: ReceiverPeer = { conn, status: "connecting", progress: 0, speed: 0, eta: null, id: rid };
-        receiversRef.current.set(rid, receiver);
-        syncReceivers();
+      if (!res.ok) throw new Error("Failed to create sharing session on server");
+      const data = await res.json();
+      setCode(data.code);
 
-        conn.on("open", () => {
-          const r = receiversRef.current.get(rid);
-          if (r) { r.status = "transferring"; syncReceivers(); }
-          setStatus("active");
-          sendFileToPeer(rid, conn, finalFileRef.current!);
-        });
-
-        conn.on("data", (data: any) => {
-          if (data?.type === "cancel") {
-            const r = receiversRef.current.get(rid);
-            if (r) { r.status = "error"; syncReceivers(); }
-            conn.close();
-          }
-        });
-
-        conn.on("close", () => {
-          const r = receiversRef.current.get(rid);
-          if (r && r.status !== "completed") { r.status = "error"; syncReceivers(); }
-        });
-
-        conn.on("error", () => {
-          const r = receiversRef.current.get(rid);
-          if (r) { r.status = "error"; syncReceivers(); }
-        });
-      });
-
-      // 5. Keep broker session alive — laptops throttle background tabs which can drop the WS
-      peer.on("disconnected", () => {
-        if (!peer.destroyed && senderPeerRef.current === peer) {
-          setTimeout(() => {
-            try { peer.reconnect(); } catch {}
-          }, 1500);
-        }
-      });
-
-      // 5. Generate QR code
+      // 3. Generate QR code
       const { default: QRCode } = await import("qrcode");
-      const shareUrl = `${window.location.origin}/tools/file-sharing?code=${newCode}`;
+      const shareUrl = `${window.location.origin}/tools/file-sharing?code=${data.code}`;
       const dataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 1 });
       setQrUrl(dataUrl);
 
       setStatus("waiting"); setStatusText("Waiting for receivers…");
       setExpiryTime(EXPIRY_SECONDS);
 
+      // 4. Start polling for receiver connection
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/transfer/${data.code}/status`);
+          if (!statusRes.ok) return;
+          const statusData = await statusRes.json();
+          
+          if (statusData.receiverConnected) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setStatus("active");
+            uploadFileStream(data.code, finalFileRef.current!);
+          }
+        } catch {}
+      }, 1000);
+
     } catch (e: any) {
-      if (e?.isConflict) {
-        // Silently retry with a new code
-        return handleSend(e.code);
-      }
       console.error(e);
       setStatus("error");
       setStatusText(e.message || "Failed to start session.");
@@ -323,62 +195,87 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     }
   };
 
-  /** Send file to a connected receiver peer using JSON + base64 chunks */
-  const sendFileToPeer = (rid: string, conn: any, file: File) => {
+  /** Upload file in chunks over HTTP stream */
+  const uploadFileStream = async (shareCode: string, file: File) => {
     let offset = 0;
+    const CHUNK_SIZE = 1024 * 1024; // 1 MB chunks
     const startTime = Date.now();
+    setStatus("transferring");
 
-    const sendNextChunk = () => {
-      const receiver = receiversRef.current.get(rid);
-      if (!receiver || receiver.status === "error") return;
+    const controller = new AbortController();
+    senderAbortControllerRef.current = controller;
 
-      if (offset >= file.size) {
-        conn.send({ type: "EOF" });
-        const r = receiversRef.current.get(rid);
-        if (r) { r.status = "completed"; r.progress = 100; syncReceivers(); }
-        onDone();
-        return;
+    try {
+      while (offset < file.size) {
+        if (controller.signal.aborted) return;
+
+        const slice = file.slice(offset, offset + CHUNK_SIZE);
+        const chunkBuf = await slice.arrayBuffer();
+
+        // Send raw binary
+        const res = await fetch(`/api/transfer/${shareCode}/upload`, {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: chunkBuf,
+          signal: controller.signal
+        });
+
+        if (!res.ok) throw new Error("Chunk upload failed");
+
+        offset += chunkBuf.byteLength;
+
+        // Calculate progress, speed, ETA
+        const elapsed = (Date.now() - startTime) / 1000;
+        const pct = Math.min(100, Math.round((offset / file.size) * 100));
+        setProgress(pct);
+
+        let spd = 0;
+        let etaVal: number | null = null;
+        if (elapsed > 0) {
+          spd = Math.round(((offset / (1024 * 1024)) / elapsed) * 10) / 10;
+          const rem = file.size - offset;
+          etaVal = spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null;
+          setTransferSpeed(spd);
+          setEta(etaVal);
+        }
+
+        // Update UI's receiverPeers list for consistent rendering
+        setReceiverPeers([{
+          id: "receiver-1",
+          status: "transferring",
+          progress: pct,
+          speed: spd,
+          eta: etaVal
+        }]);
       }
 
-      const slice = file.slice(offset, offset + CHUNK_SIZE);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const buf = e.target?.result as ArrayBuffer;
-        if (!buf) return;
-        try {
-          // Send as base64 JSON — works on every browser including iOS Safari
-          conn.send({ type: "chunk", data: bufToB64(buf) });
-          offset += buf.byteLength;
+      // Finalize transfer
+      await fetch(`/api/transfer/${shareCode}/end`, { method: "POST" });
+      setReceiverPeers([{
+        id: "receiver-1",
+        status: "completed",
+        progress: 100,
+        speed: 0,
+        eta: null
+      }]);
+      setStatus("completed");
+      setStatusText("Done!");
+      onDone();
 
-          const elapsed = (Date.now() - startTime) / 1000;
-          const pct = Math.min(100, Math.round((offset / file.size) * 100));
-          let spd = 0, etaVal: number | null = null;
-          if (elapsed > 0) {
-            spd = Math.round(((offset / (1024 * 1024)) / elapsed) * 10) / 10;
-            const rem = file.size - offset;
-            etaVal = spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null;
-          }
-          const r = receiversRef.current.get(rid);
-          if (r) { r.progress = pct; r.speed = spd; r.eta = etaVal; syncReceivers(); }
-
-          // Small yield to prevent blocking the main thread on mobile
-          setTimeout(sendNextChunk, 0);
-        } catch (err) {
-          console.error("Send error:", err);
-          const r = receiversRef.current.get(rid);
-          if (r) { r.status = "error"; syncReceivers(); }
-        }
-      };
-      reader.readAsArrayBuffer(slice);
-    };
-
-    // Send metadata first
-    conn.send({ type: "metadata", name: file.name, size: file.size, mimeType: file.type || "application/octet-stream" });
-    sendNextChunk();
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      console.error(err);
+      setStatus("error");
+      setStatusText("Upload failed. Connection lost.");
+    }
   };
 
   const handleCancelSend = async () => {
-    setExpiryTime(null); destroyPeers(); resetAll();
+    if (code) {
+      fetch(`/api/transfer/${code}/cancel`, { method: "POST" }).catch(() => {});
+    }
+    setExpiryTime(null);
+    resetAll();
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -393,177 +290,98 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     startReceiving(trimmed);
   };
 
-  const startReceiving = async (joinCode: string, attempt = 1) => {
-    const MAX_ATTEMPTS = 3;
-    setStatus("connecting");
-    setStatusText(attempt > 1 ? `Connecting… (attempt ${attempt}/${MAX_ATTEMPTS})` : "Connecting to sender…");
+  const startReceiving = async (joinCode: string) => {
+    setStatus("connecting"); setStatusText("Connecting to sender…");
     setReceivedFiles([]);
-    dcOpenedRef.current = false;
+    cleanup();
 
-    if (receiverPeerRef.current) {
-      try { receiverPeerRef.current.destroy(); } catch {}
-      receiverPeerRef.current = null;
-    }
+    const controller = new AbortController();
+    receiverAbortControllerRef.current = controller;
 
     try {
-      const { Peer } = await import("peerjs");
-      const myId = makeReceiverPeerId();
+      // 1. Verify session
+      const verifyRes = await fetch(`/api/transfer/${joinCode}/status`, { signal: controller.signal });
+      if (!verifyRes.ok) {
+        throw new Error("Invalid transfer code or session expired.");
+      }
+      const verifyData = await verifyRes.json();
+      setActiveFileName(verifyData.name || "Shared File");
+      setActiveFileSize(verifyData.totalBytes || 0);
 
-      // Use our custom, self-hosted PeerJS signaling server for stable matchmaking
-      const peer = new Peer(myId, getPeerOptions());
-      receiverPeerRef.current = peer;
+      // 2. Trigger native download (Vercel routes this to Render backend)
+      const downloadUrl = `/api/transfer/${joinCode}/download`;
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
+      (window as any).downloadIframe = iframe;
 
-      // Wait for our own peer to register with the broker
-      await new Promise<void>((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error("Could not reach broker. Check your connection.")), 12000);
-        peer.on("open", () => { clearTimeout(t); resolve(); });
-        peer.on("error", (err: any) => {
-          clearTimeout(t);
-          reject(new Error(err.message || "Broker error"));
-        });
-      });
+      setStatus("transferring");
+      setStatusText("Receiving…");
 
-      // Connect to the sender's fixed peer ID
-      const senderFixedId = makeSenderFixedId(joinCode);
-      const conn = peer.connect(senderFixedId, {
-        reliable: true,
-        serialization: "json"   // JSON mode: works on ALL browsers incl. iOS Safari
-      });
-
-      let fileMeta: { name: string; size: number; mimeType: string } | null = null;
-      let receivedChunks: ArrayBuffer[] = [];
-      let receivedBytes = 0;
-      let startTime = 0;
-      const allFiles: { name: string; blob: Blob; size: number }[] = [];
-
-      // Timeout guard — if ICE hasn't connected after 20s, auto-retry before giving up
-      const connTimeout = setTimeout(() => {
-        if (!dcOpenedRef.current) {
-          try { conn.close(); } catch {}
-          if (attempt < MAX_ATTEMPTS) {
-            // Auto-retry with exponential back-off
-            setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
-          } else {
-            setStatus("error");
-            setRetryCode(joinCode);
-            setStatusText(`Connection timed out after ${MAX_ATTEMPTS} attempts. Check the code and make sure the sender's tab is open.`);
+      // 3. Poll status to display native browser download progress
+      const startTime = Date.now();
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/transfer/${joinCode}/status`);
+          if (!statusRes.ok) {
+            // Session closed on completion
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setStatus("completed");
+            setStatusText("Done!");
+            onDone();
+            return;
           }
-        }
-      }, 20000);
-
-      // peer-unavailable fires instantly when the sender's peer ID doesn't exist
-      peer.on("error", (err: any) => {
-        if (err.type === "peer-unavailable") {
-          clearTimeout(connTimeout);
-          if (!dcOpenedRef.current) {
-            if (attempt < MAX_ATTEMPTS) {
-              // Sender peer might not be registered yet — retry after a short delay
-              setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
-            } else {
-              setStatus("error");
-              setRetryCode(joinCode);
-              setStatusText("Sender not found. Make sure sender's browser is open with the correct code.");
-            }
-          }
-        }
-      });
-
-      conn.on("open", () => {
-        dcOpenedRef.current = true;   // ← prevents false timeout/close errors
-        clearTimeout(connTimeout);
-        setStatus("transferring"); setStatusText("Receiving…");
-        setExpiryTime(null);
-        startTime = Date.now();
-      });
-
-      conn.on("data", (msg: any) => {
-        if (!msg || typeof msg !== "object") return;
-
-        if (msg.type === "metadata") {
-          fileMeta = msg;
-          setActiveFileName(msg.name);
-          setActiveFileSize(msg.size);
-          receivedChunks = []; receivedBytes = 0;
-          setProgress(0); startTime = Date.now();
-
-        } else if (msg.type === "chunk" && msg.data) {
-          // Decode base64 chunk — works on every browser
-          const ab = b64ToBuf(msg.data);
-          receivedChunks.push(ab);
-          receivedBytes += ab.byteLength;
-
-          if (fileMeta) {
-            const pct = Math.min(100, Math.round((receivedBytes / fileMeta.size) * 100));
-            setProgress(pct);
-            const elapsed = (Date.now() - startTime) / 1000;
-            if (elapsed > 0) {
-              const spd = (receivedBytes / (1024 * 1024)) / elapsed;
-              setTransferSpeed(Math.round(spd * 10) / 10);
-              const rem = fileMeta.size - receivedBytes;
-              setEta(spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null);
-            }
+          const statusData = await statusRes.json();
+          
+          if (!statusData.receiverConnected && statusData.uploadedBytes >= statusData.totalBytes) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            setStatus("completed");
+            setStatusText("Done!");
+            onDone();
+            return;
           }
 
-        } else if (msg.type === "EOF" && fileMeta) {
-          const blob = new Blob(receivedChunks, { type: fileMeta.mimeType });
-          allFiles.push({ name: fileMeta.name, blob, size: fileMeta.size });
-          setReceivedFiles([...allFiles]);
-          setStatus("completed"); setStatusText("Done!");
-          onDone(); conn.close();
+          const pct = Math.min(100, Math.round((statusData.uploadedBytes / statusData.totalBytes) * 100));
+          setProgress(pct);
 
-        } else if (msg.type === "cancel") {
-          setStatus("error"); setStatusText("Sender cancelled the transfer.");
-        }
-      });
-
-      conn.on("close", () => {
-        clearTimeout(connTimeout);
-        if (!dcOpenedRef.current) {
-          if (attempt < MAX_ATTEMPTS) {
-            setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
-          } else {
-            setStatus("error");
-            setRetryCode(joinCode);
-            setStatusText("Connection closed before transfer started. Tap Retry to try again.");
+          const elapsed = (Date.now() - startTime) / 1000;
+          if (elapsed > 0) {
+            const spd = (statusData.uploadedBytes / (1024 * 1024)) / elapsed;
+            setTransferSpeed(Math.round(spd * 10) / 10);
+            const rem = statusData.totalBytes - statusData.uploadedBytes;
+            setEta(spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null);
           }
+        } catch {
+          // Fallback exit
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setStatus("completed");
+          onDone();
         }
-      });
-
-      conn.on("error", (err: any) => {
-        clearTimeout(connTimeout);
-        if (attempt < MAX_ATTEMPTS) {
-          setTimeout(() => startReceiving(joinCode, attempt + 1), 2000);
-        } else {
-          setStatus("error");
-          setRetryCode(joinCode);
-          setStatusText("Connection error: " + (err?.message || "Unknown. Tap Retry."));
-        }
-      });
+      }, 1000);
 
     } catch (e: any) {
       console.error(e);
-      setStatus("error"); setStatusText(e.message || "Failed to connect.");
+      setStatus("error");
+      setRetryCode(joinCode);
+      setStatusText(e.message || "Failed to receive file.");
     }
   };
 
   const handleCancelReceive = () => {
+    if (inputCode) {
+      fetch(`/api/transfer/${inputCode}/cancel`, { method: "POST" }).catch(() => {});
+    }
     setExpiryTime(null);
-    if (receiverPeerRef.current) { try { receiverPeerRef.current.destroy(); } catch {} receiverPeerRef.current = null; }
     resetAll();
-  };
-
-  // ── File download ────────────────────────────────────────────────────────────
-  const downloadFile = (file: { name: string; blob: Blob }) => {
-    const url = URL.createObjectURL(file.blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = file.name;
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   };
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   const resetAll = () => {
-    destroyPeers();
+    cleanup();
     setFiles([]); setCode(""); setQrUrl(""); setStatus("idle"); setStatusText("");
     setProgress(0); setTransferSpeed(0); setEta(null); setInputCode("");
     setReceivedFiles([]); setExpiryTime(null); setReceiverPeers([]);
@@ -762,28 +580,22 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={handleCancelReceive}
-                className="w-full text-xs text-destructive hover:bg-destructive/10">Cancel</Button>
+                className="w-full text-xs text-destructive hover:bg-destructive/10 mt-4">Cancel</Button>
             </div>
           )}
 
-          {status === "completed" && receivedFiles.length > 0 && (
+          {status === "completed" && (
             <div className="flex flex-col items-center p-8 border rounded-2xl bg-muted/20 text-center space-y-5 animate-in zoom-in-95 duration-300">
               <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-900/30">
                 <Check className="h-6 w-6" />
               </div>
               <div><h3 className="font-bold text-lg">File Received!</h3></div>
               <div className="w-full max-w-xs space-y-2">
-                {receivedFiles.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 border rounded-xl bg-card shadow-xs gap-2">
-                    <div className="text-left min-w-0">
-                      <p className="text-xs font-semibold truncate">{f.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{formatSize(f.size)}</p>
-                    </div>
-                    <Button size="sm" onClick={() => downloadFile(f)} className="shrink-0 text-xs">
-                      <Download className="h-3.5 w-3.5 mr-1" /> Save
-                    </Button>
-                  </div>
-                ))}
+                <div className="p-4 border rounded-xl bg-card shadow-xs text-center space-y-1">
+                  <p className="text-sm font-semibold truncate">{activeFileName || "Shared File"}</p>
+                  <p className="text-xs text-muted-foreground">{formatSize(activeFileSize)}</p>
+                  <p className="text-xs text-emerald-600 font-semibold mt-2">Saved to your device's Downloads folder!</p>
+                </div>
               </div>
               <Button variant="ghost" size="sm" onClick={resetAll} className="text-xs text-muted-foreground">
                 Receive another file
