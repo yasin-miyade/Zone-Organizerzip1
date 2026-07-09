@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UploadZone } from "@/components/UploadZone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,40 +12,42 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { baseName } from "./ToolHelpers";
 
-// PeerJS is loaded via dynamic import to avoid SSR issues
-// Uses the free public PeerJS cloud broker (peerjs.com) — no backend needed
+// ─── Protocol ────────────────────────────────────────────────────────────────
+// All messages are plain JSON objects (serialization:"json") so they work on
+// every browser including iOS Safari which delivers binary as Blob not ArrayBuffer.
+//
+// Message types sent over the DataConnection:
+//   { type:"metadata", name, size, mimeType }
+//   { type:"chunk",    seq, data }   ← base64-encoded binary chunk
+//   { type:"EOF" }
+//   { type:"cancel" }
 
-const CHUNK_SIZE = 64 * 1024; // 64 KB chunks for fast transfer
-const EXPIRY_SECONDS = 600;   // 10-minute session expiry
+const CHUNK_SIZE = 16 * 1024;   // 16 KB – keeps JSON messages small on mobile
+const EXPIRY_SECONDS = 600;     // 10-minute session window
 
-// Derives a short, memorable 6-digit code from a PeerJS peer ID
-function peerIdToCode(peerId: string): string {
-  // Take last 6 alphanumeric chars and convert to digits
-  const clean = peerId.replace(/[^a-z0-9]/gi, "");
-  const tail = clean.slice(-8);
-  let num = 0;
-  for (let i = 0; i < tail.length; i++) {
-    num = (num * 31 + tail.charCodeAt(i)) >>> 0;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function makeSenderFixedId(code: string) { return `fzs${code}`; }
+function makeReceiverPeerId() { return `fzr${Math.random().toString(36).slice(2, 10)}`; }
+
+/** ArrayBuffer → base64 string, safe for large buffers */
+function bufToB64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let str = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    str += String.fromCharCode(...bytes.subarray(i, i + 8192));
   }
-  return String(num % 1000000).padStart(6, "0");
+  return btoa(str);
 }
 
-// Reverse lookup — sender's peer ID is stored in a simple in-memory map
-// so receiver can find the right peer. We embed the peerId in the "code"
-// by using the actual peerId as the ID (prefixed with the 6-digit code)
-function makeSenderPeerId(code: string): string {
-  return `fz-send-${code}-${Math.random().toString(36).slice(2, 7)}`;
+/** base64 string → ArrayBuffer */
+function b64ToBuf(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
 }
 
-// The sender registers with a fixed, code-based ID so receivers can look it up
-function makeSenderFixedId(code: string): string {
-  return `fzs${code}`;
-}
-
-function makeReceiverPeerId(): string {
-  return `fzr${Math.random().toString(36).slice(2, 10)}`;
-}
-
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ReceiverPeer {
   conn: any;
   status: "connecting" | "transferring" | "completed" | "error";
@@ -55,6 +57,7 @@ interface ReceiverPeer {
   id: string;
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export function FileSharing({ onDone }: { onDone: () => void }) {
   const [tab, setTab] = useState<"send" | "receive">("send");
   const [files, setFiles] = useState<File[]>([]);
@@ -77,34 +80,31 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
   const { toast } = useToast();
 
-  // Refs
-  const senderPeerRef = useRef<any>(null);
+  // Refs — using refs avoids stale-closure bugs inside async event handlers
+  const senderPeerRef   = useRef<any>(null);
   const receiverPeerRef = useRef<any>(null);
-  const finalFileRef = useRef<File | null>(null);
-  const receiversRef = useRef<Map<string, ReceiverPeer>>(new Map());
-  const expiryTimerRef = useRef<any>(null);
-  // Tracks whether the receiver data channel has successfully opened.
-  // Using a ref avoids stale closure bugs in setTimeout/event handlers.
-  const dcOpenedRef = useRef(false);
+  const finalFileRef    = useRef<File | null>(null);
+  const receiversRef    = useRef<Map<string, ReceiverPeer>>(new Map());
+  const expiryTimerRef  = useRef<any>(null);
+  /** True once the receiver's DataConnection fires "open" — prevents false errors */
+  const dcOpenedRef     = useRef(false);
 
-  // Expiry countdown
+  // ── Expiry countdown ────────────────────────────────────────────────────────
   useEffect(() => {
     if (expiryTime === null) return;
     if (expiryTime <= 0) {
       handleCancelSend();
-      toast({ title: "Session expired", description: "The 10-minute connection window closed.", variant: "destructive" });
+      toast({ title: "Session expired", description: "The 10-minute window closed.", variant: "destructive" });
       return;
     }
     expiryTimerRef.current = setTimeout(() => setExpiryTime(t => (t !== null ? t - 1 : null)), 1000);
     return () => clearTimeout(expiryTimerRef.current);
   }, [expiryTime]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => { destroyPeers(); };
-  }, []);
+  // ── Cleanup on unmount ──────────────────────────────────────────────────────
+  useEffect(() => { return () => { destroyPeers(); }; }, []);
 
-  // Auto-connect from URL param
+  // ── Auto-connect from URL param ─────────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const joinCode = params.get("code");
@@ -115,48 +115,35 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     }
   }, []);
 
+  // ── Utility ─────────────────────────────────────────────────────────────────
   const destroyPeers = () => {
     clearTimeout(expiryTimerRef.current);
-    if (senderPeerRef.current) {
-      try { senderPeerRef.current.destroy(); } catch {}
-      senderPeerRef.current = null;
-    }
-    if (receiverPeerRef.current) {
-      try { receiverPeerRef.current.destroy(); } catch {}
-      receiverPeerRef.current = null;
-    }
-    for (const r of receiversRef.current.values()) {
-      try { r.conn.close(); } catch {}
-    }
+    if (senderPeerRef.current) { try { senderPeerRef.current.destroy(); } catch {} senderPeerRef.current = null; }
+    if (receiverPeerRef.current) { try { receiverPeerRef.current.destroy(); } catch {} receiverPeerRef.current = null; }
+    for (const r of receiversRef.current.values()) { try { r.conn.close(); } catch {} }
     receiversRef.current.clear();
   };
 
-  const syncReceivers = () => {
-    setReceiverPeers(Array.from(receiversRef.current.values()));
-  };
+  const syncReceivers = () => setReceiverPeers(Array.from(receiversRef.current.values()));
 
   const copyLink = () => {
     const url = `${window.location.origin}/tools/file-sharing?code=${code}`;
     navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
       toast({ title: "Link copied!" });
     });
   };
 
-  // ─── SENDER FLOW ─────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SENDER FLOW
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  const handleSend = async () => {
+  const handleSend = async (retryCode?: string) => {
     if (!files.length) {
-      toast({ title: "Please select files to share", variant: "destructive" });
-      return;
+      toast({ title: "Please select files to share", variant: "destructive" }); return;
     }
-
-    setStatus("preparing");
-    setStatusText("Preparing files…");
-    destroyPeers();
-    receiversRef.current.clear();
-    setReceiverPeers([]);
+    setStatus("preparing"); setStatusText("Preparing files…");
+    destroyPeers(); receiversRef.current.clear(); setReceiverPeers([]);
 
     try {
       // 1. Build final file (zip if multiple)
@@ -167,9 +154,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         setStatusText("Zipping files…");
         const { default: JSZip } = await import("jszip");
         const zip = new JSZip();
-        for (const f of files) {
-          zip.file((f as any).webkitRelativePath || f.name, f);
-        }
+        for (const f of files) zip.file((f as any).webkitRelativePath || f.name, f);
         const blob = await zip.generateAsync({ type: "blob" });
         finalFile = new File([blob], `${baseName(files[0])}_shared.zip`, { type: "application/zip" });
       }
@@ -177,30 +162,29 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       setActiveFileName(finalFile.name);
       setActiveFileSize(finalFile.size);
 
-      // 2. Generate a random 6-digit code
-      const newCode = String(Math.floor(Math.random() * 900000) + 100000);
+      // 2. Generate a random 6-digit code (or reuse if retrying)
+      const newCode = retryCode || String(Math.floor(Math.random() * 900000) + 100000);
       setCode(newCode);
 
-      // 3. Create PeerJS peer with fixed ID based on code
-      setStatusText("Starting connection broker…");
+      // 3. Create PeerJS peer with fixed, code-based ID
+      setStatusText("Starting broker…");
       const { Peer } = await import("peerjs");
       const fixedId = makeSenderFixedId(newCode);
 
-      // Use PeerJS default ICE config — it includes TURN relay for NAT traversal
+      // PeerJS default config includes TURN relay — do NOT override with custom iceServers
       const peer = new Peer(fixedId, { debug: 0 });
       senderPeerRef.current = peer;
 
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Connection broker timeout. Try again.")), 10000);
-        peer.on("open", () => {
-          clearTimeout(timeout);
-          resolve();
-        });
+        const t = setTimeout(() => reject(new Error("Broker timeout. Try again.")), 12000);
+        peer.on("open", () => { clearTimeout(t); resolve(); });
         peer.on("error", (err: any) => {
-          clearTimeout(timeout);
-          // If ID is already taken (another sender with same code), retry with new code
+          clearTimeout(t);
           if (err.type === "unavailable-id") {
-            reject(new Error("Code conflict, retrying…"));
+            // Code already in use — generate a fresh one and retry once
+            const freshCode = String(Math.floor(Math.random() * 900000) + 100000);
+            setCode(freshCode);
+            reject({ isConflict: true, code: freshCode });
           } else {
             reject(new Error("Broker error: " + (err.message || err.type)));
           }
@@ -210,27 +194,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       // 4. Listen for incoming receiver connections
       peer.on("connection", (conn: any) => {
         const rid = conn.peer;
-
-        const receiver: ReceiverPeer = {
-          conn,
-          status: "connecting",
-          progress: 0,
-          speed: 0,
-          eta: null,
-          id: rid
-        };
+        const receiver: ReceiverPeer = { conn, status: "connecting", progress: 0, speed: 0, eta: null, id: rid };
         receiversRef.current.set(rid, receiver);
-        syncReceivers(); // show the peer as "connecting" but don't set active yet
+        syncReceivers();
 
         conn.on("open", () => {
           const r = receiversRef.current.get(rid);
           if (r) { r.status = "transferring"; syncReceivers(); }
-          setStatus("active"); // only set active once channel truly opens
+          setStatus("active");
           sendFileToPeer(rid, conn, finalFileRef.current!);
         });
 
         conn.on("data", (data: any) => {
-          // Handle cancel signal from receiver
           if (data?.type === "cancel") {
             const r = receiversRef.current.get(rid);
             if (r) { r.status = "error"; syncReceivers(); }
@@ -240,10 +215,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
         conn.on("close", () => {
           const r = receiversRef.current.get(rid);
-          if (r && r.status !== "completed") {
-            r.status = "error";
-            syncReceivers();
-          }
+          if (r && r.status !== "completed") { r.status = "error"; syncReceivers(); }
         });
 
         conn.on("error", () => {
@@ -258,18 +230,22 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const dataUrl = await QRCode.toDataURL(shareUrl, { width: 180, margin: 1 });
       setQrUrl(dataUrl);
 
-      setStatus("waiting");
-      setStatusText("Waiting for receivers…");
+      setStatus("waiting"); setStatusText("Waiting for receivers…");
       setExpiryTime(EXPIRY_SECONDS);
 
     } catch (e: any) {
+      if (e?.isConflict) {
+        // Silently retry with a new code
+        return handleSend(e.code);
+      }
       console.error(e);
       setStatus("error");
-      setStatusText(e.message || "Failed to start sharing session.");
+      setStatusText(e.message || "Failed to start session.");
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
+  /** Send file to a connected receiver peer using JSON + base64 chunks */
   const sendFileToPeer = (rid: string, conn: any, file: File) => {
     let offset = 0;
     const startTime = Date.now();
@@ -278,15 +254,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       const receiver = receiversRef.current.get(rid);
       if (!receiver || receiver.status === "error") return;
 
-      // Backpressure: wait if buffer is full
-      if (conn.dataChannel && conn.dataChannel.bufferedAmount > 2 * 1024 * 1024) {
-        setTimeout(sendNextChunk, 50);
-        return;
-      }
-
       if (offset >= file.size) {
-        // Send EOF as JSON string
-        conn.send(JSON.stringify({ type: "EOF" }));
+        conn.send({ type: "EOF" });
         const r = receiversRef.current.get(rid);
         if (r) { r.status = "completed"; r.progress = 100; syncReceivers(); }
         onDone();
@@ -298,30 +267,24 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       reader.onload = (e) => {
         const buf = e.target?.result as ArrayBuffer;
         if (!buf) return;
-
         try {
-          conn.send(buf);
+          // Send as base64 JSON — works on every browser including iOS Safari
+          conn.send({ type: "chunk", data: bufToB64(buf) });
           offset += buf.byteLength;
 
-          // Update progress
           const elapsed = (Date.now() - startTime) / 1000;
           const pct = Math.min(100, Math.round((offset / file.size) * 100));
           let spd = 0, etaVal: number | null = null;
           if (elapsed > 0) {
             spd = Math.round(((offset / (1024 * 1024)) / elapsed) * 10) / 10;
-            const remaining = file.size - offset;
-            etaVal = spd > 0 ? Math.ceil(remaining / (spd * 1024 * 1024)) : null;
+            const rem = file.size - offset;
+            etaVal = spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null;
           }
-
           const r = receiversRef.current.get(rid);
-          if (r) {
-            r.progress = pct;
-            r.speed = spd;
-            r.eta = etaVal;
-            syncReceivers();
-          }
+          if (r) { r.progress = pct; r.speed = spd; r.eta = etaVal; syncReceivers(); }
 
-          sendNextChunk();
+          // Small yield to prevent blocking the main thread on mobile
+          setTimeout(sendNextChunk, 0);
         } catch (err) {
           console.error("Send error:", err);
           const r = receiversRef.current.get(rid);
@@ -331,40 +294,32 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       reader.readAsArrayBuffer(slice);
     };
 
-    // Send metadata header as JSON string (raw serialization sends strings as-is)
-    conn.send(JSON.stringify({
-      type: "metadata",
-      name: file.name,
-      size: file.size,
-      mimeType: file.type || "application/octet-stream"
-    }));
-
+    // Send metadata first
+    conn.send({ type: "metadata", name: file.name, size: file.size, mimeType: file.type || "application/octet-stream" });
     sendNextChunk();
   };
 
   const handleCancelSend = async () => {
-    setExpiryTime(null);
-    destroyPeers();
-    resetAll();
+    setExpiryTime(null); destroyPeers(); resetAll();
   };
 
-  // ─── RECEIVER FLOW ───────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RECEIVER FLOW
+  // ═══════════════════════════════════════════════════════════════════════════
 
   const handleReceiveClick = () => {
     const trimmed = inputCode.trim();
     if (!/^\d{6}$/.test(trimmed)) {
-      toast({ title: "Enter a valid 6-digit code", variant: "destructive" });
-      return;
+      toast({ title: "Enter a valid 6-digit code", variant: "destructive" }); return;
     }
     startReceiving(trimmed);
   };
 
   const startReceiving = async (joinCode: string) => {
-    setStatus("connecting");
-    setStatusText("Connecting to sender…");
+    setStatus("connecting"); setStatusText("Connecting to sender…");
     setReceivedFiles([]);
+    dcOpenedRef.current = false;
 
-    // Destroy any previous receiver peer
     if (receiverPeerRef.current) {
       try { receiverPeerRef.current.destroy(); } catch {}
       receiverPeerRef.current = null;
@@ -373,26 +328,26 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
     try {
       const { Peer } = await import("peerjs");
       const myId = makeReceiverPeerId();
-      // Use PeerJS default ICE config — it includes TURN relay for NAT traversal
+
+      // PeerJS default config includes TURN — do NOT override
       const peer = new Peer(myId, { debug: 0 });
       receiverPeerRef.current = peer;
 
-      // Wait for our own peer to open
+      // Wait for our own peer to register with the broker
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("Receiver broker timeout. Please try again.")), 10000);
-        peer.on("open", () => { clearTimeout(timeout); resolve(); });
+        const t = setTimeout(() => reject(new Error("Could not reach broker. Check your connection.")), 12000);
+        peer.on("open", () => { clearTimeout(t); resolve(); });
         peer.on("error", (err: any) => {
-          clearTimeout(timeout);
+          clearTimeout(t);
           reject(new Error(err.message || "Broker error"));
         });
       });
 
-      // Connect to the sender's fixed ID
+      // Connect to the sender's fixed peer ID
       const senderFixedId = makeSenderFixedId(joinCode);
-      dcOpenedRef.current = false; // reset for new connection attempt
       const conn = peer.connect(senderFixedId, {
         reliable: true,
-        serialization: "raw"  // raw: strings stay as strings, ArrayBuffers as ArrayBuffers
+        serialization: "json"   // JSON mode: works on ALL browsers incl. iOS Safari
       });
 
       let fileMeta: { name: string; size: number; mimeType: string } | null = null;
@@ -401,200 +356,155 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       let startTime = 0;
       const allFiles: { name: string; blob: Blob; size: number }[] = [];
 
-      // Use a ref check (NOT stale React state) to determine if we connected
-      const connectionTimeout = setTimeout(() => {
+      // Timeout guard — uses ref so it's never stale
+      const connTimeout = setTimeout(() => {
         if (!dcOpenedRef.current) {
           setStatus("error");
-          setStatusText("Could not reach sender. Make sure the code is correct and the sender's browser is open.");
+          setStatusText("Could not reach sender. Make sure the sender's tab is open with the same code and try again.");
           try { conn.close(); } catch {}
         }
-      }, 20000);
+      }, 25000);
 
       conn.on("open", () => {
-        dcOpenedRef.current = true; // mark as successfully opened
-        clearTimeout(connectionTimeout);
-        setStatus("transferring");
-        setStatusText("Receiving file…");
+        dcOpenedRef.current = true;   // ← prevents false timeout/close errors
+        clearTimeout(connTimeout);
+        setStatus("transferring"); setStatusText("Receiving…");
         setExpiryTime(null);
         startTime = Date.now();
       });
 
-      conn.on("data", (data: any) => {
-        // raw serialization: strings = control messages (JSON), ArrayBuffers = file chunks
-        if (typeof data === "string") {
-          try {
-            const msg = JSON.parse(data);
-            if (msg.type === "metadata") {
-              fileMeta = msg;
-              setActiveFileName(msg.name);
-              setActiveFileSize(msg.size);
-              receivedChunks = [];
-              receivedBytes = 0;
-              setProgress(0);
-              startTime = Date.now();
-            } else if (msg.type === "EOF" && fileMeta) {
-              const blob = new Blob(receivedChunks, { type: fileMeta.mimeType });
-              const fileEntry = { name: fileMeta.name, blob, size: fileMeta.size };
-              allFiles.push(fileEntry);
-              setReceivedFiles([...allFiles]);
-              setStatus("completed");
-              setStatusText("File received!");
-              onDone();
-              conn.close();
-            } else if (msg.type === "cancel") {
-              setStatus("error");
-              setStatusText("Sender cancelled the transfer.");
-            }
-          } catch (e) { console.error("Invalid control message", e); }
-        } else {
-          // Binary chunk data
-          const ab: ArrayBuffer = data instanceof ArrayBuffer ? data
-            : ArrayBuffer.isView(data) ? (data as any).buffer
-            : data;
+      conn.on("data", (msg: any) => {
+        if (!msg || typeof msg !== "object") return;
+
+        if (msg.type === "metadata") {
+          fileMeta = msg;
+          setActiveFileName(msg.name);
+          setActiveFileSize(msg.size);
+          receivedChunks = []; receivedBytes = 0;
+          setProgress(0); startTime = Date.now();
+
+        } else if (msg.type === "chunk" && msg.data) {
+          // Decode base64 chunk — works on every browser
+          const ab = b64ToBuf(msg.data);
           receivedChunks.push(ab);
           receivedBytes += ab.byteLength;
 
           if (fileMeta) {
             const pct = Math.min(100, Math.round((receivedBytes / fileMeta.size) * 100));
             setProgress(pct);
-
             const elapsed = (Date.now() - startTime) / 1000;
             if (elapsed > 0) {
               const spd = (receivedBytes / (1024 * 1024)) / elapsed;
               setTransferSpeed(Math.round(spd * 10) / 10);
-              const remaining = fileMeta.size - receivedBytes;
-              setEta(spd > 0 ? Math.ceil(remaining / (spd * 1024 * 1024)) : null);
+              const rem = fileMeta.size - receivedBytes;
+              setEta(spd > 0 ? Math.ceil(rem / (spd * 1024 * 1024)) : null);
             }
           }
+
+        } else if (msg.type === "EOF" && fileMeta) {
+          const blob = new Blob(receivedChunks, { type: fileMeta.mimeType });
+          allFiles.push({ name: fileMeta.name, blob, size: fileMeta.size });
+          setReceivedFiles([...allFiles]);
+          setStatus("completed"); setStatusText("Done!");
+          onDone(); conn.close();
+
+        } else if (msg.type === "cancel") {
+          setStatus("error"); setStatusText("Sender cancelled the transfer.");
         }
       });
 
       conn.on("close", () => {
-        clearTimeout(connectionTimeout);
-        // Use ref (not stale React state) to check if transfer completed
+        clearTimeout(connTimeout);
         if (!dcOpenedRef.current) {
           setStatus("error");
-          setStatusText("Connection closed before transfer started. Check the code and try again.");
+          setStatusText("Connection closed. Make sure the sender's browser is still open.");
         }
       });
 
       conn.on("error", (err: any) => {
-        clearTimeout(connectionTimeout);
+        clearTimeout(connTimeout);
         setStatus("error");
-        setStatusText("Connection error: " + (err?.message || "Unknown error"));
+        setStatusText("Connection error: " + (err?.message || "Unknown. Try again."));
       });
 
     } catch (e: any) {
       console.error(e);
-      setStatus("error");
-      setStatusText(e.message || "Failed to connect.");
+      setStatus("error"); setStatusText(e.message || "Failed to connect.");
     }
   };
 
   const handleCancelReceive = () => {
     setExpiryTime(null);
-    if (receiverPeerRef.current) {
-      try { receiverPeerRef.current.destroy(); } catch {}
-      receiverPeerRef.current = null;
-    }
+    if (receiverPeerRef.current) { try { receiverPeerRef.current.destroy(); } catch {} receiverPeerRef.current = null; }
     resetAll();
   };
 
+  // ── File download ────────────────────────────────────────────────────────────
   const downloadFile = (file: { name: string; blob: Blob }) => {
     const url = URL.createObjectURL(file.blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = file.name;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
+    a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   };
 
+  // ── Reset ─────────────────────────────────────────────────────────────────
   const resetAll = () => {
     destroyPeers();
-    setFiles([]);
-    setCode("");
-    setQrUrl("");
-    setStatus("idle");
-    setStatusText("");
-    setProgress(0);
-    setTransferSpeed(0);
-    setEta(null);
-    setInputCode("");
-    setReceivedFiles([]);
-    setExpiryTime(null);
-    setReceiverPeers([]);
+    setFiles([]); setCode(""); setQrUrl(""); setStatus("idle"); setStatusText("");
+    setProgress(0); setTransferSpeed(0); setEta(null); setInputCode("");
+    setReceivedFiles([]); setExpiryTime(null); setReceiverPeers([]);
   };
 
-  const formatSize = (bytes: number) => {
-    if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
-    if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(2)} MB`;
-    return `${(bytes / 1024).toFixed(1)} KB`;
+  // ── Formatters ────────────────────────────────────────────────────────────
+  const formatSize = (b: number) => {
+    if (b >= 1024 ** 3) return `${(b / 1024 ** 3).toFixed(2)} GB`;
+    if (b >= 1024 ** 2) return `${(b / 1024 ** 2).toFixed(2)} MB`;
+    return `${(b / 1024).toFixed(1)} KB`;
+  };
+  const formatEta = (s: number | null) => {
+    if (!s || s <= 0) return "--";
+    return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+  };
+  const formatExpiry = (s: number | null) => {
+    if (s === null) return "";
+    return `Expires in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
 
-  const formatEta = (secs: number | null) => {
-    if (secs === null || secs <= 0) return "--";
-    if (secs < 60) return `${secs}s`;
-    return `${Math.floor(secs / 60)}m ${secs % 60}s`;
-  };
-
-  const formatExpiry = (secs: number | null) => {
-    if (secs === null) return "";
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `Expires in ${m}:${String(s).padStart(2, "0")}`;
-  };
-
-  // ─── RENDER ──────────────────────────────────────────────────────────────────
-
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="space-y-6">
-      {/* Tab switcher */}
+      {/* Tab bar */}
       <div className="flex rounded-xl bg-muted p-1 border">
-        <button
-          onClick={() => { resetAll(); setTab("send"); }}
-          className={`flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-            tab === "send" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FileUp className="h-4 w-4" /> Send File
-        </button>
-        <button
-          onClick={() => { resetAll(); setTab("receive"); }}
-          className={`flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-            tab === "receive" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <FolderUp className="h-4 w-4" /> Receive File
-        </button>
+        {(["send", "receive"] as const).map(t => (
+          <button key={t} onClick={() => { resetAll(); setTab(t); }}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t === "send" ? <><FileUp className="h-4 w-4" /> Send File</> : <><FolderUp className="h-4 w-4" /> Receive File</>}
+          </button>
+        ))}
       </div>
 
-      {/* ── SEND TAB ── */}
+      {/* ── SEND TAB ─────────────────────────────────────────────────────────── */}
       {tab === "send" && (
         <div className="space-y-4">
           {status === "idle" && (
             <>
-              <UploadZone
-                accept="*"
-                multiple
-                onFiles={setFiles}
-                files={files}
-                onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))}
+              <UploadZone accept="*" multiple onFiles={setFiles} files={files}
+                onRemove={(i) => setFiles(f => f.filter((_, j) => j !== i))}
                 label="Choose files or folders to share"
-                sublabel="Any type — images, videos, audio, documents, archives. No size limit."
-              />
+                sublabel="Any type — images, videos, audio, documents, archives. No size limit." />
               {files.length > 0 && (
-                <Button className="w-full" size="lg" onClick={handleSend}>
+                <Button className="w-full" size="lg" onClick={() => handleSend()}>
                   <Share2 className="h-4 w-4 mr-2" /> Share {files.length} File{files.length > 1 ? "s" : ""}
                 </Button>
               )}
             </>
           )}
 
-          {(status === "preparing") && (
+          {status === "preparing" && (
             <div className="flex flex-col items-center p-10 border rounded-2xl bg-muted/20 text-center space-y-4 animate-in fade-in">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-sm font-semibold text-muted-foreground">{statusText}</p>
@@ -603,7 +513,6 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
 
           {(status === "waiting" || status === "active") && (
             <div className="flex flex-col items-center p-8 border rounded-2xl bg-muted/20 text-center space-y-5 animate-in fade-in duration-300">
-              {/* Code display */}
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Share this code</p>
                 <h2 className="text-5xl font-extrabold tracking-widest text-primary font-mono select-all">
@@ -614,32 +523,23 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                 )}
               </div>
 
-              {/* QR Code */}
               {qrUrl && (
                 <div className="p-3 bg-white border rounded-2xl shadow-sm">
                   <img src={qrUrl} alt="QR code" className="w-36 h-36" />
                 </div>
               )}
 
-              {/* Share link */}
               <div className="flex gap-2 w-full max-w-sm">
-                <Input
-                  readOnly
-                  value={`${window.location.origin}/tools/file-sharing?code=${code}`}
-                  className="font-mono text-xs text-muted-foreground bg-background"
-                />
+                <Input readOnly value={`${window.location.origin}/tools/file-sharing?code=${code}`}
+                  className="font-mono text-xs text-muted-foreground bg-background" />
                 <Button variant="outline" size="sm" onClick={copyLink} className="shrink-0">
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
 
-              {/* Connection status */}
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {receiverPeers.length === 0 ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span>Waiting for receivers to connect…</span>
-                  </>
+                  <><Loader2 className="h-4 w-4 animate-spin text-primary" /><span>Waiting for receivers…</span></>
                 ) : (
                   <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
@@ -648,24 +548,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                 )}
               </div>
 
-              {/* Per-receiver progress */}
               {receiverPeers.length > 0 && (
                 <div className="w-full max-w-md border-t pt-4 mt-1 space-y-3 text-left">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Connected Devices</p>
                   {receiverPeers.map((r, i) => (
                     <div key={r.id} className="p-4 border rounded-xl bg-card shadow-xs space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold font-mono text-muted-foreground">
-                          Recipient #{i + 1}
-                        </span>
+                        <span className="text-xs font-semibold font-mono text-muted-foreground">Recipient #{i + 1}</span>
                         <Badge variant="outline" className={`text-[10px] font-bold ${
                           r.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                           r.status === "transferring" ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
-                          r.status === "error" ? "bg-rose-50 text-rose-700 border-rose-200" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
-                          {r.status.toUpperCase()}
-                        </Badge>
+                          r.status === "error" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-muted text-muted-foreground"
+                        }`}>{r.status.toUpperCase()}</Badge>
                       </div>
                       {(r.status === "transferring" || r.status === "completed") && (
                         <div className="space-y-1.5">
@@ -699,23 +593,18 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         </div>
       )}
 
-      {/* ── RECEIVE TAB ── */}
+      {/* ── RECEIVE TAB ──────────────────────────────────────────────────────── */}
       {tab === "receive" && (
         <div className="space-y-4">
           {status === "idle" && (
             <div className="p-6 border rounded-2xl bg-card shadow-sm space-y-4 animate-in fade-in duration-300">
               <div className="space-y-2">
                 <Label htmlFor="receive-code">Enter 6-Digit Code</Label>
-                <Input
-                  id="receive-code"
-                  type="text"
-                  maxLength={6}
-                  placeholder="123456"
+                <Input id="receive-code" type="text" maxLength={6} placeholder="123456"
                   className="text-center text-3xl font-bold tracking-widest h-14 font-mono focus-visible:ring-primary"
                   value={inputCode}
                   onChange={(e) => setInputCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  onKeyDown={(e) => e.key === "Enter" && inputCode.length === 6 && handleReceiveClick()}
-                />
+                  onKeyDown={(e) => e.key === "Enter" && inputCode.length === 6 && handleReceiveClick()} />
               </div>
               <Button className="w-full" size="lg" onClick={handleReceiveClick} disabled={inputCode.length !== 6}>
                 <ArrowRight className="h-4 w-4 mr-2" /> Receive File
@@ -727,10 +616,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
             <div className="flex flex-col items-center p-12 border rounded-2xl bg-muted/20 text-center space-y-4 animate-in fade-in duration-300">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-sm font-semibold text-muted-foreground">{statusText}</p>
-              <p className="text-xs text-muted-foreground max-w-xs">Make sure the sender's browser tab is still open with the same code.</p>
-              <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="mt-2 text-xs">
-                Cancel
-              </Button>
+              <p className="text-xs text-muted-foreground max-w-xs">Keep the sender's browser tab open with the same code.</p>
+              <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="mt-2 text-xs">Cancel</Button>
             </div>
           )}
 
@@ -747,8 +634,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-medium">
-                  <span>Download progress</span>
-                  <span>{progress}%</span>
+                  <span>Progress</span><span>{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-2.5" />
               </div>
@@ -762,9 +648,8 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
                   <p className="text-xl font-bold text-primary mt-1">{formatEta(eta)}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleCancelReceive} className="w-full text-xs text-destructive hover:bg-destructive/10">
-                Cancel
-              </Button>
+              <Button variant="ghost" size="sm" onClick={handleCancelReceive}
+                className="w-full text-xs text-destructive hover:bg-destructive/10">Cancel</Button>
             </div>
           )}
 
@@ -773,9 +658,7 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
               <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 dark:bg-emerald-900/30">
                 <Check className="h-6 w-6" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-lg">File Received!</h3>
-              </div>
+              <div><h3 className="font-bold text-lg">File Received!</h3></div>
               <div className="w-full max-w-xs space-y-2">
                 {receivedFiles.map((f, i) => (
                   <div key={i} className="flex items-center justify-between p-3 border rounded-xl bg-card shadow-xs gap-2">
@@ -807,20 +690,20 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
         </div>
       )}
 
-      {/* Info section */}
+      {/* Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-6 text-xs text-muted-foreground">
         <div className="flex gap-2.5 items-start">
           <Laptop className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
             <h5 className="font-semibold text-foreground">Peer-to-Peer Transfer</h5>
-            <p className="mt-0.5 leading-relaxed">Files flow directly between browsers via WebRTC — nothing is uploaded to any server.</p>
+            <p className="mt-0.5 leading-relaxed">Files stream directly between devices via WebRTC — nothing uploaded to any server.</p>
           </div>
         </div>
         <div className="flex gap-2.5 items-start">
           <Smartphone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <h5 className="font-semibold text-foreground">No File Size Limit</h5>
-            <p className="mt-0.5 leading-relaxed">Send HD videos, raw images, bulk folders, or archives of any scale instantly.</p>
+            <h5 className="font-semibold text-foreground">Works on All Devices</h5>
+            <p className="mt-0.5 leading-relaxed">Phone, tablet, laptop — any browser. Share across any network or distance.</p>
           </div>
         </div>
       </div>
