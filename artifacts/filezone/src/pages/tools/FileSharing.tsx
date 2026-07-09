@@ -302,7 +302,12 @@ export function FileSharing({ onDone }: { onDone: () => void }) {
       // 1. Verify session
       const verifyRes = await fetch(`/api/transfer/${joinCode}/status`, { signal: controller.signal });
       if (!verifyRes.ok) {
-        throw new Error("Invalid transfer code or session expired.");
+        let errMsg = "Invalid transfer code or session expired.";
+        try {
+          const errData = await verifyRes.json();
+          if (errData?.error) errMsg = errData.error;
+        } catch {}
+        throw new Error(`${errMsg} (Server status: ${verifyRes.status})`);
       }
       const verifyData = await verifyRes.json();
       setActiveFileName(verifyData.name || "Shared File");
