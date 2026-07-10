@@ -211,30 +211,31 @@ export function BlogDetail() {
   }
 
   // Schema for Article
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.eu.cc";
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": blog.title,
     "description": blog.summary,
-    "image": blog.coverImage || "https://5toolbox.app/og-image.png",
+    "image": blog.coverImage || `${origin}/og-image.png`,
     "author": {
       "@type": "Organization",
       "name": "5toolbox Team",
-      "url": "https://5toolbox.app/about"
+      "url": `${origin}/about`
     },
     "publisher": {
       "@type": "Organization",
       "name": "5toolbox",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://5toolbox.app/favicon.svg"
+        "url": `${origin}/favicon.svg`
       }
     },
     "datePublished": blog.publishedAt,
     "dateModified": blog.publishedAt,
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://5toolbox.app/blog/${blog.slug}`
+      "@id": `${origin}/blog/${blog.slug}`
     }
   };
 

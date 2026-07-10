@@ -165,6 +165,7 @@ export function ArticleDetail() {
   }
 
   // Schema for Article
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.eu.cc";
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -173,21 +174,21 @@ export function ArticleDetail() {
     "author": {
       "@type": "Organization",
       "name": "5toolbox Team",
-      "url": "https://5toolbox.app/about"
+      "url": `${origin}/about`
     },
     "publisher": {
       "@type": "Organization",
       "name": "5toolbox",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://5toolbox.app/favicon.svg"
+        "url": `${origin}/favicon.svg`
       }
     },
     "datePublished": article.publishedAt,
     "dateModified": article.publishedAt,
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://5toolbox.app/articles/${article.slug}`
+      "@id": `${origin}/articles/${article.slug}`
     }
   };
 

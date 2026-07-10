@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 const SITE_NAME = "5toolbox";
-const BASE_URL = "https://5toolbox.app";
+const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.eu.cc";
 const DEFAULT_DESC = "Free online file toolkit — merge PDFs, compress images, convert files, and more. All processing happens in your browser. No uploads, no sign-up, no limits.";
 
 interface SEOProps {
@@ -51,13 +51,14 @@ export function SEO({
   keywords,
   noIndex = false,
   ogType = "website",
-  ogImage = "https://5toolbox.app/og-image.png"
+  ogImage
 }: SEOProps) {
   const [location] = useLocation();
 
   useEffect(() => {
     const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Free Online File Tools`;
     const canonical = `${BASE_URL}${location}`;
+    const finalOgImage = ogImage || `${BASE_URL}/og-image.png`;
 
     document.title = fullTitle;
 
@@ -76,12 +77,12 @@ export function SEO({
     setMeta("og:url", canonical, "property");
     setMeta("og:type", ogType, "property");
     setMeta("og:site_name", SITE_NAME, "property");
-    setMeta("og:image", ogImage, "property");
+    setMeta("og:image", finalOgImage, "property");
 
     setMeta("twitter:title", fullTitle, "name");
     setMeta("twitter:description", description, "name");
     setMeta("twitter:card", "summary_large_image", "name");
-    setMeta("twitter:image", ogImage, "name");
+    setMeta("twitter:image", finalOgImage, "name");
 
     setCanonical(canonical);
     setHreflang("en", canonical);
