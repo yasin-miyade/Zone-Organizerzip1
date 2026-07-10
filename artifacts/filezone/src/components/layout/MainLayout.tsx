@@ -80,7 +80,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
 
   // Scroll to top on page navigation
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [location]);
 
   // Dynamic Animated Tab Title

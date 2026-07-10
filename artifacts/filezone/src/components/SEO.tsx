@@ -2,7 +2,9 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 const SITE_NAME = "5toolbox";
-const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.eu.cc";
+const BASE_URL = typeof window !== "undefined"
+  ? window.location.origin
+  : import.meta.env.VITE_SITE_URL ?? "https://5toolbox.eu.cc";
 const DEFAULT_DESC = "Free online file toolkit — merge PDFs, compress images, convert files, and more. All processing happens in your browser. No uploads, no sign-up, no limits.";
 
 interface SEOProps {
@@ -58,7 +60,7 @@ export function SEO({
   useEffect(() => {
     const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — Free Online File Tools`;
     const canonical = `${BASE_URL}${location}`;
-    const finalOgImage = ogImage || `${BASE_URL}/og-image.png`;
+    const finalOgImage = ogImage || `${BASE_URL}/favicon.svg`;
 
     document.title = fullTitle;
 

@@ -217,7 +217,7 @@ export function BlogDetail() {
     "@type": "BlogPosting",
     "headline": blog.title,
     "description": blog.summary,
-    "image": blog.coverImage || `${origin}/og-image.png`,
+    "image": blog.coverImage || `${origin}/favicon.svg`,
     "author": {
       "@type": "Organization",
       "name": "5toolbox Team",
