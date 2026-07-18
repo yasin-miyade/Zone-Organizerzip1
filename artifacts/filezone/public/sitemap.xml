@@ -3,79 +3,79 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Static Pages -->
   <url>
-    <loc>https://5toolbox.eu.cc/</loc>
+    <loc>https://tools.itsyasin.me/</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/pdf</loc>
+    <loc>https://tools.itsyasin.me/pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/image</loc>
+    <loc>https://tools.itsyasin.me/image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/convert</loc>
+    <loc>https://tools.itsyasin.me/convert</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/calculator</loc>
+    <loc>https://tools.itsyasin.me/calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/text</loc>
+    <loc>https://tools.itsyasin.me/text</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/blog</loc>
+    <loc>https://tools.itsyasin.me/blog</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/about</loc>
+    <loc>https://tools.itsyasin.me/about</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/privacy</loc>
+    <loc>https://tools.itsyasin.me/privacy</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/terms</loc>
+    <loc>https://tools.itsyasin.me/terms</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/cookie-policy</loc>
+    <loc>https://tools.itsyasin.me/cookie-policy</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/contact</loc>
+    <loc>https://tools.itsyasin.me/contact</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/faq</loc>
+    <loc>https://tools.itsyasin.me/faq</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -83,67 +83,67 @@
 
   <!-- PDF Tools -->
   <url>
-    <loc>https://5toolbox.eu.cc/tools/merge-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/merge-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/split-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/split-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/compress-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/compress-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/pdf-to-jpg</loc>
+    <loc>https://tools.itsyasin.me/tools/pdf-to-jpg</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/jpg-to-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/jpg-to-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/rotate-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/rotate-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/watermark-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/watermark-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/pdf-to-text</loc>
+    <loc>https://tools.itsyasin.me/tools/pdf-to-text</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/protect-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/protect-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/remove-pdf-pages</loc>
+    <loc>https://tools.itsyasin.me/tools/remove-pdf-pages</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/add-page-numbers</loc>
+    <loc>https://tools.itsyasin.me/tools/add-page-numbers</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -151,61 +151,61 @@
 
   <!-- Image Tools -->
   <url>
-    <loc>https://5toolbox.eu.cc/tools/compress-image</loc>
+    <loc>https://tools.itsyasin.me/tools/compress-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/resize-image</loc>
+    <loc>https://tools.itsyasin.me/tools/resize-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/convert-image</loc>
+    <loc>https://tools.itsyasin.me/tools/convert-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/crop-image</loc>
+    <loc>https://tools.itsyasin.me/tools/crop-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/image-to-pdf</loc>
+    <loc>https://tools.itsyasin.me/tools/image-to-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/flip-image</loc>
+    <loc>https://tools.itsyasin.me/tools/flip-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/rotate-image</loc>
+    <loc>https://tools.itsyasin.me/tools/rotate-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/watermark-image</loc>
+    <loc>https://tools.itsyasin.me/tools/watermark-image</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/image-to-base64</loc>
+    <loc>https://tools.itsyasin.me/tools/image-to-base64</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/svg-to-png</loc>
+    <loc>https://tools.itsyasin.me/tools/svg-to-png</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -213,37 +213,37 @@
 
   <!-- Text Tools -->
   <url>
-    <loc>https://5toolbox.eu.cc/tools/word-counter</loc>
+    <loc>https://tools.itsyasin.me/tools/word-counter</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/qr-generator</loc>
+    <loc>https://tools.itsyasin.me/tools/qr-generator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/base64</loc>
+    <loc>https://tools.itsyasin.me/tools/base64</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/json-formatter</loc>
+    <loc>https://tools.itsyasin.me/tools/json-formatter</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/online-clipboard</loc>
+    <loc>https://tools.itsyasin.me/tools/online-clipboard</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/file-sharing</loc>
+    <loc>https://tools.itsyasin.me/tools/file-sharing</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -251,91 +251,91 @@
 
   <!-- Calculators -->
   <url>
-    <loc>https://5toolbox.eu.cc/tools/age-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/age-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/bmi-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/bmi-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/percentage-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/percentage-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/cgpa-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/cgpa-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/gpa-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/gpa-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/emi-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/emi-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/sip-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/sip-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/gst-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/gst-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/income-tax-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/income-tax-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/currency-converter</loc>
+    <loc>https://tools.itsyasin.me/tools/currency-converter</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/scientific-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/scientific-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/loan-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/loan-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/discount-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/discount-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/attendance-calculator</loc>
+    <loc>https://tools.itsyasin.me/tools/attendance-calculator</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/date-difference</loc>
+    <loc>https://tools.itsyasin.me/tools/date-difference</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -343,43 +343,43 @@
 
   <!-- Convert Category -->
   <url>
-    <loc>https://5toolbox.eu.cc/tools/csv-to-json</loc>
+    <loc>https://tools.itsyasin.me/tools/csv-to-json</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/json-to-csv</loc>
+    <loc>https://tools.itsyasin.me/tools/json-to-csv</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/markdown-to-html</loc>
+    <loc>https://tools.itsyasin.me/tools/markdown-to-html</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/html-to-text</loc>
+    <loc>https://tools.itsyasin.me/tools/html-to-text</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/url-encoder</loc>
+    <loc>https://tools.itsyasin.me/tools/url-encoder</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/color-converter</loc>
+    <loc>https://tools.itsyasin.me/tools/color-converter</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/tools/number-base</loc>
+    <loc>https://tools.itsyasin.me/tools/number-base</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -387,19 +387,19 @@
 
   <!-- Blogs & Articles -->
   <url>
-    <loc>https://5toolbox.eu.cc/blog/how-to-compress-pdf</loc>
+    <loc>https://tools.itsyasin.me/blog/how-to-compress-pdf</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/blog/optimizing-images-core-web-vitals</loc>
+    <loc>https://tools.itsyasin.me/blog/optimizing-images-core-web-vitals</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://5toolbox.eu.cc/articles/what-is-browser-based-file-processing</loc>
+    <loc>https://tools.itsyasin.me/articles/what-is-browser-based-file-processing</loc>
     <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

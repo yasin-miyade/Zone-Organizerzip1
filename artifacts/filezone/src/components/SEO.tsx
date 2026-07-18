@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 const SITE_NAME = "5toolbox";
 const BASE_URL = typeof window !== "undefined"
   ? window.location.origin
-  : import.meta.env.VITE_SITE_URL ?? "https://5toolbox.eu.cc";
+  : import.meta.env.VITE_SITE_URL ?? "https://tools.itsyasin.me";
 const DEFAULT_DESC = "Free online file toolkit — merge PDFs, compress images, convert files, and more. All processing happens in your browser. No uploads, no sign-up, no limits.";
 
 interface SEOProps {

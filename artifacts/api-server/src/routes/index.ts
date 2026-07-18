@@ -296,7 +296,7 @@ router.get("/sitemap.xml", async (req, res) => {
     const allPages = [...staticPages, ...toolPages, ...blogPages, ...articlePages];
 
     // Always use production domain so GSC/Google crawler gets correct URLs
-    const sitemapHost = "https://5toolbox.eu.cc";
+    const sitemapHost = "https://tools.itsyasin.me";
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
@@ -322,7 +322,7 @@ ${allPages.map((p) => `  <url>
 router.get("/robots.txt", (req, res) => {
   res.setHeader("Content-Type", "text/plain");
   res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
-  res.send(`User-agent: *\nAllow: /\n\nSitemap: https://5toolbox.eu.cc/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
+  res.send(`User-agent: *\nAllow: /\n\nSitemap: https://tools.itsyasin.me/sitemap.xml\n\nDisallow: /admin\nDisallow: /api/admin/`);
 });
 
 export default router;

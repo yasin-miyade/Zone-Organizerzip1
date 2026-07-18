@@ -4,12 +4,12 @@
 
 ## Core Features and Tools
 
-* [Merge PDF](https://5toolbox.eu.cc/tools/merge-pdf): Combine multiple PDF documents into a single file.
-* [Split PDF](https://5toolbox.eu.cc/tools/split-pdf): Separate pages or extract specific page ranges from a PDF.
-* [Compress PDF](https://5toolbox.eu.cc/tools/compress-pdf): Reduce PDF file size using intelligent canvas-based rasterization.
-* [Protect PDF](https://5toolbox.eu.cc/tools/protect-pdf): Secure PDF files with user/owner passwords.
-* [Convert Image](https://5toolbox.eu.cc/tools/convert-image): Convert images dynamically between PNG, JPG, WEBP, BMP, and ICO.
-* [Resize Image](https://5toolbox.eu.cc/tools/resize-image): Change width and height dimensions of an image.
-* [Compress Image](https://5toolbox.eu.cc/tools/compress-image): Optimize and reduce image file sizes.
-* [Word Counter](https://5toolbox.eu.cc/tools/word-counter): Count words, characters, sentences, and paragraphs in real-time.
-* [Online Clipboard](https://5toolbox.eu.cc/tools/online-clipboard): Securely share text snippets across devices with configurable expiration times.
+* [Merge PDF](https://tools.itsyasin.me/tools/merge-pdf): Combine multiple PDF documents into a single file.
+* [Split PDF](https://tools.itsyasin.me/tools/split-pdf): Separate pages or extract specific page ranges from a PDF.
+* [Compress PDF](https://tools.itsyasin.me/tools/compress-pdf): Reduce PDF file size using intelligent canvas-based rasterization.
+* [Protect PDF](https://tools.itsyasin.me/tools/protect-pdf): Secure PDF files with user/owner passwords.
+* [Convert Image](https://tools.itsyasin.me/tools/convert-image): Convert images dynamically between PNG, JPG, WEBP, BMP, and ICO.
+* [Resize Image](https://tools.itsyasin.me/tools/resize-image): Change width and height dimensions of an image.
+* [Compress Image](https://tools.itsyasin.me/tools/compress-image): Optimize and reduce image file sizes.
+* [Word Counter](https://tools.itsyasin.me/tools/word-counter): Count words, characters, sentences, and paragraphs in real-time.
+* [Online Clipboard](https://tools.itsyasin.me/tools/online-clipboard): Securely share text snippets across devices with configurable expiration times.

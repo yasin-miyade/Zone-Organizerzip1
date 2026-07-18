@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://5toolbox.eu.cc/sitemap.xml
+Sitemap: https://tools.itsyasin.me/sitemap.xml
 
 Disallow: /admin
 Disallow: /api/admin/

@@ -211,7 +211,7 @@ export function BlogDetail() {
   }
 
   // Schema for Article
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.eu.cc";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://tools.itsyasin.me";
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
