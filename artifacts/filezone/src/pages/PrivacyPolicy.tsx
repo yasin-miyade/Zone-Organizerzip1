@@ -34,7 +34,7 @@ export function PrivacyPolicy() {
         <section className="p-6 rounded-2xl border bg-card">
           <h2 className="text-xl font-semibold mb-3">1. Introduction</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Welcome to 5toolbox ("we", "our", or "us"). We are committed to protecting your privacy. This Privacy Policy explains how 5toolbox handles information when you use our website and tools at 5toolbox.app (the "Service").
+            Welcome to 5toolbox ("we", "our", or "us"). We are committed to protecting your privacy. This Privacy Policy explains how 5toolbox handles information when you use our website and tools at tools.itsyasin.me (the "Service").
           </p>
         </section>
 

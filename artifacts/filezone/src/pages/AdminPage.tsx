@@ -1061,7 +1061,7 @@ function ContactsPanel({ token }: { token: string }) {
 // ----- SEO Panel -----
 function SeoPanel() {
   const { toast } = useToast();
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://5toolbox.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://tools.itsyasin.me";
   const sitemapUrl = `${origin}/sitemap.xml`;
   const robotsUrl = `${origin}/robots.txt`;
 
@@ -1079,7 +1079,7 @@ function SeoPanel() {
     {
       num: 2,
       title: "Add your property",
-      desc: "Click \"Add property\", choose \"URL prefix\", and enter your site URL (e.g. https://5toolbox.app). Verify ownership using the HTML tag method by pasting the tag into your site's <head>.",
+      desc: "Click \"Add property\", choose \"URL prefix\", and enter your site URL (e.g. https://tools.itsyasin.me). Verify ownership using the HTML tag method by pasting the tag into your site's <head>.",
       action: null,
     },
     {
