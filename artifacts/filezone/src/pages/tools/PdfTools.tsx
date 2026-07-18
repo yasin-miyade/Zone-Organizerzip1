@@ -146,6 +146,7 @@ export function SplitPdf({ onDone }: { onDone: () => void }) {
 export function CompressPdf({ onDone }: { onDone: () => void }) {
   const { slug } = useParams<{ slug: string }>();
   const [files, setFiles] = useState<File[]>(() => getPendingFilesForTool(slug ?? ""));
+  const [level, setLevel] = useState<"smart" | "basic" | "extreme">("smart");
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<ResultFile[]>([]);
   const { toast } = useToast();
@@ -155,36 +156,66 @@ export function CompressPdf({ onDone }: { onDone: () => void }) {
     setProcessing(true);
     try {
       const arrayBuffer = await files[0].arrayBuffer();
-      const pdfjs = await getPdfjs();
       const { PDFDocument } = await import("pdf-lib");
 
-      const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-      const pdfDoc = await PDFDocument.create();
+      let finalBytes: Uint8Array;
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d")!;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+      if (level === "smart") {
+        // Smart (Lossless) - re-compress layout structures and stream tables
+        const doc = await PDFDocument.load(arrayBuffer);
+        finalBytes = await doc.save({ useObjectStreams: true });
+      } else {
+        // Lossy Rasterization for image-heavy documents
+        const pdfjs = await getPdfjs();
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        const pdfDoc = await PDFDocument.create();
 
-        await page.render({ canvasContext: context, viewport } as any).promise;
-        const imgDataUrl = canvas.toDataURL("image/jpeg", 0.6);
-        const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+        const scale = level === "basic" ? 1.2 : 0.85;
+        const quality = level === "basic" ? 0.5 : 0.3;
 
-        const embeddedImg = await pdfDoc.embedJpg(imgBytes);
-        const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
-        newPage.drawImage(embeddedImg, {
-          x: 0,
-          y: 0,
-          width: viewport.width,
-          height: viewport.height,
-        });
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d")!;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: context, viewport } as any).promise;
+          const imgDataUrl = canvas.toDataURL("image/jpeg", quality);
+          const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+
+          const embeddedImg = await pdfDoc.embedJpg(imgBytes);
+          const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
+          newPage.drawImage(embeddedImg, {
+            x: 0,
+            y: 0,
+            width: viewport.width,
+            height: viewport.height,
+          });
+        }
+        finalBytes = await pdfDoc.save();
       }
 
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
+      // Check if output size is larger than original input size
+      if (finalBytes.length >= files[0].size) {
+        if (level !== "smart") {
+          // Fall back to smart lossless compression if lossy rasterization increased file size
+          const doc = await PDFDocument.load(arrayBuffer);
+          finalBytes = await doc.save({ useObjectStreams: true });
+          toast({
+            title: "Smart fallback applied",
+            description: "Lossless optimization was used because rasterization would have increased the file size."
+          });
+        } else {
+          toast({
+            title: "Fully optimized",
+            description: "This PDF is already compressed to its minimum size."
+          });
+        }
+      }
+
+      const blob = new Blob([finalBytes as any], { type: "application/pdf" });
       setResults([{ name: `${baseName(files[0])}_compressed.pdf`, blob, size: blob.size }]);
       onDone();
     } catch (e) {
@@ -195,6 +226,21 @@ export function CompressPdf({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-4">
       <UploadZone accept=".pdf" onFiles={setFiles} files={files} onRemove={() => setFiles([])} />
+      {files.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Compression Level</Label>
+          <Select value={level} onValueChange={(v: any) => setLevel(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="smart">Smart Compression (Lossless, keeps text crisp)</SelectItem>
+              <SelectItem value="basic">Basic Compression (Lossy, for scanned PDFs)</SelectItem>
+              <SelectItem value="extreme">Extreme Compression (Lossy, maximum size reduction)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {files.length > 0 && (
         <Button className="w-full" onClick={handle} disabled={processing} data-testid="button-process">
           {processing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Compressing…</> : "Compress PDF"}
