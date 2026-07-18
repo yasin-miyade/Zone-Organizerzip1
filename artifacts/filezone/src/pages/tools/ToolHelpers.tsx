@@ -12,9 +12,7 @@ export interface ResultFile {
 
 export async function getPdfjs() {
   const pdfjs = await import("pdfjs-dist");
-  // @ts-ignore
-  const { default: workerUrl } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
   return pdfjs;
 }
 
