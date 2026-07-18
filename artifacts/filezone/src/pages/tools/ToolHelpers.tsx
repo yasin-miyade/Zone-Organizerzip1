@@ -2,15 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { UploadZone } from "@/components/UploadZone";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Download, RefreshCw, ChevronDown, Copy, Check } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu";
+import { Loader2, CheckCircle2, Download, Copy, Check } from "lucide-react";
 
 export interface ResultFile {
   name: string;
@@ -219,20 +211,9 @@ export function ResultCard({ results }: { results: ResultFile[] }) {
   const [, setLocation] = useLocation();
   if (!results.length) return null;
 
-  const handleProcessFurther = (r: ResultFile, targetSlug: string) => {
-    const nextFile = new File([r.blob], r.name, { type: r.blob.type });
-    (window as any).pendingFileToProcess = {
-      file: nextFile,
-      name: r.name
-    };
-    setLocation(`/tools/${targetSlug}`);
-  };
-
   return (
     <div className="mt-6 space-y-4">
       {results.map((r, i) => {
-        const isPdf = r.blob.type === "application/pdf";
-        const isImage = r.blob.type.startsWith("image/");
         return (
           <div key={i} className="rounded-xl border bg-card overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
             {r.blob.type.startsWith("image/") && (
@@ -257,43 +238,6 @@ export function ResultCard({ results }: { results: ResultFile[] }) {
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
-                {(isPdf || isImage) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin-slow" /> Process Further <ChevronDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Chaining Operations</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {isPdf && (
-                        <>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "compress-pdf")}>Compress PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "protect-pdf")}>Protect PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "split-pdf")}>Split PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "rotate-pdf")}>Rotate PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "watermark-pdf")}>Watermark PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "pdf-to-jpg")}>PDF to JPG</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "pdf-to-text")}>PDF to Text</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "remove-pdf-pages")}>Remove PDF Pages</DropdownMenuItem>
-                        </>
-                      )}
-                      {isImage && (
-                        <>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "compress-image")}>Compress Image</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "resize-image")}>Resize Image</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "convert-image")}>Convert Format</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "crop-image")}>Crop Image</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "rotate-image")}>Rotate Image</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "flip-image")}>Flip Image</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "image-to-pdf")}>Image to PDF</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProcessFurther(r, "image-to-base64")}>Image to Base64</DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
                 <Button size="sm" onClick={() => downloadBlob(r.blob, r.name)}>
                   <Download className="h-3.5 w-3.5 mr-1.5" /> Download
                 </Button>
