@@ -40,7 +40,12 @@ if (!process.env.DATABASE_URL) {
     );
   }
 } else {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL.includes("ssl=true")
+      ? { rejectUnauthorized: false }
+      : undefined,
+  });
   db = drizzle(pool, { schema });
 }
 
