@@ -6,7 +6,7 @@ import adminRouter from "./admin";
 import blogsRouter from "./blogs";
 import commentsRouter from "./comments";
 import transferRouter from "./transfer";
-import { db } from "@workspace/db";
+import { db, defaultTools } from "@workspace/db";
 import { toolsTable, siteSettingsTable, contactsTable, clipboardsTable, blogsTable, articlesTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -252,10 +252,31 @@ router.get("/sitemap.xsl", (req, res) => {
 
 // GET /sitemap.xml
 router.get("/sitemap.xml", async (req, res) => {
+  let tools = [];
+  let blogs = [];
+  let articles = [];
+
   try {
-    const tools = await db.select().from(toolsTable);
-    const blogs = await db.select().from(blogsTable);
-    const articles = await db.select().from(articlesTable);
+    if (db) {
+      tools = await db.select().from(toolsTable);
+      blogs = await db.select().from(blogsTable);
+      articles = await db.select().from(articlesTable);
+    } else {
+      throw new Error("Database is not initialized");
+    }
+  } catch (err) {
+    req.log.warn({ err }, "Database offline or query failed, falling back to static schema lists for sitemap.xml");
+    tools = defaultTools;
+    blogs = [
+      { slug: "how-to-compress-pdf" },
+      { slug: "optimizing-images-core-web-vitals" },
+    ];
+    articles = [
+      { slug: "what-is-browser-based-file-processing" },
+    ];
+  }
+
+  try {
 
     const now = new Date().toISOString().split("T")[0];
 

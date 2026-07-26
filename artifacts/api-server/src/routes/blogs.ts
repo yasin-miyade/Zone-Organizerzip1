@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, blogsTable, articlesTable } from "@workspace/db";
+import { db, blogsTable, articlesTable, defaultBlogs, defaultArticles } from "@workspace/db";
 import { requireAdmin } from "./admin";
 
 const router = Router();
@@ -10,26 +10,30 @@ const router = Router();
 // GET /blogs - list all blogs
 router.get("/blogs", async (req, res) => {
   try {
+    if (!db) throw new Error("Database offline");
     const list = await db
       .select()
       .from(blogsTable)
       .orderBy(desc(blogsTable.publishedAt));
     res.json(list);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch blogs" });
+    req.log.warn({ error }, "Database offline or query failed, falling back to static defaultBlogs");
+    res.json(defaultBlogs);
   }
 });
 
 // GET /articles - list all articles
 router.get("/articles", async (req, res) => {
   try {
+    if (!db) throw new Error("Database offline");
     const list = await db
       .select()
       .from(articlesTable)
       .orderBy(desc(articlesTable.publishedAt));
     res.json(list);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch articles" });
+    req.log.warn({ error }, "Database offline or query failed, falling back to static defaultArticles");
+    res.json(defaultArticles);
   }
 });
 
@@ -38,6 +42,7 @@ router.get("/articles", async (req, res) => {
 router.get("/blogs/:slug", async (req, res) => {
   const { slug } = req.params;
   try {
+    if (!db) throw new Error("Database offline");
     const [blog] = await db
       .select()
       .from(blogsTable)
@@ -56,7 +61,12 @@ router.get("/blogs/:slug", async (req, res) => {
 
     res.json({ ...blog, views: blog.views + 1 });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch blog post" });
+    req.log.warn({ error }, "Database offline or query failed, falling back to static blog lookup");
+    const matchedBlog = defaultBlogs.find((b) => b.slug === slug);
+    if (!matchedBlog) {
+      return res.status(404).json({ error: "Blog post not found" });
+    }
+    res.json(matchedBlog);
   }
 });
 
@@ -64,6 +74,7 @@ router.get("/blogs/:slug", async (req, res) => {
 router.get("/articles/:slug", async (req, res) => {
   const { slug } = req.params;
   try {
+    if (!db) throw new Error("Database offline");
     const [article] = await db
       .select()
       .from(articlesTable)
@@ -81,7 +92,12 @@ router.get("/articles/:slug", async (req, res) => {
 
     res.json({ ...article, views: article.views + 1 });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch article" });
+    req.log.warn({ error }, "Database offline or query failed, falling back to static article lookup");
+    const matchedArticle = defaultArticles.find((a) => a.slug === slug);
+    if (!matchedArticle) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    res.json(matchedArticle);
   }
 });
 
@@ -89,6 +105,7 @@ router.get("/articles/:slug", async (req, res) => {
 router.post("/blogs/:slug/like", async (req, res) => {
   const { slug } = req.params;
   try {
+    if (!db) throw new Error("Database offline");
     const [blog] = await db
       .select()
       .from(blogsTable)
@@ -107,7 +124,10 @@ router.post("/blogs/:slug/like", async (req, res) => {
 
     res.json({ likes: updated.likes });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update likes" });
+    req.log.warn({ error }, "Database offline or query failed, simulating blog like count increment");
+    const matchedBlog = defaultBlogs.find((b) => b.slug === slug);
+    const currentLikes = matchedBlog ? (matchedBlog.likes ?? 0) : 0;
+    res.json({ likes: currentLikes + 1 });
   }
 });
 

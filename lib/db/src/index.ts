@@ -45,3 +45,4 @@ if (!process.env.DATABASE_URL) {
 }
 
 export * from "./schema";
+export * from "./defaultTools";
