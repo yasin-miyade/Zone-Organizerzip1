@@ -37,7 +37,7 @@ app.use("/api", router);
 const frontendDistPath = path.join(__dirname, "../../filezone/dist/public");
 if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
-  app.get("*", (req, res, next) => {
+  app.get("*any", (req, res, next) => {
     // Let api and peerjs fall through
     if (req.path.startsWith("/api") || req.path.startsWith("/peerjs")) {
       return next();
