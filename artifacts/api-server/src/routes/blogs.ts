@@ -138,13 +138,15 @@ router.post("/blogs/:slug/like", async (req, res) => {
 // GET /admin/blogs - list all blogs (for admin table)
 router.get("/admin/blogs", requireAdmin, async (req, res) => {
   try {
+    if (!db) throw new Error("Database offline");
     const list = await db
       .select()
       .from(blogsTable)
       .orderBy(desc(blogsTable.publishedAt));
     res.json(list);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch blogs" });
+    req.log.warn({ error }, "Database offline during admin blogs load, using fallback defaultBlogs");
+    res.json(defaultBlogs);
   }
 });
 
@@ -225,13 +227,15 @@ router.delete("/admin/blogs/:id", requireAdmin, async (req, res) => {
 // GET /admin/articles - list all articles (for admin table)
 router.get("/admin/articles", requireAdmin, async (req, res) => {
   try {
+    if (!db) throw new Error("Database offline");
     const list = await db
       .select()
       .from(articlesTable)
       .orderBy(desc(articlesTable.publishedAt));
     res.json(list);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch articles" });
+    req.log.warn({ error }, "Database offline during admin articles load, using fallback defaultArticles");
+    res.json(defaultArticles);
   }
 });
 
