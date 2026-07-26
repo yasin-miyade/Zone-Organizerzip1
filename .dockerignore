@@ -1,0 +1,11 @@
+node_modules
+.git
+.replit
+.env
+.replit.history
+*.log
+dist
+artifacts/filezone/dist
+artifacts/api-server/dist
+lib/db/dist
+.tsbuildinfo
