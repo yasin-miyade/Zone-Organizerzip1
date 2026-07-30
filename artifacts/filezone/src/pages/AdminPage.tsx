@@ -370,9 +370,9 @@ function EditToolModal({ tool, token, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col text-slate-100 overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h2 className="font-semibold text-lg">Edit: {tool.name}</h2>
             <p className="text-xs text-muted-foreground">Manage all parameters and SEO fields for this tool.</p>
@@ -381,11 +381,11 @@ function EditToolModal({ tool, token, onSave, onClose }: {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex gap-2 px-5 py-3 border-b border-slate-800/80 bg-slate-950/20 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <Button variant={modalTab === "basic" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "basic" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Basic Info</Button>
-          <Button variant={modalTab === "seo" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "seo" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>SEO Meta</Button>
-          <Button variant={modalTab === "content" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("content")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "content" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Intro &amp; FAQs</Button>
-          <Button variant={modalTab === "details" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("details")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "details" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Details &amp; Tips</Button>
+        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
@@ -396,7 +396,7 @@ function EditToolModal({ tool, token, onSave, onClose }: {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Category</Label>
-                  <select className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60" value={form.category} onChange={e => set("category", e.target.value)}>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
                     {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -455,11 +455,11 @@ function EditToolModal({ tool, token, onSave, onClose }: {
           )}
         </div>
 
-        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">
             <Save className="h-4 w-4 mr-2" />{saving ? "Saving…" : "Save Changes"}
           </Button>
-          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
     </div>
@@ -543,9 +543,9 @@ function AddToolModal({ token, onAdd, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+        <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h2 className="font-semibold text-lg">Add New Tool</h2>
             <p className="text-xs text-muted-foreground">Create a new tool and define its SEO, introduction, and FAQs.</p>
@@ -554,11 +554,11 @@ function AddToolModal({ token, onAdd, onClose }: {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex gap-2 px-5 py-3 border-b border-slate-800/80 bg-slate-950/20 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <Button variant={modalTab === "basic" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "basic" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Basic Info</Button>
-          <Button variant={modalTab === "seo" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "seo" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>SEO Meta</Button>
-          <Button variant={modalTab === "content" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("content")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "content" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Intro &amp; FAQs</Button>
-          <Button variant={modalTab === "details" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("details")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "details" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Details &amp; Tips</Button>
+        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
@@ -572,7 +572,7 @@ function AddToolModal({ token, onAdd, onClose }: {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Category</Label>
-                  <select className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60" value={form.category} onChange={e => set("category", e.target.value)}>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
                     {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -745,7 +745,7 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
         <select
           value={settings.title_animation ?? "none"}
           onChange={e => set("title_animation", e.target.value)}
-          className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60"
+          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
         >
           <option value="none">Static Title (No Animation)</option>
           <option value="scrolling">Scrolling Title Text</option>
@@ -1309,23 +1309,6 @@ export function AdminPage() {
     }
   }
 
-  async function handleResetStats(slug: string) {
-    const toolName = tools.find(t => t.slug === slug)?.name || slug;
-    if (!confirm(`Are you sure you want to reset usage statistics for "${toolName}"?`)) return;
-    try {
-      const res = await fetch(`${API}/admin/tools/${slug}/reset-usage`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
-      setTools(prev => prev.map(t => t.slug === slug ? { ...t, usageCount: 0 } : t));
-      toast({ title: `Usage statistics for "${toolName}" reset successfully` });
-      loadStats();
-    } catch {
-      toast({ title: "Failed to reset stats", variant: "destructive" });
-    }
-  }
-
   if (!token) return <LoginScreen onLogin={handleLogin} />;
 
   const categories = ["all", ...Array.from(new Set(tools.map(t => t.category)))];
@@ -1343,437 +1326,374 @@ export function AdminPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden relative">
-      {/* Background glow effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-violet-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Sidebar Navigation */}
-      <aside className="w-64 flex flex-col border-r border-slate-900 bg-slate-950/60 backdrop-blur-md sticky top-0 h-screen p-5 z-20">
-        <div className="flex items-center gap-2.5 mb-8 px-2">
-          <div className="bg-indigo-600/10 border border-indigo-500/20 p-2 rounded-xl text-indigo-400">
-            <Layers className="h-5 w-5 animate-pulse" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 leading-none">5toolbox Admin</h1>
-            <p className="text-[9px] text-slate-500 mt-1 uppercase tracking-wider">Control Center</p>
+    <div className="min-h-screen bg-muted/20">
+      {/* Header */}
+      <header className="bg-card border-b px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-lg"><Layers className="h-4 w-4 text-primary-foreground" /></div>
+            <span className="font-bold">5toolbox Admin</span>
           </div>
         </div>
-
-        {/* Vertical Tabs List */}
-        <nav className="flex-1 space-y-1.5 overflow-y-auto pr-1">
-          {[
-            { id: "tools", label: "Tools Manager", icon: <BarChart2 className="h-4 w-4" /> },
-            { id: "blogs", label: "Blogs Manager", icon: <BookOpen className="h-4 w-4" /> },
-            { id: "articles", label: "Articles Manager", icon: <FileText className="h-4 w-4" /> },
-            { id: "comments", label: "Comments", icon: <MessageSquare className="h-4 w-4" /> },
-            { id: "ratings", label: "Ratings Moderation", icon: <Star className="h-4 w-4" /> },
-            { id: "stats", label: "Analytics", icon: <TrendingUp className="h-4 w-4" /> },
-            { id: "settings", label: "Site Settings", icon: <Settings className="h-4 w-4" /> },
-            { id: "ads", label: "Ad Settings", icon: <Megaphone className="h-4 w-4" /> },
-            {
-              id: "contacts",
-              label: "Contacts",
-              icon: <Mail className="h-4 w-4" />,
-              badge: contactCount > 0 ? contactCount : null
-            },
-            { id: "seo", label: "SEO & Indexing", icon: <Search className="h-4 w-4" /> }
-          ].map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as any);
-                  if (tab.id === "contacts") setContactCount(0);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-200 border cursor-pointer text-left",
-                  isActive
-                    ? "bg-indigo-600/10 border-indigo-500/30 text-indigo-400 font-medium shadow-md shadow-indigo-500/5"
-                    : "border-transparent text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </div>
-                {tab.badge && (
-                  <span className="h-4.5 min-w-4.5 px-1 rounded-full bg-indigo-500 text-white font-bold text-[9px] flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="pt-4 border-t border-slate-900">
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 border-slate-900 bg-slate-950/80 hover:bg-slate-900 hover:border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl py-2.5 text-xs transition-all cursor-pointer"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-3.5 w-3.5" /> Logout
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => {
+            loadTools();
+            loadStats();
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+            window.dispatchEvent(new CustomEvent("refresh-articles"));
+            window.dispatchEvent(new CustomEvent("refresh-comments"));
+            window.dispatchEvent(new CustomEvent("refresh-ratings"));
+          }}>
+            <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
           </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}><LogOut className="h-4 w-4 mr-1.5" /> Logout</Button>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-8 overflow-y-auto max-w-6xl mx-auto z-10 flex flex-col min-h-screen">
-        {/* Content Header */}
-        <header className="flex justify-between items-center mb-8 pb-4 border-b border-slate-900">
-          <div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Management Console</div>
-            <h2 className="text-xl font-bold text-slate-200 capitalize mt-1">
-              {activeTab === "stats" ? "Analytics Overview" : `${activeTab} Management`}
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-slate-950/60 border-slate-900 hover:bg-slate-900 hover:border-slate-800 text-slate-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-              onClick={() => {
-                loadTools();
-                loadStats();
-                window.dispatchEvent(new CustomEvent("refresh-blogs"));
-                window.dispatchEvent(new CustomEvent("refresh-articles"));
-                window.dispatchEvent(new CustomEvent("refresh-comments"));
-                window.dispatchEvent(new CustomEvent("refresh-ratings"));
-                toast({ title: "Sync complete", description: "All dashboard caches updated." });
-              }}
-            >
-              <RefreshCw className="h-3.5 w-3.5" /> Synchronize
-            </Button>
-            <Link href="/" className="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all">
-              <ExternalLink className="h-3.5 w-3.5" /> Visit Site
-            </Link>
-          </div>
-        </header>
-
-        {/* Real Stats Grid */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Real Stats from API */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
             {
               label: "Total Visitors",
               value: (adminStats?.totalVisitors ?? 0).toLocaleString(),
-              icon: <Users className="h-4 w-4 text-blue-400" />,
-              gradient: "from-blue-500/10 to-indigo-500/5",
-              glow: "group-hover:border-blue-500/30",
-              sub: "All-time sessions"
+              icon: <Users className="h-5 w-5 text-blue-500" />,
+              sub: "All-time unique visitors",
             },
             {
               label: "Files Processed",
               value: (adminStats?.totalFilesProcessed ?? localStats.totalUsage).toLocaleString(),
-              icon: <FileStack className="h-4 w-4 text-emerald-400" />,
-              gradient: "from-emerald-500/10 to-teal-500/5",
-              glow: "group-hover:border-emerald-500/30",
-              sub: "Actions completed"
+              icon: <FileStack className="h-5 w-5 text-green-500" />,
+              sub: "Total tool uses",
             },
             {
               label: "Active Tools",
               value: (adminStats ? adminStats.totalTools - adminStats.hiddenTools : localStats.total - localStats.hidden).toString(),
-              icon: <TrendingUp className="h-4 w-4 text-violet-400" />,
-              gradient: "from-violet-500/10 to-purple-500/5",
-              glow: "group-hover:border-violet-500/30",
-              sub: `${adminStats?.hiddenTools ?? localStats.hidden} items hidden`
+              icon: <TrendingUp className="h-5 w-5 text-primary" />,
+              sub: `${adminStats?.hiddenTools ?? localStats.hidden} hidden`,
             },
             {
               label: "Featured Tools",
               value: (adminStats?.featuredTools ?? localStats.featured).toString(),
-              icon: <Star className="h-4 w-4 text-amber-400" />,
-              gradient: "from-amber-500/10 to-orange-500/5",
-              glow: "group-hover:border-amber-500/30",
-              sub: "Promoted to home"
-            }
+              icon: <Star className="h-5 w-5 text-amber-500" />,
+              sub: "Shown on homepage",
+            },
           ].map(s => (
-            <div key={s.label} className={cn(
-              "bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-2xl p-5 relative overflow-hidden transition-all duration-300 group hover:translate-y-[-2px] hover:bg-slate-900/60 hover:border-slate-700/60",
-              s.glow
-            )}>
-              <div className="flex items-center justify-between mb-3 relative z-10">
-                <span className="text-[10px] text-slate-500 uppercase tracking-wider">{s.sub}</span>
-                <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800">{s.icon}</div>
+            <div key={s.label} className="bg-card border rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                {s.icon}
+                <span className="text-xs text-muted-foreground">{s.sub}</span>
               </div>
-              <div className="relative z-10">
-                <p className="text-2xl font-bold tracking-tight text-slate-100">{s.value}</p>
-                <p className="text-[11px] text-slate-400 mt-1">{s.label}</p>
-              </div>
-              {/* Subtle card glow overlay */}
-              <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50 pointer-events-none transition-opacity duration-300 group-hover:opacity-75", s.gradient)} />
+              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
             </div>
           ))}
-        </section>
+        </div>
 
-        {/* Tab Viewport */}
-        <section className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-2xl p-6 shadow-2xl relative z-10 flex-1 flex flex-col">
-          {/* Tools Manager Tab */}
-          {activeTab === "tools" && (
-            <div className="space-y-6 flex-1 flex flex-col">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                    <Input
-                      placeholder="Search tools..."
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-950/60 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs focus-visible:ring-0 focus-visible:ring-offset-0 text-slate-200"
-                    />
-                  </div>
-                  <select
-                    value={categoryFilter}
-                    onChange={e => setCategoryFilter(e.target.value)}
-                    className="border border-slate-800 bg-slate-950/60 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500/60"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat} className="bg-slate-950 text-slate-300">
-                        {cat === "all" ? "All Categories" : cat.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Button onClick={() => setAddingTool(true)} size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold px-4 py-2 flex items-center gap-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer border-0">
-                  <Plus className="h-4 w-4" /> Add Custom Tool
-                </Button>
-              </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          <Button variant={activeTab === "tools" ? "default" : "outline"} onClick={() => setActiveTab("tools")} size="sm">
+            <BarChart2 className="h-4 w-4 mr-1.5" /> Tools Manager
+          </Button>
+          <Button variant={activeTab === "blogs" ? "default" : "outline"} onClick={() => setActiveTab("blogs")} size="sm">
+            <BookOpen className="h-4 w-4 mr-1.5" /> Blogs Manager
+          </Button>
+          <Button variant={activeTab === "articles" ? "default" : "outline"} onClick={() => setActiveTab("articles")} size="sm">
+            <FileText className="h-4 w-4 mr-1.5" /> Articles Manager
+          </Button>
+          <Button variant={activeTab === "comments" ? "default" : "outline"} onClick={() => setActiveTab("comments")} size="sm">
+            <MessageSquare className="h-4 w-4 mr-1.5" /> Comments
+          </Button>
+          <Button variant={activeTab === "ratings" ? "default" : "outline"} onClick={() => setActiveTab("ratings")} size="sm">
+            <Star className="h-4 w-4 mr-1.5" /> Ratings Moderation
+          </Button>
+          <Button variant={activeTab === "stats" ? "default" : "outline"} onClick={() => setActiveTab("stats")} size="sm">
+            <TrendingUp className="h-4 w-4 mr-1.5" /> Analytics
+          </Button>
+          <Button variant={activeTab === "settings" ? "default" : "outline"} onClick={() => setActiveTab("settings")} size="sm">
+            <Settings className="h-4 w-4 mr-1.5" /> Site Settings
+          </Button>
+          <Button variant={activeTab === "ads" ? "default" : "outline"} onClick={() => setActiveTab("ads")} size="sm">
+            <Megaphone className="h-4 w-4 mr-1.5" /> Ad Settings
+          </Button>
+          <Button variant={activeTab === "contacts" ? "default" : "outline"} onClick={() => { setActiveTab("contacts"); setContactCount(0); }} size="sm" className="relative">
+            <Mail className="h-4 w-4 mr-1.5" /> Contacts
+            {contactCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">{contactCount}</span>
+            )}
+          </Button>
+          <Button variant={activeTab === "seo" ? "default" : "outline"} onClick={() => setActiveTab("seo")} size="sm">
+            <Search className="h-4 w-4 mr-1.5" /> SEO &amp; Indexing
+          </Button>
+        </div>
 
-              {loading ? (
-                <div className="flex-1 flex items-center justify-center py-20 text-slate-500 text-sm gap-2">
-                  <span className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent" />
-                  Loading tools database...
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-20 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/20">
-                  <Inbox className="h-8 w-8 text-slate-600 mb-2" />
-                  <p className="text-sm font-semibold text-slate-400">No tools match your filters</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Try adjusting your search query or category filter</p>
+        {/* Analytics Tab */}
+        {activeTab === "stats" && (
+          <div className="space-y-6">
+            <div className="bg-card border rounded-2xl p-6">
+              <h2 className="font-semibold text-lg mb-4">Top Tools by Usage</h2>
+              {adminStats?.topTools?.length ? (
+                <div className="space-y-3">
+                  {adminStats.topTools.map((t, i) => (
+                    <div key={t.slug} className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground w-5 text-right">{i + 1}.</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{t.name}</span>
+                          <span className="text-sm font-mono">{t.usageCount.toLocaleString()}</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{ width: `${Math.round((t.usageCount / (adminStats.topTools[0]?.usageCount || 1)) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <Badge className={cn("text-xs border-0 w-20 justify-center", categoryColors[t.category] ?? "bg-muted")}>{t.category}</Badge>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="border border-slate-800/80 rounded-2xl overflow-hidden bg-slate-950/20 flex-1">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left border-collapse">
-                      <thead className="bg-slate-950/80 border-b border-slate-900 text-slate-400 font-semibold">
-                        <tr>
-                          <th className="px-4 py-3">Tool Name / Info</th>
-                          <th className="px-4 py-3">Category</th>
-                          <th className="px-4 py-3 text-right">Uses</th>
-                          <th className="px-4 py-3 text-center">Status</th>
-                          <th className="px-4 py-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-900/60">
-                        {filtered.map(tool => (
-                          <tr key={tool.slug} className="hover:bg-slate-900/20 text-slate-200 transition-colors">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-slate-400">
-                                  {tool.icon ? <div className="h-4 w-4 flex items-center justify-center font-bold text-[10px]">{tool.icon.substring(0,2)}</div> : <FileText className="h-4 w-4" />}
-                                </div>
-                                <div>
-                                  <div className="font-semibold text-slate-200 flex items-center gap-1.5">
-                                    {tool.name}
-                                    {tool.isFeatured && <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] px-1 py-0 justify-center">Featured</Badge>}
-                                  </div>
-                                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">/{tool.slug}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <Badge className={cn("text-[9px] border-0 px-2 py-0.5 justify-center capitalize font-semibold", 
-                                tool.category === "pdf" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                                tool.category === "image" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                                tool.category === "text" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-                                tool.category === "convert" ? "bg-violet-500/10 text-violet-400 border border-violet-500/20" :
-                                "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              )}>
-                                {tool.category}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono font-medium">{tool.usageCount.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-center">
-                              <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold", 
-                                tool.isHidden ? "bg-slate-900 text-slate-500 border border-slate-800" : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                              )}>
-                                <span className={cn("w-1 h-1 rounded-full", tool.isHidden ? "bg-slate-600" : "bg-indigo-400")} />
-                                {tool.isHidden ? "Hidden" : "Active"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-slate-900/60 rounded-lg cursor-pointer animate-none"
-                                  title={tool.isHidden ? "Publish Tool" : "Hide Tool"}
-                                  onClick={() => toggleHidden(tool)}
-                                >
-                                  {tool.isHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-slate-900/60 rounded-lg cursor-pointer animate-none"
-                                  title={tool.isFeatured ? "Unfeature Tool" : "Feature Tool"}
-                                  onClick={() => toggleFeatured(tool)}
-                                >
-                                  {tool.isFeatured ? <StarOff className="h-3.5 w-3.5" /> : <Star className="h-3.5 w-3.5" />}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 rounded-lg cursor-pointer animate-none"
-                                  title="Reset Stats"
-                                  onClick={() => handleResetStats(tool.slug)}
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-sky-400 hover:bg-slate-900/60 rounded-lg cursor-pointer animate-none"
-                                  title="Edit Info"
-                                  onClick={() => setEditingTool(tool)}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-400 hover:text-red-400 hover:bg-slate-900/60 rounded-lg cursor-pointer animate-none"
-                                  title="Delete"
-                                  onClick={() => deleteTool(tool)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="px-4 py-3 border-t border-slate-900 text-[10px] text-slate-500 font-medium">
-                    Displaying {filtered.length} of {tools.length} active toolbox utilities
-                  </div>
-                </div>
+                <p className="text-sm text-muted-foreground">No data yet. Usage is tracked when visitors use tools.</p>
               )}
             </div>
-          )}
 
-          {/* Blogs Panel Tab */}
-          {activeTab === "blogs" && (
-            <BlogsPanel token={token} onEditBlog={setEditingBlog} onAddBlog={() => setAddingBlog(true)} />
-          )}
-
-          {/* Articles Panel Tab */}
-          {activeTab === "articles" && (
-            <ArticlesPanel token={token} onEditArticle={setEditingArticle} onAddArticle={() => setAddingArticle(true)} />
-          )}
-
-          {/* Comments Panel Tab */}
-          {activeTab === "comments" && (
-            <CommentsPanel token={token} />
-          )}
-
-          {/* Ratings Panel Tab */}
-          {activeTab === "ratings" && (
-            <RatingsPanel token={token} tools={tools} />
-          )}
-
-          {/* Analytics Tab */}
-          {activeTab === "stats" && (
-            <div className="space-y-6">
-              <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-                <h2 className="font-semibold text-lg mb-4 text-slate-250">Top Tools by Usage</h2>
-                {adminStats?.topTools?.length ? (
-                  <div className="space-y-3">
-                    {adminStats.topTools.map((t, i) => (
-                      <div key={t.slug} className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500 w-5 text-right font-mono">{i + 1}.</span>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-sm font-medium text-slate-200">{t.name}</span>
-                            <span className="text-xs font-mono text-slate-400">{t.usageCount.toLocaleString()}</span>
-                          </div>
-                          <div className="h-2 bg-slate-950 border border-slate-900 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full shadow-lg shadow-indigo-500/20"
-                              style={{ width: `${Math.round((t.usageCount / (adminStats.topTools[0]?.usageCount || 1)) * 100)}%` }}
-                            />
-                          </div>
+            <div className="bg-card border rounded-2xl p-6">
+              <h2 className="font-semibold text-lg mb-4">Uses by Category</h2>
+              {adminStats?.conversionsByCategory?.length ? (
+                <div className="space-y-3">
+                  {adminStats.conversionsByCategory.sort((a, b) => b.count - a.count).map(cat => {
+                    const max = Math.max(...adminStats.conversionsByCategory.map(c => c.count));
+                    return (
+                      <div key={cat.category} className="flex items-center gap-3">
+                        <span className="text-sm capitalize w-20">{cat.category}</span>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${Math.round((cat.count / max) * 100)}%` }} />
                         </div>
-                        <Badge className="text-[10px] bg-slate-950 border border-slate-800 text-slate-400 w-20 justify-center capitalize">{t.category}</Badge>
+                        <span className="text-sm font-mono w-16 text-right">{cat.count.toLocaleString()}</span>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-500">No data yet. Usage is tracked when visitors use tools.</p>
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No category data yet.</p>
+              )}
+            </div>
+          </div>
+        )}
 
-              <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-                <h2 className="font-semibold text-lg mb-4 text-slate-250">Uses by Category</h2>
-                {adminStats?.conversionsByCategory?.length ? (
-                  <div className="space-y-3">
-                    {adminStats.conversionsByCategory.sort((a, b) => b.count - a.count).map(cat => {
-                      const max = Math.max(...adminStats.conversionsByCategory.map(c => c.count));
-                      return (
-                        <div key={cat.category} className="flex items-center gap-3">
-                          <span className="text-xs capitalize w-20 text-slate-400">{cat.category}</span>
-                          <div className="flex-1 h-2 bg-slate-950 border border-slate-900 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full shadow-lg shadow-indigo-500/20" style={{ width: `${Math.round((cat.count / max) * 100)}%` }} />
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="bg-card border rounded-2xl p-6">
+            <h2 className="font-semibold text-lg mb-5">Site Settings</h2>
+            <SettingsPanel token={token} onPasswordChange={() => handleLogout()} />
+          </div>
+        )}
+
+        {/* Ads Tab */}
+        {activeTab === "ads" && (
+          <div className="bg-card border rounded-2xl p-6">
+            <h2 className="font-semibold text-lg mb-1">Ad Settings</h2>
+            <p className="text-sm text-muted-foreground mb-6">Configure Google AdSense to monetize your site. All settings are stored in the database and take effect without a redeployment.</p>
+            <AdsPanel token={token} />
+          </div>
+        )}
+
+        {/* Contacts Tab */}
+        {activeTab === "contacts" && (
+          <div className="bg-card border rounded-2xl p-6">
+            <h2 className="font-semibold text-lg mb-1">Contact Messages</h2>
+            <p className="text-sm text-muted-foreground mb-6">Messages submitted via the Contact Us page. Click a message to expand and read it.</p>
+            <ContactsPanel token={token} />
+          </div>
+        )}
+
+        {/* SEO Tab */}
+        {activeTab === "seo" && (
+          <div className="bg-card border rounded-2xl p-6">
+            <h2 className="font-semibold text-lg mb-1">SEO &amp; Search Indexing</h2>
+            <p className="text-sm text-muted-foreground mb-6">Preview your sitemap, check SEO health, and follow the guide to get 5toolbox indexed on Google.</p>
+            <SeoPanel />
+          </div>
+        )}
+
+        {/* Tools Tab */}
+        {activeTab === "tools" && (
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            {/* Filters + Add */}
+            <div className="p-4 border-b flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search tools…"
+                className="max-w-xs"
+              />
+              <div className="flex gap-2 flex-wrap flex-1">
+                {categories.map(cat => (
+                  <Button key={cat} variant={categoryFilter === cat ? "default" : "outline"} size="sm"
+                    onClick={() => setCategoryFilter(cat)} className="capitalize">
+                    {cat}
+                  </Button>
+                ))}
+              </div>
+              <Button size="sm" onClick={() => setAddingTool(true)}>
+                <Plus className="h-4 w-4 mr-1.5" /> Add Tool
+              </Button>
+            </div>
+
+            {/* Tools Table */}
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading tools…</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No tools found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tool</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Uses</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((tool) => (
+                      <tr key={tool.slug} className={cn("border-t hover:bg-muted/20 transition-colors", tool.isHidden && "opacity-50")}>
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="font-medium">{tool.name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-xs">{tool.description}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{tool.slug}</p>
                           </div>
-                          <span className="text-xs font-mono w-16 text-right text-slate-400">{cat.count.toLocaleString()}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-500">No category data yet.</p>
-                )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={cn("text-xs border-0", categoryColors[tool.category] ?? "bg-muted text-muted-foreground")}>
+                            {tool.category}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-sm">{tool.usageCount.toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1.5 flex-wrap">
+                            {tool.isFeatured && <Badge className="bg-amber-100 text-amber-700 text-xs border-0">Featured</Badge>}
+                            {tool.isHidden && <Badge className="bg-gray-100 text-gray-600 text-xs border-0">Hidden</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title={tool.isFeatured ? "Unfeature" : "Feature"}
+                              onClick={() => toggleFeatured(tool)}>
+                              {tool.isFeatured ? <StarOff className="h-3.5 w-3.5 text-amber-500" /> : <Star className="h-3.5 w-3.5" />}
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title={tool.isHidden ? "Show" : "Hide"}
+                              onClick={() => toggleHidden(tool)}>
+                              {tool.isHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Edit"
+                              onClick={() => setEditingTool(tool)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete"
+                              onClick={() => deleteTool(tool)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+            )}
+            <div className="px-4 py-3 border-t text-xs text-muted-foreground">
+              Showing {filtered.length} of {tools.length} tools
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Settings Tab */}
-          {activeTab === "settings" && (
-            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-              <h2 className="font-semibold text-lg mb-5 text-slate-250">Site Settings</h2>
-              <SettingsPanel token={token} onPasswordChange={() => handleLogout()} />
-            </div>
-          )}
+        {/* Blogs Panel Tab */}
+        {activeTab === "blogs" && (
+          <BlogsPanel token={token} onEditBlog={setEditingBlog} onAddBlog={() => setAddingBlog(true)} />
+        )}
 
-          {/* Ads Tab */}
-          {activeTab === "ads" && (
-            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-              <h2 className="font-semibold text-lg mb-1 text-slate-250">Ad Settings</h2>
-              <p className="text-xs text-slate-500 mb-6">Configure Google AdSense slots. Stored in the database, takes effect instantly without redeploys.</p>
-              <AdsPanel token={token} />
-            </div>
-          )}
+        {/* Articles Panel Tab */}
+        {activeTab === "articles" && (
+          <ArticlesPanel token={token} onEditArticle={setEditingArticle} onAddArticle={() => setAddingArticle(true)} />
+        )}
 
-          {/* Contacts Tab */}
-          {activeTab === "contacts" && (
-            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-              <h2 className="font-semibold text-lg mb-1 text-slate-250">Contact Messages</h2>
-              <p className="text-xs text-slate-500 mb-6">Messages submitted via the Contact Us form. Click on row to read.</p>
-              <ContactsPanel token={token} />
-            </div>
-          )}
+        {/* Comments Panel Tab */}
+        {activeTab === "comments" && (
+          <CommentsPanel token={token} />
+        )}
 
-          {/* SEO Tab */}
-          {activeTab === "seo" && (
-            <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-              <h2 className="font-semibold text-lg mb-1 text-slate-250">SEO &amp; Search Indexing</h2>
-              <p className="text-xs text-slate-500 mb-6">Inspect sitemaps, verify GSC properties, and monitor indexing configurations.</p>
-              <SeoPanel />
-            </div>
-          )}
-        </section>
-      </main>
+        {/* Ratings Panel Tab */}
+        {activeTab === "ratings" && (
+          <RatingsPanel token={token} tools={tools} />
+        )}
+      </div>
+
+      {editingTool && (
+        <EditToolModal
+          tool={editingTool}
+          token={token}
+          onSave={updated => {
+            setTools(prev => prev.map(t => t.slug === updated.slug ? updated : t));
+            setEditingTool(null);
+          }}
+          onClose={() => setEditingTool(null)}
+        />
+      )}
+
+      {addingTool && (
+        <AddToolModal
+          token={token}
+          onAdd={created => {
+            setTools(prev => [...prev, created]);
+            setAddingTool(false);
+          }}
+          onClose={() => setAddingTool(false)}
+        />
+      )}
+
+      {editingBlog && (
+        <EditBlogModal
+          blog={editingBlog}
+          token={token}
+          onSave={() => {
+            setEditingBlog(null);
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+          }}
+          onClose={() => setEditingBlog(null)}
+        />
+      )}
+
+      {addingBlog && (
+        <AddBlogModal
+          token={token}
+          onAdd={() => {
+            setAddingBlog(false);
+            window.dispatchEvent(new CustomEvent("refresh-blogs"));
+          }}
+          onClose={() => setAddingBlog(false)}
+        />
+      )}
+
+      {editingArticle && (
+        <EditArticleModal
+          article={editingArticle}
+          token={token}
+          onSave={() => {
+            setEditingArticle(null);
+            window.dispatchEvent(new CustomEvent("refresh-articles"));
+          }}
+          onClose={() => setEditingArticle(null)}
+        />
+      )}
+
       {addingArticle && (
         <AddArticleModal
           token={token}
@@ -2237,9 +2157,9 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-lg">Add New Blog Post</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2268,7 +2188,7 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2278,7 +2198,7 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2294,9 +2214,9 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
-          <Button onClick={handleAdd} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Creating…" : "Add Blog Post"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Blog Post"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2346,9 +2266,9 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-lg">Edit Blog Post</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2377,7 +2297,7 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2387,7 +2307,7 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2403,9 +2323,9 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Saving…" : "Save Changes"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2455,9 +2375,9 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-lg">Add New Technical Article</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2481,7 +2401,7 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2491,7 +2411,7 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2507,9 +2427,9 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
-          <Button onClick={handleAdd} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Creating…" : "Add Article"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Article"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2558,9 +2478,9 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
-        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-lg">Edit Technical Article</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2584,7 +2504,7 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2594,7 +2514,7 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2610,9 +2530,9 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Saving…" : "Save Changes"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t">
+          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
         </div>
       </div>
     </div>
