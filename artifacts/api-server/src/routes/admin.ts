@@ -28,8 +28,9 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     }
     next();
   } catch (err) {
-    req.log.warn({ err }, "Database offline during admin authentication check, using default credential fallback");
-    if (token === "admin123") {
+    req.log.warn({ err }, "Database offline during admin authentication check, using memorySettings fallback");
+    const allowedPassword = req.app.locals.memorySettings?.admin_password ?? "admin123";
+    if (token === allowedPassword) {
       return next();
     }
     return res.status(401).json({ error: "Unauthorized" });
@@ -55,9 +56,10 @@ router.post("/admin/login", async (req, res) => {
     }
     res.json({ token: password });
   } catch (err) {
-    req.log.warn({ err }, "Database offline during login, checking against default admin123");
-    if (password === "admin123") {
-      return res.json({ token: "admin123" });
+    req.log.warn({ err }, "Database offline during login, checking against memorySettings password fallback");
+    const allowedPassword = req.app.locals.memorySettings?.admin_password ?? "admin123";
+    if (password === allowedPassword) {
+      return res.json({ token: allowedPassword });
     }
     res.status(401).json({ error: "Wrong password" });
   }

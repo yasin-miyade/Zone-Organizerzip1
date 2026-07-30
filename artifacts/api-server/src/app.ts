@@ -20,6 +20,7 @@ app.locals.memoryTools = [...defaultTools].map((t, i) => ({
 app.locals.memorySettings = {
   site_title: "5toolbox - Free Online File Tools",
   site_description: "Free browser-based file toolkit — merge PDFs, compress images, convert files, generate QR codes and more.",
+  admin_password: "admin123",
   adsense_enabled: "false",
   total_visitors: "0",
   maintenance_mode: "false",
