@@ -155,8 +155,14 @@ router.post("/tools/:toolSlug/track", async (req, res) => {
 
     res.json({ success: true, newCount: updated.newCount });
   } catch (err) {
-    req.log.warn({ err }, "Database offline or query failed, skipping usage tracking log");
-    res.json({ success: true, newCount: 0 });
+    req.log.warn({ err }, "Database offline or query failed, tracking usage in memory");
+    const existingIndex = req.app.locals.memoryTools.findIndex((t: any) => t.slug === toolSlug);
+    if (existingIndex !== -1) {
+      req.app.locals.memoryTools[existingIndex].usageCount += filesProcessed;
+      res.json({ success: true, newCount: req.app.locals.memoryTools[existingIndex].usageCount });
+    } else {
+      res.json({ success: true, newCount: filesProcessed });
+    }
   }
 });
 
