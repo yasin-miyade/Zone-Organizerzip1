@@ -370,9 +370,9 @@ function EditToolModal({ tool, token, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col text-slate-100 overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <div>
             <h2 className="font-semibold text-lg">Edit: {tool.name}</h2>
             <p className="text-xs text-muted-foreground">Manage all parameters and SEO fields for this tool.</p>
@@ -381,11 +381,11 @@ function EditToolModal({ tool, token, onSave, onClose }: {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
-          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
-          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
-          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
+        <div className="flex gap-2 px-5 py-3 border-b border-slate-800/80 bg-slate-950/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "basic" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "seo" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("content")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "content" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("details")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "details" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Details &amp; Tips</Button>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
@@ -396,7 +396,7 @@ function EditToolModal({ tool, token, onSave, onClose }: {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Category</Label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
+                  <select className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60" value={form.category} onChange={e => set("category", e.target.value)}>
                     {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -455,11 +455,11 @@ function EditToolModal({ tool, token, onSave, onClose }: {
           )}
         </div>
 
-        <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleSave} disabled={saving} className="flex-1">
+        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">
             <Save className="h-4 w-4 mr-2" />{saving ? "Saving…" : "Save Changes"}
           </Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
         </div>
       </div>
     </div>
@@ -543,9 +543,9 @@ function AddToolModal({ token, onAdd, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-card border rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <div>
             <h2 className="font-semibold text-lg">Add New Tool</h2>
             <p className="text-xs text-muted-foreground">Create a new tool and define its SEO, introduction, and FAQs.</p>
@@ -554,11 +554,11 @@ function AddToolModal({ token, onAdd, onClose }: {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex gap-1.5 px-5 py-2 border-b bg-muted/20 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <Button variant={modalTab === "basic" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className="text-xs">Basic Info</Button>
-          <Button variant={modalTab === "seo" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className="text-xs">SEO Meta</Button>
-          <Button variant={modalTab === "content" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("content")} className="text-xs">Intro &amp; FAQs</Button>
-          <Button variant={modalTab === "details" ? "secondary" : "ghost"} size="sm" onClick={() => setModalTab("details")} className="text-xs">Details &amp; Tips</Button>
+        <div className="flex gap-2 px-5 py-3 border-b border-slate-800/80 bg-slate-950/20 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Button variant={modalTab === "basic" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("basic")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "basic" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Basic Info</Button>
+          <Button variant={modalTab === "seo" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("seo")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "seo" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>SEO Meta</Button>
+          <Button variant={modalTab === "content" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("content")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "content" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Intro &amp; FAQs</Button>
+          <Button variant={modalTab === "details" ? "default" : "ghost"} size="sm" onClick={() => setModalTab("details")} className={cn("text-xs rounded-xl px-3 py-1.5 font-medium", modalTab === "details" ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "text-slate-400 hover:text-slate-200")}>Details &amp; Tips</Button>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 space-y-4">
@@ -572,7 +572,7 @@ function AddToolModal({ token, onAdd, onClose }: {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Category</Label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={e => set("category", e.target.value)}>
+                  <select className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60" value={form.category} onChange={e => set("category", e.target.value)}>
                     {["pdf", "image", "convert", "text", "calculator"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -745,7 +745,7 @@ function SettingsPanel({ token, onPasswordChange }: { token: string; onPasswordC
         <select
           value={settings.title_animation ?? "none"}
           onChange={e => set("title_animation", e.target.value)}
-          className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+          className="w-full border border-slate-800 bg-slate-950/80 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/60"
         >
           <option value="none">Static Title (No Animation)</option>
           <option value="scrolling">Scrolling Title Text</option>
@@ -2237,9 +2237,9 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <h2 className="font-semibold text-lg">Add New Blog Post</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2268,7 +2268,7 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2278,7 +2278,7 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2294,9 +2294,9 @@ function AddBlogModal({ token, onAdd, onClose }: { token: string; onAdd: () => v
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Blog Post"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Creating…" : "Add Blog Post"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2346,9 +2346,9 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <h2 className="font-semibold text-lg">Edit Blog Post</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2377,7 +2377,7 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2387,7 +2387,7 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2403,9 +2403,9 @@ function EditBlogModal({ blog, token, onSave, onClose }: { blog: any; token: str
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2455,9 +2455,9 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <h2 className="font-semibold text-lg">Add New Technical Article</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2481,7 +2481,7 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2491,7 +2491,7 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2507,9 +2507,9 @@ function AddArticleModal({ token, onAdd, onClose }: { token: string; onAdd: () =
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleAdd} disabled={saving} className="flex-1">{saving ? "Creating…" : "Add Article"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
+          <Button onClick={handleAdd} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Creating…" : "Add Article"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
         </div>
       </div>
     </div>
@@ -2558,9 +2558,9 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card border rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-slate-900/95 border border-slate-800/80 backdrop-blur-lg rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto text-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/20">
           <h2 className="font-semibold text-lg">Edit Technical Article</h2>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
@@ -2584,7 +2584,7 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
             <h3 className="font-semibold text-xs text-primary uppercase tracking-wider">Social Links</h3>
             <div className="space-y-2">
               {socialLinks.map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-muted/40 p-2 rounded-lg border">
+                <div key={idx} className="flex gap-2 items-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
                   <span className="text-xs font-semibold capitalize w-20 truncate">{link.platform}</span>
                   <span className="text-xs text-muted-foreground flex-1 truncate">{link.url}</span>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSocialLink(idx)}>
@@ -2594,7 +2594,7 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
               ))}
             </div>
             <div className="flex gap-2 items-center">
-              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border rounded-md px-2 py-1 text-xs bg-background h-8 w-24">
+              <select value={newPlatform} onChange={e => setNewPlatform(e.target.value)} className="border border-slate-800 rounded-xl px-2 py-1 text-xs bg-slate-950/80 text-slate-300 h-8 w-24 focus:outline-none focus:border-indigo-500/60">
                 <option value="facebook">Facebook</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="twitter">X (Twitter)</option>
@@ -2610,9 +2610,9 @@ function EditArticleModal({ article, token, onSave, onClose }: { article: any; t
             </div>
           </div>
         </div>
-        <div className="flex gap-3 p-5 border-t">
-          <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? "Saving…" : "Save Changes"}</Button>
-          <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+        <div className="flex gap-3 p-5 border-t border-slate-800/80 bg-slate-950/20">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 rounded-2xl text-xs py-2.5 font-semibold text-white shadow-lg shadow-indigo-500/10 cursor-pointer">{saving ? "Saving…" : "Save Changes"}</Button>
+          <Button variant="outline" onClick={onClose} className="flex-1 border-slate-800 hover:bg-slate-900/60 rounded-2xl text-xs text-slate-400 hover:text-slate-250 cursor-pointer">Cancel</Button>
         </div>
       </div>
     </div>
