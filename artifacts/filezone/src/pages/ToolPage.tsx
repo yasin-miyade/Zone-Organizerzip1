@@ -191,6 +191,7 @@ export function ToolPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [ratings, setRatings] = useState<{ average: number; count: number }>({ average: 0, count: 0 });
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [ratingError, setRatingError] = useState("");
   const [ratingSuccess, setRatingSuccess] = useState("");
 
@@ -383,20 +384,24 @@ export function ToolPage() {
 
           <div className="border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-6 flex flex-col items-start sm:items-end">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Rate this tool:</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => handleRate(star)}
-                  disabled={userRating !== null}
-                  className="text-muted hover:text-amber-500 cursor-pointer disabled:cursor-default transition-colors p-0.5 group"
-                  title={`Rate ${star} star${star > 1 ? "s" : ""}`}
-                >
-                  <Star className={cn("h-6 w-6 transition-transform group-hover:scale-110",
-                    (userRating !== null && userRating >= star) ? "fill-amber-500 text-amber-500" : ""
-                  )} />
-                </button>
-              ))}
+            <div className="flex gap-1" onMouseLeave={() => setHoveredRating(null)}>
+              {[1, 2, 3, 4, 5].map((star) => {
+                const isActive = (userRating !== null && userRating >= star) || (userRating === null && hoveredRating !== null && hoveredRating >= star);
+                return (
+                  <button
+                    key={star}
+                    onClick={() => handleRate(star)}
+                    onMouseEnter={() => userRating === null && setHoveredRating(star)}
+                    disabled={userRating !== null}
+                    className="text-muted cursor-pointer disabled:cursor-default transition-colors p-0.5"
+                    title={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                  >
+                    <Star className={cn("h-6 w-6 transition-all hover:scale-110",
+                      isActive ? "fill-amber-500 text-amber-500" : "text-muted"
+                    )} />
+                  </button>
+                );
+              })}
             </div>
             {ratingError && <p className="text-xs text-destructive mt-1.5">{ratingError}</p>}
             {ratingSuccess && <p className="text-xs text-emerald-600 mt-1.5">{ratingSuccess}</p>}
