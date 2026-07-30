@@ -28,6 +28,27 @@ app.locals.memorySettings = {
   maintenance_paths: ""
 };
 
+app.locals.memoryContacts = [
+  {
+    id: 1,
+    name: "John Doe",
+    email: "johndoe@example.com",
+    subject: "Business partnership inquiry",
+    message: "Hello 5toolbox support team,\n\nI run an online file converter platform and would love to discuss potential integration or advertising partnership opportunities with your website. Your tools are extremely fast!\n\nBest regards,\nJohn",
+    isRead: false,
+    createdAt: new Date(Date.now() - 3600000 * 2)
+  },
+  {
+    id: 2,
+    name: "Sarah Smith",
+    email: "sarah.smith@outlook.com",
+    subject: "Feature request: Excel to PDF converter",
+    message: "Hi,\n\nI really like using your PDF merge tool! Do you plan on adding an Excel to PDF converter soon? That would be incredibly helpful for my daily invoicing work.\n\nThank you!",
+    isRead: true,
+    createdAt: new Date(Date.now() - 3600000 * 24)
+  }
+];
+
 app.use(
   pinoHttp({
     logger,

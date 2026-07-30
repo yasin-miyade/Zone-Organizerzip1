@@ -70,6 +70,20 @@ router.post("/contact", async (req, res) => {
   if (!name || !email || !subject || !message) {
     return res.status(400).json({ error: "All fields are required" });
   }
+
+  // Push to memory cache
+  if (req.app.locals.memoryContacts) {
+    req.app.locals.memoryContacts.push({
+      id: req.app.locals.memoryContacts.length + 1,
+      name,
+      email,
+      subject,
+      message,
+      isRead: false,
+      createdAt: new Date()
+    });
+  }
+
   try {
     if (!db) {
       throw new Error("Database not initialized");

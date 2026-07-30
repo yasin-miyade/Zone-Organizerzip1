@@ -450,8 +450,9 @@ router.get("/admin/contacts", requireAdmin, async (req, res) => {
     const rows = await db.select().from(contactsTable).orderBy(desc(contactsTable.createdAt));
     res.json(rows);
   } catch (err) {
-    req.log.warn({ err }, "Database offline during contacts fetch, returning empty fallback list");
-    res.json([]);
+    req.log.warn({ err }, "Database offline during contacts fetch, returning fallback memoryContacts list");
+    const sorted = [...(req.app.locals.memoryContacts || [])].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json(sorted);
   }
 });
 
@@ -459,6 +460,15 @@ router.get("/admin/contacts", requireAdmin, async (req, res) => {
 router.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  // Synchronize memory cache
+  if (req.app.locals.memoryContacts) {
+    const idx = req.app.locals.memoryContacts.findIndex((c: any) => c.id === id);
+    if (idx !== -1) {
+      req.app.locals.memoryContacts[idx].isRead = true;
+    }
+  }
+
   try {
     if (!db) {
       throw new Error("Database not initialized");
@@ -475,6 +485,12 @@ router.patch("/admin/contacts/:id/read", requireAdmin, async (req, res) => {
 router.delete("/admin/contacts/:id", requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id as string, 10);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  // Synchronize memory cache
+  if (req.app.locals.memoryContacts) {
+    req.app.locals.memoryContacts = req.app.locals.memoryContacts.filter((c: any) => c.id !== id);
+  }
+
   try {
     if (!db) {
       throw new Error("Database not initialized");
