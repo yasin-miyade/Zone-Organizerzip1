@@ -106,22 +106,32 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       conversionsByCategory: Object.entries(categoryMap).map(([category, count]) => ({ category, count })),
     });
   } catch (err) {
-    req.log.warn({ err }, "Database offline during admin stats load, using fallback data");
-    const activeTools = defaultTools.filter(t => !t.isHidden);
+    req.log.warn({ err }, "Database offline during admin stats load, using fallback memoryTools & memorySettings");
+    const tools = req.app.locals.memoryTools || [];
+    const settings = req.app.locals.memorySettings || {};
+    const totalVisitors = parseInt(settings.total_visitors || "1542", 10);
+    const hiddenTools = tools.filter((t: any) => t.isHidden).length;
+    const featuredTools = tools.filter((t: any) => t.isFeatured).length;
+    const totalFilesProcessed = tools.reduce((acc: number, t: any) => acc + (t.usageCount || 0), 0) + 8430;
+    
+    const categoryMap: Record<string, number> = {};
+    for (const t of tools) {
+      categoryMap[t.category] = (categoryMap[t.category] ?? 0) + (t.usageCount || 0);
+    }
+
+    const topTools = [...tools]
+      .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
+      .slice(0, 10)
+      .map((t: any) => ({ slug: t.slug, name: t.name, category: t.category, usageCount: t.usageCount || 0 }));
+
     res.json({
-      totalFilesProcessed: 8430,
-      totalTools: defaultTools.length,
-      hiddenTools: defaultTools.filter(t => t.isHidden).length,
-      featuredTools: defaultTools.filter(t => t.isFeatured).length,
-      totalVisitors: 1542,
-      topTools: activeTools.slice(0, 10).map((t, idx) => ({ slug: t.slug, name: t.name, category: t.category, usageCount: 420 - idx * 35 })),
-      conversionsByCategory: [
-        { category: "pdf", count: 3200 },
-        { category: "image", count: 2450 },
-        { category: "convert", count: 1800 },
-        { category: "text", count: 680 },
-        { category: "calculator", count: 300 }
-      ],
+      totalFilesProcessed,
+      totalTools: tools.length,
+      hiddenTools,
+      featuredTools,
+      totalVisitors,
+      topTools,
+      conversionsByCategory: Object.entries(categoryMap).map(([category, count]) => ({ category, count })),
     });
   }
 });

@@ -42,6 +42,7 @@ if (!process.env.DATABASE_URL) {
 } else {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 1500, // Fail fast in 1.5s if DB is offline/suspended
     ssl: process.env.DATABASE_URL.includes("ssl=true")
       ? { rejectUnauthorized: false }
       : undefined,
