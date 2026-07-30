@@ -16,12 +16,12 @@
 
 1. Go to [render.com](https://render.com) → **New** → **Web Service**
 2. Connect your GitHub repository
-3. Set the **Root Directory** to `artifacts/api-server`
+3. Set the **Root Directory** to `(leave blank - do not set to artifacts/api-server)`
 4. Configure the service:
    - **Name:** `filezone-api`
    - **Runtime:** Node
-   - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `npm start`
+   - **Build Command:** `corepack enable && pnpm install && pnpm run build`
+   - **Start Command:** `node --enable-source-maps artifacts/api-server/dist/index.mjs`
    - **Plan:** Free (or Starter for production)
 
 ### Environment Variables (set in Render dashboard)
@@ -51,12 +51,12 @@ After deploy: `https://zone-organizerzip1.onrender.com`
 
 1. Go to [vercel.com](https://vercel.com) → **New Project**
 2. Import your GitHub repository
-3. Set the **Root Directory** to `artifacts/filezone`
+3. Set the **Root Directory** to `(leave blank - do not set to artifacts/filezone)`
 4. Configure:
    - **Framework Preset:** Vite
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist/public`
-   - **Install Command:** `npm install`
+   - **Build Command:** `corepack enable && pnpm install && pnpm run build`
+   - **Output Directory:** `artifacts/filezone/dist/public`
+   - **Install Command:** `corepack enable && pnpm install`
 
 ### Environment Variables (set in Vercel dashboard)
 
