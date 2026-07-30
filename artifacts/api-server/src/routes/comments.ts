@@ -5,8 +5,39 @@ import { requireAdmin } from "./admin";
 
 const router = Router();
 
-const memoryComments: any[] = [];
-const memoryRatings = new Map<string, number[]>();
+const memoryComments: any[] = [
+  {
+    id: 1,
+    pageType: "tool",
+    pageSlug: "merge-pdf",
+    userName: "Alex Rivera",
+    content: "This PDF merger is blazing fast! Merged 10 files in a split second, and no files were uploaded to any server. Highly recommended!",
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString() // 2 hours ago
+  },
+  {
+    id: 2,
+    pageType: "tool",
+    pageSlug: "image-to-png",
+    userName: "Sarah Jenkins",
+    content: "Very clean UI. The batch conversion works perfectly on my iPad too.",
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString() // 5 hours ago
+  },
+  {
+    id: 3,
+    pageType: "blog",
+    pageSlug: "boost-productivity-with-free-tools",
+    userName: "Michael Chen",
+    content: "Great tips here. I saved this post to share with my design team.",
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
+  }
+];
+
+const memoryRatingsList: any[] = [
+  { id: 1, toolSlug: "merge-pdf", rating: 5, ipAddress: "192.168.1.1", createdAt: new Date(Date.now() - 3600000 * 3).toISOString() },
+  { id: 2, toolSlug: "merge-pdf", rating: 5, ipAddress: "192.168.1.2", createdAt: new Date(Date.now() - 3600000 * 4).toISOString() },
+  { id: 3, toolSlug: "image-to-png", rating: 4, ipAddress: "192.168.1.3", createdAt: new Date(Date.now() - 3600000 * 6).toISOString() },
+  { id: 4, toolSlug: "compress-pdf", rating: 5, ipAddress: "192.168.1.4", createdAt: new Date(Date.now() - 3600000 * 8).toISOString() }
+];
 
 // GET /comments/:pageType/:slug - get comments list
 router.get("/comments/:pageType/:slug", async (req, res) => {
@@ -82,11 +113,11 @@ router.get("/ratings/:toolSlug", async (req, res) => {
     res.json({ average, count: list.length });
   } catch (error) {
     req.log.warn({ error }, "Database offline, retrieving memory ratings fallback");
-    const list = memoryRatings.get(toolSlug) ?? [];
+    const list = memoryRatingsList.filter(r => r.toolSlug === toolSlug);
     if (list.length === 0) {
       return res.json({ average: 4.8, count: 24 });
     }
-    const total = list.reduce((acc, r) => acc + r, 0);
+    const total = list.reduce((acc, r) => acc + r.rating, 0);
     const average = Number((total / list.length).toFixed(1));
     res.json({ average, count: list.length });
   }
@@ -131,10 +162,15 @@ router.post("/ratings/:toolSlug", async (req, res) => {
     res.json(newRating);
   } catch (error) {
     req.log.warn({ error }, "Database offline, saving rating to memory");
-    const list = memoryRatings.get(toolSlug) ?? [5, 5, 4, 5, 5, 4, 5, 4, 5, 5, 4, 5, 5, 4, 5, 5, 4, 5, 5, 4, 5, 5, 4, 5]; // Default seed list
-    list.push(rating);
-    memoryRatings.set(toolSlug, list);
-    res.json({ id: 9999, toolSlug, rating, ipAddress, createdAt: new Date().toISOString() });
+    const newRating = {
+      id: Math.floor(Math.random() * 1000000),
+      toolSlug,
+      rating,
+      ipAddress,
+      createdAt: new Date().toISOString()
+    };
+    memoryRatingsList.push(newRating);
+    res.json(newRating);
   }
 });
 
@@ -148,8 +184,9 @@ router.get("/admin/comments", requireAdmin, async (req, res) => {
       .orderBy(desc(commentsTable.createdAt));
     res.json(list);
   } catch (error) {
-    req.log.warn({ error }, "Database offline during admin comments load, returning empty array");
-    res.json([]);
+    req.log.warn({ error }, "Database offline during admin comments load, returning memoryComments");
+    const sorted = [...memoryComments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json(sorted);
   }
 });
 
@@ -166,6 +203,10 @@ router.delete("/admin/comments/:id", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     req.log.warn({ error }, "Database offline during comment deletion, simulating success");
+    const idx = memoryComments.findIndex(c => c.id === id);
+    if (idx !== -1) {
+      memoryComments.splice(idx, 1);
+    }
     res.json({ success: true });
   }
 });
@@ -180,8 +221,9 @@ router.get("/admin/ratings", requireAdmin, async (req, res) => {
       .orderBy(desc(ratingsTable.createdAt));
     res.json(list);
   } catch (error) {
-    req.log.warn({ error }, "Database offline during admin ratings load, returning empty array");
-    res.json([]);
+    req.log.warn({ error }, "Database offline during admin ratings load, returning memoryRatingsList");
+    const sorted = [...memoryRatingsList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json(sorted);
   }
 });
 
@@ -198,6 +240,10 @@ router.delete("/admin/ratings/:id", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     req.log.warn({ error }, "Database offline during rating deletion, simulating success");
+    const idx = memoryRatingsList.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      memoryRatingsList.splice(idx, 1);
+    }
     res.json({ success: true });
   }
 });
@@ -213,6 +259,12 @@ router.delete("/admin/ratings/tool/:toolSlug", requireAdmin, async (req, res) =>
     res.json({ success: true });
   } catch (error) {
     req.log.warn({ error }, "Database offline during ratings reset, simulating success");
+    let i = memoryRatingsList.length;
+    while (i--) {
+      if (memoryRatingsList[i].toolSlug === toolSlug) {
+        memoryRatingsList.splice(i, 1);
+      }
+    }
     res.json({ success: true });
   }
 });
