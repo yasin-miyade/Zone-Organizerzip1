@@ -420,6 +420,15 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
 // POST /admin/tools/:slug/reset-usage — reset usage count
 router.post("/admin/tools/:slug/reset-usage", requireAdmin, async (req, res) => {
   const slug = req.params.slug as string;
+  
+  // Synchronize memory cache
+  if (req.app.locals.memoryTools) {
+    const idx = req.app.locals.memoryTools.findIndex((t: any) => t.slug === slug);
+    if (idx !== -1) {
+      req.app.locals.memoryTools[idx].usageCount = 0;
+    }
+  }
+
   try {
     if (!db) {
       throw new Error("Database not initialized");
