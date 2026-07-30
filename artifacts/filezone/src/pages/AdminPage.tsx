@@ -948,18 +948,31 @@ function AdsPanel({ token }: { token: string }) {
 }
 
 // ----- Contacts Panel -----
-function ContactsPanel({ token }: { token: string }) {
+function ContactsPanel({ token, onUpdateUnreadCount }: { token: string; onUpdateUnreadCount?: (count: number) => void }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
+  async function loadContacts() {
     setLoading(true);
-    fetch(`${API}/admin/contacts`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => { setContacts(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => setLoading(false));
+    try {
+      const r = await fetch(`${API}/admin/contacts`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      const list = Array.isArray(d) ? d : [];
+      setContacts(list);
+      if (onUpdateUnreadCount) {
+        onUpdateUnreadCount(list.filter((c: any) => !c.isRead).length);
+      }
+    } catch {
+      toast({ title: "Failed to load messages", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadContacts();
   }, [token]);
 
   async function markRead(id: number) {
@@ -967,7 +980,13 @@ function ContactsPanel({ token }: { token: string }) {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
-    setContacts(prev => prev.map(c => c.id === id ? { ...c, isRead: true } : c));
+    setContacts(prev => {
+      const next = prev.map(c => c.id === id ? { ...c, isRead: true } : c);
+      if (onUpdateUnreadCount) {
+        onUpdateUnreadCount(next.filter(c => !c.isRead).length);
+      }
+      return next;
+    });
   }
 
   async function deleteContact(id: number) {
@@ -976,7 +995,13 @@ function ContactsPanel({ token }: { token: string }) {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
-    setContacts(prev => prev.filter(c => c.id !== id));
+    setContacts(prev => {
+      const next = prev.filter(c => c.id !== id);
+      if (onUpdateUnreadCount) {
+        onUpdateUnreadCount(next.filter(c => !c.isRead).length);
+      }
+      return next;
+    });
     toast({ title: "Message deleted" });
   }
 
@@ -986,12 +1011,17 @@ function ContactsPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-4">
-      {unread > 0 && (
-        <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl p-3">
-          <Inbox className="h-4 w-4 shrink-0" />
-          <span>{unread} unread message{unread > 1 ? "s" : ""}</span>
-        </div>
-      )}
+      <div className="flex justify-between items-center gap-2 mb-4">
+        <Button variant="outline" size="sm" onClick={loadContacts} className="h-8 text-xs shrink-0 cursor-pointer">
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh Messages
+        </Button>
+        {unread > 0 && (
+          <div className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1">
+            <Inbox className="h-3.5 w-3.5" />
+            <span>{unread} unread</span>
+          </div>
+        )}
+      </div>
       {contacts.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Mail className="h-10 w-10 mx-auto mb-3 opacity-30" />
@@ -1507,7 +1537,7 @@ export function AdminPage() {
           <div className="bg-card border rounded-2xl p-6">
             <h2 className="font-semibold text-lg mb-1">Contact Messages</h2>
             <p className="text-sm text-muted-foreground mb-6">Messages submitted via the Contact Us page. Click a message to expand and read it.</p>
-            <ContactsPanel token={token} />
+            <ContactsPanel token={token} onUpdateUnreadCount={setContactCount} />
           </div>
         )}
 
