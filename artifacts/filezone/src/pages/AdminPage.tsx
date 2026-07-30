@@ -142,7 +142,9 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
             {loading ? "Logging in…" : "Login"}
           </Button>
         </form>
-        {/* <p className="text-xs text-muted-foreground text-center mt-4">Default password: admin123</p> */}
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          Default password: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px] text-foreground">admin123</code>
+        </p>
       </div>
     </div>
   );
