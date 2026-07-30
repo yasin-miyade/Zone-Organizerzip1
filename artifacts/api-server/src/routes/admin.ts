@@ -133,8 +133,8 @@ router.get("/admin/tools", requireAdmin, async (req, res) => {
     const tools = await db.select().from(toolsTable).orderBy(desc(toolsTable.usageCount));
     res.json(tools);
   } catch (err) {
-    req.log.warn({ err }, "Database offline during admin tools load, using fallback defaultTools");
-    res.json(defaultTools.map(t => ({ ...t, usageCount: t.usageCount ?? 0 })));
+    req.log.warn({ err }, "Database offline during admin tools load, using fallback memoryTools");
+    res.json(req.app.locals.memoryTools);
   }
 });
 
@@ -214,7 +214,8 @@ router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
     res.json(updated);
   } catch (err) {
     req.log.warn({ err }, "Database offline during tool edit, simulating success");
-    const matched = defaultTools.find(t => t.slug === slug);
+    const existingIndex = req.app.locals.memoryTools.findIndex((t: any) => t.slug === slug);
+    const matched = existingIndex !== -1 ? req.app.locals.memoryTools[existingIndex] : defaultTools.find(t => t.slug === slug);
     if (!matched) return res.status(404).json({ error: "Tool not found" });
     const simulated = {
       ...matched,
@@ -222,6 +223,11 @@ router.put("/admin/tools/:slug", requireAdmin, async (req, res) => {
       usageCount: matched.usageCount ?? 0,
       lastUpdated: new Date()
     };
+    if (existingIndex !== -1) {
+      req.app.locals.memoryTools[existingIndex] = simulated;
+    } else {
+      req.app.locals.memoryTools.push(simulated);
+    }
     res.json(simulated);
   }
 });
@@ -237,6 +243,7 @@ router.delete("/admin/tools/:slug", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     req.log.warn({ err }, "Database offline during tool delete, simulating success");
+    req.app.locals.memoryTools = req.app.locals.memoryTools.filter((t: any) => t.slug !== slug);
     res.json({ success: true });
   }
 });
@@ -346,6 +353,7 @@ router.post("/admin/tools", requireAdmin, async (req, res) => {
       createdAt: new Date(),
       lastUpdated: new Date()
     };
+    req.app.locals.memoryTools.push(simulated);
     res.status(201).json(simulated);
   }
 });
@@ -365,13 +373,8 @@ router.get("/admin/settings", requireAdmin, async (req, res) => {
     }
     res.json(map);
   } catch (err) {
-    req.log.warn({ err }, "Database offline during settings lookup, returning fallback defaults");
-    res.json({
-      site_title: "5toolbox - Free Online File Tools",
-      site_description: "Free browser-based file toolkit — merge PDFs, compress images, convert files, generate QR codes and more.",
-      adsense_enabled: "false",
-      total_visitors: "0",
-    });
+    req.log.warn({ err }, "Database offline during settings lookup, returning fallback memorySettings");
+    res.json(req.app.locals.memorySettings);
   }
 });
 
@@ -394,7 +397,11 @@ router.put("/admin/settings", requireAdmin, async (req, res) => {
     res.json(map);
   } catch (err) {
     req.log.warn({ err }, "Database offline during settings update, returning mock updated settings");
-    res.json(body);
+    req.app.locals.memorySettings = {
+      ...req.app.locals.memorySettings,
+      ...body
+    };
+    res.json(req.app.locals.memorySettings);
   }
 });
 

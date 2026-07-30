@@ -5,6 +5,27 @@ import { requireAdmin } from "./admin";
 
 const router = Router();
 
+// In-memory fallback stores for offline mode operation (persists during process lifetime)
+let memoryBlogs: any[] = [...defaultBlogs].map((b, i) => ({
+  ...b,
+  id: i + 1,
+  publishedAt: new Date(),
+  updatedAt: new Date(),
+  views: 0,
+  likes: 0,
+  bookmarks: 0,
+  socialLinks: (b as any).socialLinks || []
+}));
+
+let memoryArticles: any[] = [...defaultArticles].map((a, i) => ({
+  ...a,
+  id: i + 1,
+  publishedAt: new Date(),
+  updatedAt: new Date(),
+  views: 0,
+  socialLinks: (a as any).socialLinks || []
+}));
+
 // ================= PUBLIC ROUTES =================
 
 // GET /blogs - list all blogs
@@ -18,7 +39,7 @@ router.get("/blogs", async (req, res) => {
     res.json(list);
   } catch (error) {
     req.log.warn({ error }, "Database offline or query failed, falling back to static defaultBlogs");
-    res.json(defaultBlogs);
+    res.json(memoryBlogs);
   }
 });
 
@@ -33,7 +54,7 @@ router.get("/articles", async (req, res) => {
     res.json(list);
   } catch (error) {
     req.log.warn({ error }, "Database offline or query failed, falling back to static defaultArticles");
-    res.json(defaultArticles);
+    res.json(memoryArticles);
   }
 });
 
@@ -61,12 +82,14 @@ router.get("/blogs/:slug", async (req, res) => {
 
     res.json({ ...blog, views: blog.views + 1 });
   } catch (error) {
-    req.log.warn({ error }, "Database offline or query failed, falling back to static blog lookup");
-    const matchedBlog = defaultBlogs.find((b) => b.slug === slug);
-    if (!matchedBlog) {
+    req.log.warn({ error }, "Database offline or query failed, falling back to memory blog lookup");
+    const existingIndex = memoryBlogs.findIndex((b) => b.slug === slug);
+    if (existingIndex === -1) {
       return res.status(404).json({ error: "Blog post not found" });
     }
-    res.json(matchedBlog);
+    const blog = memoryBlogs[existingIndex];
+    blog.views += 1;
+    res.json(blog);
   }
 });
 
@@ -92,12 +115,14 @@ router.get("/articles/:slug", async (req, res) => {
 
     res.json({ ...article, views: article.views + 1 });
   } catch (error) {
-    req.log.warn({ error }, "Database offline or query failed, falling back to static article lookup");
-    const matchedArticle = defaultArticles.find((a) => a.slug === slug);
-    if (!matchedArticle) {
+    req.log.warn({ error }, "Database offline or query failed, falling back to memory article lookup");
+    const existingIndex = memoryArticles.findIndex((a) => a.slug === slug);
+    if (existingIndex === -1) {
       return res.status(404).json({ error: "Article not found" });
     }
-    res.json(matchedArticle);
+    const article = memoryArticles[existingIndex];
+    article.views += 1;
+    res.json(article);
   }
 });
 
@@ -125,9 +150,12 @@ router.post("/blogs/:slug/like", async (req, res) => {
     res.json({ likes: updated.likes });
   } catch (error) {
     req.log.warn({ error }, "Database offline or query failed, simulating blog like count increment");
-    const matchedBlog = defaultBlogs.find((b) => b.slug === slug);
-    const currentLikes = matchedBlog ? (matchedBlog.likes ?? 0) : 0;
-    res.json({ likes: currentLikes + 1 });
+    const existingIndex = memoryBlogs.findIndex((b) => b.slug === slug);
+    if (existingIndex === -1) {
+      return res.json({ likes: 1 });
+    }
+    memoryBlogs[existingIndex].likes += 1;
+    res.json({ likes: memoryBlogs[existingIndex].likes });
   }
 });
 
@@ -146,7 +174,7 @@ router.get("/admin/blogs", requireAdmin, async (req, res) => {
     res.json(list);
   } catch (error) {
     req.log.warn({ error }, "Database offline during admin blogs load, using fallback defaultBlogs");
-    res.json(defaultBlogs);
+    res.json(memoryBlogs);
   }
 });
 
@@ -192,6 +220,7 @@ router.post("/admin/blogs", requireAdmin, async (req, res) => {
       publishedAt: new Date(),
       updatedAt: new Date()
     };
+    memoryBlogs.push(simulated);
     res.json(simulated);
   }
 });
@@ -226,7 +255,10 @@ router.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
     res.json(updated);
   } catch (error) {
     req.log.warn({ error }, "Database offline during blog update, simulating success");
+    const existingIndex = memoryBlogs.findIndex(b => b.id === id);
+    const existing = existingIndex !== -1 ? memoryBlogs[existingIndex] : {};
     const simulated = {
+      ...existing,
       id,
       slug,
       title,
@@ -240,9 +272,14 @@ router.put("/admin/blogs/:id", requireAdmin, async (req, res) => {
       tags: tags || [],
       category: category || "General",
       socialLinks: socialLinks || [],
-      publishedAt: new Date(),
+      publishedAt: existing.publishedAt || new Date(),
       updatedAt: new Date()
     };
+    if (existingIndex !== -1) {
+      memoryBlogs[existingIndex] = simulated;
+    } else {
+      memoryBlogs.push(simulated);
+    }
     res.json(simulated);
   }
 });
@@ -260,6 +297,7 @@ router.delete("/admin/blogs/:id", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     req.log.warn({ error }, "Database offline during blog delete, simulating success");
+    memoryBlogs = memoryBlogs.filter(b => b.id !== id);
     res.json({ success: true });
   }
 });
@@ -275,7 +313,7 @@ router.get("/admin/articles", requireAdmin, async (req, res) => {
     res.json(list);
   } catch (error) {
     req.log.warn({ error }, "Database offline during admin articles load, using fallback defaultArticles");
-    res.json(defaultArticles);
+    res.json(memoryArticles);
   }
 });
 
@@ -315,6 +353,7 @@ router.post("/admin/articles", requireAdmin, async (req, res) => {
       publishedAt: new Date(),
       updatedAt: new Date()
     };
+    memoryArticles.push(simulated);
     res.json(simulated);
   }
 });
@@ -346,7 +385,10 @@ router.put("/admin/articles/:id", requireAdmin, async (req, res) => {
     res.json(updated);
   } catch (error) {
     req.log.warn({ error }, "Database offline during article update, simulating success");
+    const existingIndex = memoryArticles.findIndex(a => a.id === id);
+    const existing = existingIndex !== -1 ? memoryArticles[existingIndex] : {};
     const simulated = {
+      ...existing,
       id,
       slug,
       title,
@@ -357,9 +399,14 @@ router.put("/admin/articles/:id", requireAdmin, async (req, res) => {
       authorName: authorName || "5toolbox Team",
       readTime: Number(readTime) || 5,
       socialLinks: socialLinks || [],
-      publishedAt: new Date(),
+      publishedAt: existing.publishedAt || new Date(),
       updatedAt: new Date()
     };
+    if (existingIndex !== -1) {
+      memoryArticles[existingIndex] = simulated;
+    } else {
+      memoryArticles.push(simulated);
+    }
     res.json(simulated);
   }
 });
@@ -377,6 +424,7 @@ router.delete("/admin/articles/:id", requireAdmin, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     req.log.warn({ error }, "Database offline during article deletion, simulating success");
+    memoryArticles = memoryArticles.filter(a => a.id !== id);
     res.json({ success: true });
   }
 });

@@ -5,8 +5,27 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import path from "path";
 import fs from "fs";
+import { defaultTools } from "@workspace/db";
 
 const app: Express = express();
+
+app.locals.memoryTools = [...defaultTools].map((t, i) => ({
+  ...t,
+  id: i + 1,
+  usageCount: t.usageCount ?? 0,
+  createdAt: new Date(),
+  lastUpdated: new Date()
+}));
+
+app.locals.memorySettings = {
+  site_title: "5toolbox - Free Online File Tools",
+  site_description: "Free browser-based file toolkit — merge PDFs, compress images, convert files, generate QR codes and more.",
+  adsense_enabled: "false",
+  total_visitors: "0",
+  maintenance_mode: "false",
+  maintenance_message: "We're performing scheduled maintenance. Back soon!",
+  maintenance_paths: ""
+};
 
 app.use(
   pinoHttp({

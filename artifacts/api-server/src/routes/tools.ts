@@ -17,10 +17,10 @@ router.get("/tools", async (req, res) => {
       .orderBy(desc(toolsTable.usageCount));
     res.json(tools);
   } catch (err) {
-    req.log.warn({ err }, "Database offline or query failed, falling back to static defaultTools");
-    const activeTools = defaultTools
-      .filter((t) => !t.isHidden)
-      .map((t) => ({ ...t, usageCount: t.usageCount ?? 0 }));
+    req.log.warn({ err }, "Database offline or query failed, falling back to memoryTools lookup");
+    const activeTools = (req.app.locals.memoryTools || [])
+      .filter((t: any) => !t.isHidden)
+      .map((t: any) => ({ ...t, usageCount: t.usageCount ?? 0 }));
     res.json(activeTools);
   }
 });
@@ -47,12 +47,12 @@ router.get("/tools/stats", async (req, res) => {
 
     res.json({ totalConversions, totalTools: tools.length, topTools, conversionsByCategory });
   } catch (err) {
-    req.log.warn({ err }, "Database offline or query failed, falling back to static stats");
-    const activeTools = defaultTools.filter((t) => !t.isHidden);
+    req.log.warn({ err }, "Database offline or query failed, falling back to memoryTools stats");
+    const activeTools = (req.app.locals.memoryTools || []).filter((t: any) => !t.isHidden);
     res.json({
       totalConversions: 8430,
       totalTools: activeTools.length,
-      topTools: activeTools.slice(0, 6).map((t, idx) => ({ ...t, usageCount: 380 - idx * 45 })),
+      topTools: activeTools.slice(0, 6).map((t: any, idx: number) => ({ ...t, usageCount: 380 - idx * 45 })),
       conversionsByCategory: [
         { category: "pdf", count: 3200 },
         { category: "image", count: 2450 },
@@ -177,12 +177,12 @@ router.get("/tools/:toolSlug", async (req, res) => {
     if (!tool) return res.status(404).json({ error: "Tool not found" });
     res.json(tool);
   } catch (err) {
-    req.log.warn({ err }, "Database offline or query failed, falling back to static tool lookup");
-    const matchedTool = defaultTools.find((t) => t.slug === toolSlug);
+    req.log.warn({ err }, "Database offline or query failed, falling back to memoryTools lookup");
+    const matchedTool = (req.app.locals.memoryTools || []).find((t: any) => t.slug === toolSlug);
     if (!matchedTool) {
       return res.status(404).json({ error: "Tool not found" });
     }
-    res.json({ ...matchedTool, usageCount: 0 });
+    res.json(matchedTool);
   }
 });
 

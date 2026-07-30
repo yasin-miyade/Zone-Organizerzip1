@@ -63,13 +63,17 @@ async function runTests() {
     { name: "Ratings Post", url: "http://localhost:8099/api/ratings/merge-pdf", method: "POST", status: 200, body: { rating: 5 } },
     { name: "Contact Form Submit", url: "http://localhost:8099/api/contact", method: "POST", status: 200, body: { name: "Test User", email: "test@example.com", subject: "Test", message: "Hello world" } },
     { name: "Clipboard Save", url: "http://localhost:8099/api/clipboard", method: "POST", status: 200, body: { content: "Test Clipboard Content" } },
+    { name: "Admin Settings Update", url: "http://localhost:8099/api/admin/settings", method: "PUT", status: 200, headers: { Authorization: "Bearer admin123" }, body: { site_title: "Updated Title" } },
+    { name: "Admin Tool Update", url: "http://localhost:8099/api/admin/tools/merge-pdf", method: "PUT", status: 200, headers: { Authorization: "Bearer admin123" }, body: { name: "Merged PDF Custom" } },
+    { name: "Admin Blog Update", url: "http://localhost:8099/api/admin/blogs/1", method: "PUT", status: 200, headers: { Authorization: "Bearer admin123" }, body: { slug: "test-blog", title: "Updated Blog", content: "Some content", summary: "summary" } },
+    { name: "Admin Article Update", url: "http://localhost:8099/api/admin/articles/1", method: "PUT", status: 200, headers: { Authorization: "Bearer admin123" }, body: { slug: "test-article", title: "Updated Article", content: "Some content", summary: "summary" } },
   ];
 
   for (const t of tests) {
     try {
       const options = {
         method: t.method,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json", ...(t.headers || {}) }
       };
       if (t.body) {
         options.body = JSON.stringify(t.body);
@@ -93,3 +97,4 @@ async function runTests() {
   console.log("\nAll integration checks complete. Stopping server...");
   child.kill();
 }
+
